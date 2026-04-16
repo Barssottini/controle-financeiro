@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinControl - Controle Financeiro</title>
+    <title>Controle Financeiro</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <!-- ==================== SIDEBAR ==================== -->
     <aside class="sidebar">
         <div class="sidebar-header">
-            <h1>💰 FinControl</h1>
-            <button class="menu-close" onclick="closeSidebar()">✕</button>
+            <h1 class="logo">💰 FinControl</h1>
         </div>
-
-        <nav class="sidebar-menu">
+        
+        <nav class="sidebar-nav">
             <a href="#" class="menu-item active" onclick="showPage('dashboard')">
                 <span class="menu-icon">📊</span>
                 <span class="menu-text">Dashboard</span>
@@ -23,92 +22,92 @@
                 <span class="menu-icon">💳</span>
                 <span class="menu-text">Transações</span>
             </a>
+            <a href="#" class="menu-item" onclick="showPage('open-banking')">
+                <span class="menu-icon">🏦</span>
+                <span class="menu-text">Open Banking</span>
+            </a>
         </nav>
     </aside>
 
-    <div class="sidebar-overlay" onclick="closeSidebar()"></div>
-
     <!-- ==================== MAIN CONTENT ==================== -->
     <main class="main-content">
-        <!-- Top Bar -->
-        <div class="top-bar">
-            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-            <h2 id="page-title">Dashboard</h2>
-        </div>
-
         <!-- ==================== DASHBOARD PAGE ==================== -->
         <div class="page active" id="dashboard">
+            <div class="page-header">
+                <h2 class="page-title">Dashboard</h2>
+                <button class="btn btn-primary" onclick="openModal('transaction-modal')">
+                    ➕ Nova Transação
+                </button>
+            </div>
+
             <!-- Cards de Resumo -->
-            <div class="cards-grid">
-                <div class="card">
-                    <div class="card-header">
-                        <span>💰 Receitas</span>
+            <div class="summary-cards">
+                <div class="summary-card income">
+                    <div class="card-icon">💰</div>
+                    <div class="card-info">
+                        <span class="card-label">Receitas</span>
+                        <h3 class="card-value" id="total-income">R$ 0,00</h3>
                     </div>
-                    <div class="card-value income" id="total-income">R$ 0,00</div>
                 </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <span>💸 Despesas</span>
+                <div class="summary-card expense">
+                    <div class="card-icon">💸</div>
+                    <div class="card-info">
+                        <span class="card-label">Despesas</span>
+                        <h3 class="card-value" id="total-expense">R$ 0,00</h3>
                     </div>
-                    <div class="card-value expense" id="total-expenses">R$ 0,00</div>
                 </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <span>💵 Saldo</span>
+                <div class="summary-card balance">
+                    <div class="card-icon">📈</div>
+                    <div class="card-info">
+                        <span class="card-label">Saldo</span>
+                        <h3 class="card-value" id="total-balance">R$ 0,00</h3>
                     </div>
-                    <div class="card-value" id="balance">R$ 0,00</div>
                 </div>
             </div>
 
-            <!-- Botão Nova Transação -->
-            <button class="btn btn-primary btn-large" onclick="openModal('transaction-modal')">
-                ➕ Nova Transação
-            </button>
-
-            <!-- Transações Recentes -->
+            <!-- Últimas Transações -->
             <div class="card">
-                <div class="card-header">
-                    <h3>📋 Transações Recentes</h3>
+                <div class="card-title-row">
+                    <h3>Últimas Transações</h3>
+                    <a href="#" class="link" onclick="showPage('transactions')">Ver todas →</a>
                 </div>
-                <div id="recent-transactions">
-                    <div class="empty-state">
-                        <span class="empty-icon">📝</span>
-                        <p>Nenhuma transação ainda</p>
-                    </div>
-                </div>
+                <div id="recent-transactions"></div>
             </div>
         </div>
 
         <!-- ==================== TRANSACTIONS PAGE ==================== -->
         <div class="page" id="transactions">
-            <button class="btn btn-primary btn-large" onclick="openModal('transaction-modal')">
-                ➕ Nova Transação
-            </button>
+            <div class="page-header">
+                <h2 class="page-title">Transações</h2>
+                <button class="btn btn-primary" onclick="openModal('transaction-modal')">
+                    ➕ Nova Transação
+                </button>
+            </div>
 
             <!-- Filtros -->
             <div class="card">
-                <div class="filters-bar">
-                    <input type="text" id="search" class="input-field" placeholder="🔍 Buscar..." onkeyup="applyFilters()">
+                <div class="filters">
+                    <input type="text" id="search-input" class="input-field" placeholder="🔍 Buscar transação..." onkeyup="filterTransactions()">
                     
-                    <select id="filter-type" class="input-field" onchange="applyFilters()">
-                        <option value="all">Todos os tipos</option>
+                    <select id="filter-type" class="input-field" onchange="filterTransactions()">
+                        <option value="">Todos os tipos</option>
                         <option value="income">Receitas</option>
                         <option value="expense">Despesas</option>
                     </select>
-                    
-                    <select id="filter-category" class="input-field" onchange="applyFilters()">
-                        <option value="all">Todas categorias</option>
+
+                    <select id="filter-category" class="input-field" onchange="filterTransactions()">
+                        <option value="">Todas categorias</option>
                         <option value="Salário">Salário</option>
                         <option value="Freelance">Freelance</option>
                         <option value="Investimentos">Investimentos</option>
                         <option value="Alimentação">Alimentação</option>
                         <option value="Transporte">Transporte</option>
                         <option value="Moradia">Moradia</option>
+                        <option value="Lazer">Lazer</option>
                         <option value="Saúde">Saúde</option>
                         <option value="Educação">Educação</option>
-                        <option value="Lazer">Lazer</option>
                         <option value="Outros">Outros</option>
                     </select>
                 </div>
@@ -116,12 +115,45 @@
 
             <!-- Lista de Transações -->
             <div class="card">
-                <div id="transactions-list">
+                <div id="transactions-list"></div>
+            </div>
+        </div>
+
+        <!-- ==================== OPEN BANKING PAGE ==================== -->
+        <div class="page" id="open-banking">
+            <div class="page-header">
+                <h2 class="page-title">Open Banking</h2>
+            </div>
+
+            <div class="card">
+                <div class="card-title-row">
+                    <h3>🏦 Contas Conectadas</h3>
+                    <button class="btn btn-primary" onclick="openModal('bank-selection-modal')">
+                        ➕ Adicionar Banco
+                    </button>
+                </div>
+
+                <!-- Contas Conectadas -->
+                <div id="connected-accounts">
                     <div class="empty-state">
-                        <span class="empty-icon">🔍</span>
-                        <p>Nenhuma transação encontrada</p>
+                        <span class="empty-icon">🏦</span>
+                        <p>Nenhuma conta conectada ainda</p>
+                        <button class="btn btn-primary" onclick="openModal('bank-selection-modal')" style="margin-top: 16px;">
+                            Conectar meu banco
+                        </button>
                     </div>
                 </div>
+            </div>
+
+            <!-- Transações Importadas -->
+            <div class="card" id="imported-section" style="display: none;">
+                <div class="card-title-row">
+                    <h3>📥 Transações Importadas</h3>
+                    <button class="btn btn-secondary btn-small" onclick="syncTransactions()">
+                        🔄 Sincronizar
+                    </button>
+                </div>
+                <div id="imported-transactions"></div>
             </div>
         </div>
     </main>
@@ -134,66 +166,117 @@
                 <button class="modal-close" onclick="closeModal('transaction-modal')">✕</button>
             </div>
             
-            <form id="transaction-form" onsubmit="saveTransaction(event)">
-                <input type="hidden" id="transaction-id">
-                <input type="hidden" id="transaction-type" value="expense">
-                
-                <!-- Toggle Tipo -->
-                <div class="type-toggle">
-                    <button type="button" class="type-btn expense active" onclick="setTransactionType('expense')">
-                        💸 Despesa
-                    </button>
-                    <button type="button" class="type-btn income" onclick="setTransactionType('income')">
-                        💰 Receita
-                    </button>
+            <form onsubmit="saveTransaction(event)">
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <div class="toggle-group">
+                        <label class="toggle-option">
+                            <input type="radio" name="type" value="income" checked>
+                            <span>💰 Receita</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="type" value="expense">
+                            <span>💸 Despesa</span>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="description">Descrição *</label>
-                    <input type="text" id="description" class="input-field" placeholder="Ex: Compra no supermercado" required>
+                    <label>Descrição</label>
+                    <input type="text" id="description" class="input-field" placeholder="Ex: Salário, Aluguel..." required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Valor</label>
+                        <input type="number" id="amount" class="input-field" placeholder="0,00" step="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Data</label>
+                        <input type="date" id="date" class="input-field" required>
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="amount">Valor *</label>
-                    <input type="number" id="amount" class="input-field" placeholder="0,00" step="0.01" min="0" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="category">Categoria *</label>
+                    <label>Categoria</label>
                     <select id="category" class="input-field" required>
                         <option value="">Selecione...</option>
                         <optgroup label="Receitas">
                             <option value="Salário">Salário</option>
                             <option value="Freelance">Freelance</option>
                             <option value="Investimentos">Investimentos</option>
-                            <option value="Outros">Outros</option>
                         </optgroup>
                         <optgroup label="Despesas">
                             <option value="Alimentação">Alimentação</option>
                             <option value="Transporte">Transporte</option>
                             <option value="Moradia">Moradia</option>
+                            <option value="Lazer">Lazer</option>
                             <option value="Saúde">Saúde</option>
                             <option value="Educação">Educação</option>
-                            <option value="Lazer">Lazer</option>
-                            <option value="Outros">Outros</option>
                         </optgroup>
+                        <option value="Outros">Outros</option>
                     </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="date">Data *</label>
-                    <input type="date" id="date" class="input-field" required>
                 </div>
 
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('transaction-modal')">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">💾 Salvar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- SCRIPT PRINCIPAL -->
+    <!-- ==================== MODAL SELEÇÃO DE BANCO ==================== -->
+    <div class="modal-overlay" id="bank-selection-modal">
+        <div class="modal modal-large">
+            <div class="modal-header">
+                <h2>🏦 Selecione seu Banco</h2>
+                <button class="modal-close" onclick="closeModal('bank-selection-modal')">✕</button>
+            </div>
+            
+            <div style="padding: 24px;">
+                <input type="text" id="bank-search" class="input-field" placeholder="🔍 Buscar banco..." onkeyup="filterBanks()" style="margin-bottom: 20px;">
+                
+                <div id="banks-list" class="banks-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL AUTENTICAÇÃO ==================== -->
+    <div class="modal-overlay" id="bank-auth-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span id="auth-bank-logo" style="font-size: 24px;"></span>
+                    <h2 id="auth-bank-name">Banco</h2>
+                </div>
+                <button class="modal-close" onclick="closeModal('bank-auth-modal')">✕</button>
+            </div>
+            
+            <form onsubmit="authenticateBank(event)" style="padding: 24px;">
+                <p style="color: var(--text-light); font-size: 13px; margin-bottom: 20px;">
+                    🔒 Seus dados são protegidos e criptografados
+                </p>
+
+                <div class="form-group">
+                    <label>Agência</label>
+                    <input type="text" id="agency" class="input-field" placeholder="0000" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Conta</label>
+                    <input type="text" id="account" class="input-field" placeholder="00000-0" required>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('bank-auth-modal')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">🔗 Conectar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
