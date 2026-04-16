@@ -1,0 +1,325 @@
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 FinControl - Controle Financeiro</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">💰</span>
+                    <span class="logo-text">FinControl</span>
+                </div>
+                <button class="menu-close" id="menuClose">✕</button>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-page="dashboard">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-page="transactions">
+                    <span class="nav-icon">📋</span>
+                    <span>Transações</span>
+                </button>
+                <button class="nav-item" data-page="recurring">
+                    <span class="nav-icon">🔄</span>
+                    <span>Recorrentes</span>
+                </button>
+                <button class="nav-item" data-page="goals">
+                    <span class="nav-icon">🎯</span>
+                    <span>Metas</span>
+                </button>
+                <button class="nav-item" data-page="reports">
+                    <span class="nav-icon">📈</span>
+                    <span>Relatórios</span>
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn btn-outline btn-block" id="exportBtn">📥 Exportar</button>
+                <button class="btn btn-outline btn-block" id="importBtn">📤 Importar</button>
+                <input type="file" id="importFile" accept=".json" style="display:none">
+            </div>
+        </aside>
+
+        <!-- Overlay mobile -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="top-left">
+                    <button class="menu-toggle" id="menuToggle">☰</button>
+                    <div>
+                        <h1 id="pageTitle">Dashboard</h1>
+                        <span class="current-date" id="currentDate"></span>
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="quickAddBtn">+ Nova Transação</button>
+            </header>
+
+            <!-- ==================== DASHBOARD ==================== -->
+            <section class="page active" id="page-dashboard">
+                <div class="cards-grid">
+                    <div class="summary-card card-balance">
+                        <div class="summary-icon">💳</div>
+                        <div class="summary-info">
+                            <span class="summary-label">Saldo Atual</span>
+                            <span class="summary-value" id="totalBalance">R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div class="summary-card card-income">
+                        <div class="summary-icon">📈</div>
+                        <div class="summary-info">
+                            <span class="summary-label">Receitas do Mês</span>
+                            <span class="summary-value" id="totalIncome">R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div class="summary-card card-expense">
+                        <div class="summary-icon">📉</div>
+                        <div class="summary-info">
+                            <span class="summary-label">Despesas do Mês</span>
+                            <span class="summary-value" id="totalExpense">R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div class="summary-card card-savings">
+                        <div class="summary-icon">🐷</div>
+                        <div class="summary-info">
+                            <span class="summary-label">Economia do Mês</span>
+                            <span class="summary-value" id="totalSavings">R$ 0,00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráficos -->
+                <div class="charts-row">
+                    <div class="card chart-card">
+                        <h3>🍩 Despesas por Categoria</h3>
+                        <div class="donut-chart" id="categoryChart">
+                            <div class="donut-empty">Sem dados ainda</div>
+                        </div>
+                        <div class="chart-legend" id="categoryLegend"></div>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>📊 Últimos 6 Meses</h3>
+                        <div class="bar-chart" id="monthlyChart">
+                            <div class="donut-empty">Sem dados ainda</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alertas -->
+                <div class="card" id="alertsCard" style="display:none">
+                    <h3>⚠️ Alertas</h3>
+                    <div id="alertsList"></div>
+                </div>
+
+                <!-- Transações Recentes -->
+                <div class="card">
+                    <div class="card-title-row">
+                        <h3>🕐 Transações Recentes</h3>
+                    </div>
+                    <div id="recentTransactions">
+                        <div class="empty-state">
+                            <span class="empty-icon">📭</span>
+                            <p>Nenhuma transação ainda. Comece adicionando!</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TRANSAÇÕES ==================== -->
+            <section class="page" id="page-transactions">
+                <div class="filters-bar">
+                    <input type="text" id="searchTransaction" placeholder="🔍 Buscar..." class="input-field">
+                    <select id="filterType" class="input-field">
+                        <option value="all">Todos</option>
+                        <option value="income">Receitas</option>
+                        <option value="expense">Despesas</option>
+                    </select>
+                    <select id="filterCategory" class="input-field">
+                        <option value="all">Todas categorias</option>
+                    </select>
+                    <input type="month" id="filterMonth" class="input-field">
+                </div>
+                <div class="card">
+                    <div class="card-title-row">
+                        <h3>📋 Transações</h3>
+                        <span class="badge" id="transactionCount">0</span>
+                    </div>
+                    <div id="allTransactions">
+                        <div class="empty-state">
+                            <span class="empty-icon">📭</span>
+                            <p>Nenhuma transação encontrada</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== RECORRENTES ==================== -->
+            <section class="page" id="page-recurring">
+                <div class="card">
+                    <div class="card-title-row">
+                        <h3>🔄 Transações Recorrentes</h3>
+                        <button class="btn btn-primary" id="addRecurringBtn">+ Adicionar</button>
+                    </div>
+                    <p class="subtitle">São lançadas automaticamente todo mês.</p>
+                    <div id="recurringList">
+                        <div class="empty-state">
+                            <span class="empty-icon">🔄</span>
+                            <p>Nenhuma transação recorrente cadastrada</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== METAS ==================== -->
+            <section class="page" id="page-goals">
+                <div class="card">
+                    <div class="card-title-row">
+                        <h3>🎯 Minhas Metas Mensais</h3>
+                        <button class="btn btn-primary" id="addGoalBtn">+ Nova Meta</button>
+                    </div>
+                    <p class="subtitle">Defina limites de gasto por categoria.</p>
+                    <div id="goalsList">
+                        <div class="empty-state">
+                            <span class="empty-icon">🎯</span>
+                            <p>Nenhuma meta definida</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== RELATÓRIOS ==================== -->
+            <section class="page" id="page-reports">
+                <div class="filters-bar">
+                    <select id="reportPeriod" class="input-field">
+                        <option value="3" selected>Últimos 3 meses</option>
+                        <option value="6">Últimos 6 meses</option>
+                        <option value="12">Último ano</option>
+                    </select>
+                </div>
+                <div class="cards-grid">
+                    <div class="summary-card">
+                        <div class="summary-icon">💰</div>
+                        <div class="summary-info">
+                            <span class="summary-label">Média Receitas/mês</span>
+                            <span class="summary-value" id="avgIncome">R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon">💸</div>
+                        <div class="summary-info">
+                            <span class="summary-label">Média Despesas/mês</span>
+                            <span class="summary-value" id="avgExpense">R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon">🔥</div>
+                        <div class="summary-info">
+                            <span class="summary-label">Maior Despesa</span>
+                            <span class="summary-value" id="biggestExpense">R$ 0,00</span>
+                            <span class="summary-sub" id="biggestExpenseDesc">-</span>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-icon">🏆</div>
+                        <div class="summary-info">
+                            <span class="summary-label">Categoria + Gasta</span>
+                            <span class="summary-value" id="topCategory">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>📊 Detalhamento por Categoria</h3>
+                    <div id="reportCategoryDetail">
+                        <div class="empty-state">
+                            <span class="empty-icon">📊</span>
+                            <p>Sem dados suficientes</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ==================== MODAL TRANSAÇÃO ==================== -->
+    <div class="modal-overlay" id="transactionModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Nova Transação</h2>
+                <button class="modal-close" id="modalClose">✕</button>
+            </div>
+            <form id="transactionForm">
+                <input type="hidden" id="transactionId">
+                <div class="type-toggle">
+                    <button type="button" class="type-btn expense active" data-type="expense">💸 Despesa</button>
+                    <button type="button" class="type-btn income" data-type="income">💚 Receita</button>
+                </div>
+                <div class="form-group">
+                    <label>Descrição *</label>
+                    <input type="text" id="transDescription" class="input-field" placeholder="Ex: Supermercado" required list="suggestions">
+                    <datalist id="suggestions"></datalist>
+                </div>
+                <div class="form-group">
+                    <label>Valor *</label>
+                    <input type="text" id="transValue" class="input-field" placeholder="0,00" required>
+                </div>
+                <div class="form-group">
+                    <label>Categoria *</label>
+                    <select id="transCategory" class="input-field" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Data *</label>
+                    <input type="date" id="transDate" class="input-field" required>
+                </div>
+                <div class="form-group">
+                    <label>Observação</label>
+                    <input type="text" id="transNote" class="input-field" placeholder="Opcional...">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelTransaction">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">💾 Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL RECORRENTE ==================== -->
+    <div class="modal-overlay" id="recurringModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Nova Transação Recorrente</h2>
+                <button class="modal-close" id="recurringModalClose">✕</button>
+            </div>
+            <form id="recurringForm">
+                <input type="hidden" id="recurringId">
+                <div class="type-toggle">
+                    <button type="button" class="type-btn expense active" data-type="expense" data-form="recurring">💸 Despesa</button>
+                    <button type="button" class="type-btn income" data-type="income" data-form="recurring">💚 Receita</button>
+                </div>
+                <div class="form-group">
+                    <label>Descrição *</label>
+                    <input type="text" id="recDescription" class="input-field" placeholder="Ex: Aluguel" required>
+                </div>
+                <div class="form-group">
+                    <label>Valor *</label>
+                    <input type="text" id="recValue" class="input-field" placeholder="0,00" required>
+                </div>
+                <div class="form-group">
+                    <label>Categoria *</label>
+                    <select id="recCategory" class="input-field" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Dia do mês *</label>
+                    <input type="number" id="recDay" class="input-field" min="1" max="31" value="1" required>
+                </div>
+                <div class="form-actions">
+                
