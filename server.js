@@ -16,7 +16,8 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer((req, res) => {
-    console.log(${new Date().toISOString()} - ${req.method} ${req.url});
+    // LOG CORRIGIDO - linha 19
+    console.log(new Date().toISOString() + ' - ' + req.method + ' ' + req.url);
     
     let filePath = req.url === '/' ? '/index.html' : req.url;
     
@@ -31,11 +32,11 @@ const server = http.createServer((req, res) => {
     fs.readFile(filePath, (err, content) => {
         if (err) {
             if (err.code === 'ENOENT') {
-                console.error(Arquivo não encontrado: ${filePath});
+                console.error('Arquivo não encontrado: ' + filePath);
                 res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
                 res.end('<h1>404 - Arquivo não encontrado</h1>');
             } else {
-                console.error(Erro ao ler arquivo: ${err});
+                console.error('Erro ao ler arquivo: ' + err);
                 res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
                 res.end('<h1>500 - Erro interno do servidor</h1>');
             }
@@ -47,20 +48,20 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(✅ Servidor rodando na porta ${PORT});
-    console.log(🌐 Ambiente: ${process.env.NODE_ENV || 'development'});
+    console.log('Servidor rodando na porta ' + PORT);
+    console.log('Ambiente: ' + (process.env.NODE_ENV || 'development'));
 });
 
 // Tratamento de erros
 server.on('error', (err) => {
-    console.error('❌ Erro no servidor:', err);
+    console.error('Erro no servidor:', err);
     process.exit(1);
 });
 
 process.on('SIGTERM', () => {
-    console.log('🛑 SIGTERM recebido, encerrando servidor...');
+    console.log('SIGTERM recebido, encerrando servidor...');
     server.close(() => {
-        console.log('✅ Servidor encerrado');
+        console.log('Servidor encerrado');
         process.exit(0);
     });
 });
