@@ -1,364 +1,199 @@
-```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💰 FinControl - Controle Financeiro</title>
+    <title>FinControl - Controle Financeiro</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <span class="logo-icon">💰</span>
-                    <span class="logo-text">FinControl</span>
-                </div>
-                <button class="menu-close" id="menuClose">✕</button>
-            </div>
-            <nav class="sidebar-nav">
-                <button class="nav-item active" data-page="dashboard">
-                    <span class="nav-icon">📊</span>
-                    <span>Dashboard</span>
-                </button>
-                <button class="nav-item" data-page="transactions">
-                    <span class="nav-icon">📋</span>
-                    <span>Transações</span>
-                </button>
-                <button class="nav-item" data-page="recurring">
-                    <span class="nav-icon">🔄</span>
-                    <span>Recorrentes</span>
-                </button>
-                <button class="nav-item" data-page="goals">
-                    <span class="nav-icon">🎯</span>
-                    <span>Metas</span>
-                </button>
-                <button class="nav-item" data-page="reports">
-                    <span class="nav-icon">📈</span>
-                    <span>Relatórios</span>
-                </button>
-            </nav>
-            <div class="sidebar-footer">
-                <button class="btn btn-outline btn-block" id="exportBtn">📥 Exportar</button>
-                <button class="btn btn-outline btn-block" id="importBtn">📤 Importar</button>
-                <input type="file" id="importFile" accept=".json" style="display:none">
-            </div>
-        </aside>
+    <!-- ==================== SIDEBAR ==================== -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>💰 FinControl</h1>
+            <button class="menu-close" onclick="closeSidebar()">✕</button>
+        </div>
 
-        <!-- Overlay mobile -->
-        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <nav class="sidebar-menu">
+            <a href="#" class="menu-item active" onclick="showPage('dashboard')">
+                <span class="menu-icon">📊</span>
+                <span class="menu-text">Dashboard</span>
+            </a>
+            <a href="#" class="menu-item" onclick="showPage('transactions')">
+                <span class="menu-icon">💳</span>
+                <span class="menu-text">Transações</span>
+            </a>
+        </nav>
+    </aside>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Top Bar -->
-            <header class="top-bar">
-                <div class="top-left">
-                    <button class="menu-toggle" id="menuToggle">☰</button>
-                    <div>
-                        <h1 id="pageTitle">Dashboard</h1>
-                        <span class="current-date" id="currentDate"></span>
-                    </div>
-                </div>
-                <button class="btn btn-primary" id="quickAddBtn">+ Nova Transação</button>
-            </header>
+    <div class="sidebar-overlay" onclick="closeSidebar()"></div>
 
-            <!-- ==================== DASHBOARD ==================== -->
-            <section class="page active" id="page-dashboard">
-                <div class="cards-grid">
-                    <div class="summary-card card-balance">
-                        <div class="summary-icon">💳</div>
-                        <div class="summary-info">
-                            <span class="summary-label">Saldo Atual</span>
-                            <span class="summary-value" id="totalBalance">R$ 0,00</span>
-                        </div>
-                    </div>
-                    <div class="summary-card card-income">
-                        <div class="summary-icon">📈</div>
-                        <div class="summary-info">
-                            <span class="summary-label">Receitas do Mês</span>
-                            <span class="summary-value" id="totalIncome">R$ 0,00</span>
-                        </div>
-                    </div>
-                    <div class="summary-card card-expense">
-                        <div class="summary-icon">📉</div>
-                        <div class="summary-info">
-                            <span class="summary-label">Despesas do Mês</span>
-                            <span class="summary-value" id="totalExpense">R$ 0,00</span>
-                        </div>
-                    </div>
-                    <div class="summary-card card-savings">
-                        <div class="summary-icon">🐷</div>
-                        <div class="summary-info">
-                            <span class="summary-label">Economia do Mês</span>
-                            <span class="summary-value" id="totalSavings">R$ 0,00</span>
-                        </div>
-                    </div>
-                </div>
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+            <h2 id="page-title">Dashboard</h2>
+        </div>
 
-                <!-- Gráficos -->
-                <div class="charts-row">
-                    <div class="card chart-card">
-                        <h3>🍩 Despesas por Categoria</h3>
-                        <div class="donut-chart" id="categoryChart">
-                            <div class="donut-empty">Sem dados ainda</div>
-                        </div>
-                        <div class="chart-legend" id="categoryLegend"></div>
-                    </div>
-                    <div class="card chart-card">
-                        <h3>📊 Últimos 6 Meses</h3>
-                        <div class="bar-chart" id="monthlyChart">
-                            <div class="donut-empty">Sem dados ainda</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Alertas -->
-                <div class="card" id="alertsCard" style="display:none">
-                    <h3>⚠️ Alertas</h3>
-                    <div id="alertsList"></div>
-                </div>
-
-                <!-- Transações Recentes -->
+        <!-- ==================== DASHBOARD PAGE ==================== -->
+        <div class="page active" id="dashboard">
+            <!-- Cards de Resumo -->
+            <div class="cards-grid">
                 <div class="card">
-                    <div class="card-title-row">
-                        <h3>🕐 Transações Recentes</h3>
+                    <div class="card-header">
+                        <span>💰 Receitas</span>
                     </div>
-                    <div id="recentTransactions">
-                        <div class="empty-state">
-                            <span class="empty-icon">📭</span>
-                            <p>Nenhuma transação ainda. Comece adicionando!</p>
-                        </div>
+                    <div class="card-value income" id="total-income">R$ 0,00</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span>💸 Despesas</span>
+                    </div>
+                    <div class="card-value expense" id="total-expenses">R$ 0,00</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span>💵 Saldo</span>
+                    </div>
+                    <div class="card-value" id="balance">R$ 0,00</div>
+                </div>
+            </div>
+
+            <!-- Botão Nova Transação -->
+            <button class="btn btn-primary btn-large" onclick="openModal('transaction-modal')">
+                ➕ Nova Transação
+            </button>
+
+            <!-- Transações Recentes -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📋 Transações Recentes</h3>
+                </div>
+                <div id="recent-transactions">
+                    <div class="empty-state">
+                        <span class="empty-icon">📝</span>
+                        <p>Nenhuma transação ainda</p>
                     </div>
                 </div>
-            </section>
+            </div>
+        </div>
 
-            <!-- ==================== TRANSAÇÕES ==================== -->
-            <section class="page" id="page-transactions">
+        <!-- ==================== TRANSACTIONS PAGE ==================== -->
+        <div class="page" id="transactions">
+            <button class="btn btn-primary btn-large" onclick="openModal('transaction-modal')">
+                ➕ Nova Transação
+            </button>
+
+            <!-- Filtros -->
+            <div class="card">
                 <div class="filters-bar">
-                    <input type="text" id="searchTransaction" placeholder="🔍 Buscar..." class="input-field">
-                    <select id="filterType" class="input-field">
-                        <option value="all">Todos</option>
+                    <input type="text" id="search" class="input-field" placeholder="🔍 Buscar..." onkeyup="applyFilters()">
+                    
+                    <select id="filter-type" class="input-field" onchange="applyFilters()">
+                        <option value="all">Todos os tipos</option>
                         <option value="income">Receitas</option>
                         <option value="expense">Despesas</option>
                     </select>
-                    <select id="filterCategory" class="input-field">
+                    
+                    <select id="filter-category" class="input-field" onchange="applyFilters()">
                         <option value="all">Todas categorias</option>
-                    </select>
-                    <input type="month" id="filterMonth" class="input-field">
-                </div>
-                <div class="card">
-                    <div class="card-title-row">
-                        <h3>📋 Transações</h3>
-                        <span class="badge" id="transactionCount">0</span>
-                    </div>
-                    <div id="allTransactions">
-                        <div class="empty-state">
-                            <span class="empty-icon">📭</span>
-                            <p>Nenhuma transação encontrada</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ==================== RECORRENTES ==================== -->
-            <section class="page" id="page-recurring">
-                <div class="card">
-                    <div class="card-title-row">
-                        <h3>🔄 Transações Recorrentes</h3>
-                        <button class="btn btn-primary" id="addRecurringBtn">+ Adicionar</button>
-                    </div>
-                    <p class="subtitle">São lançadas automaticamente todo mês.</p>
-                    <div id="recurringList">
-                        <div class="empty-state">
-                            <span class="empty-icon">🔄</span>
-                            <p>Nenhuma transação recorrente cadastrada</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ==================== METAS ==================== -->
-            <section class="page" id="page-goals">
-                <div class="card">
-                    <div class="card-title-row">
-                        <h3>🎯 Minhas Metas Mensais</h3>
-                        <button class="btn btn-primary" id="addGoalBtn">+ Nova Meta</button>
-                    </div>
-                    <p class="subtitle">Defina limites de gasto por categoria.</p>
-                    <div id="goalsList">
-                        <div class="empty-state">
-                            <span class="empty-icon">🎯</span>
-                            <p>Nenhuma meta definida</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ==================== RELATÓRIOS ==================== -->
-            <section class="page" id="page-reports">
-                <div class="filters-bar">
-                    <select id="reportPeriod" class="input-field">
-                        <option value="3" selected>Últimos 3 meses</option>
-                        <option value="6">Últimos 6 meses</option>
-                        <option value="12">Último ano</option>
+                        <option value="Salário">Salário</option>
+                        <option value="Freelance">Freelance</option>
+                        <option value="Investimentos">Investimentos</option>
+                        <option value="Alimentação">Alimentação</option>
+                        <option value="Transporte">Transporte</option>
+                        <option value="Moradia">Moradia</option>
+                        <option value="Saúde">Saúde</option>
+                        <option value="Educação">Educação</option>
+                        <option value="Lazer">Lazer</option>
+                        <option value="Outros">Outros</option>
                     </select>
                 </div>
-                <div class="cards-grid">
-                    <div class="summary-card">
-                        <div class="summary-icon">💰</div>
-                        <div class="summary-info">
-                            <span class="summary-label">Média Receitas/mês</span>
-                            <span class="summary-value" id="avgIncome">R$ 0,00</span>
-                        </div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-icon">💸</div>
-                        <div class="summary-info">
-                            <span class="summary-label">Média Despesas/mês</span>
-                            <span class="summary-value" id="avgExpense">R$ 0,00</span>
-                        </div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-icon">🔥</div>
-                        <div class="summary-info">
-                            <span class="summary-label">Maior Despesa</span>
-                            <span class="summary-value" id="biggestExpense">R$ 0,00</span>
-                            <span class="summary-sub" id="biggestExpenseDesc">-</span>
-                        </div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-icon">🏆</div>
-                        <div class="summary-info">
-                            <span class="summary-label">Categoria + Gasta</span>
-                            <span class="summary-value" id="topCategory">-</span>
-                        </div>
+            </div>
+
+            <!-- Lista de Transações -->
+            <div class="card">
+                <div id="transactions-list">
+                    <div class="empty-state">
+                        <span class="empty-icon">🔍</span>
+                        <p>Nenhuma transação encontrada</p>
                     </div>
                 </div>
-                <div class="card">
-                    <h3>📊 Detalhamento por Categoria</h3>
-                    <div id="reportCategoryDetail">
-                        <div class="empty-state">
-                            <span class="empty-icon">📊</span>
-                            <p>Sem dados suficientes</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
+            </div>
+        </div>
+    </main>
 
     <!-- ==================== MODAL TRANSAÇÃO ==================== -->
-    <div class="modal-overlay" id="transactionModal">
+    <div class="modal-overlay" id="transaction-modal">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="modalTitle">Nova Transação</h2>
-                <button class="modal-close" id="modalClose">✕</button>
+                <h2 id="modal-title">Nova Transação</h2>
+                <button class="modal-close" onclick="closeModal('transaction-modal')">✕</button>
             </div>
-            <form id="transactionForm">
-                <input type="hidden" id="transactionId">
+            
+            <form id="transaction-form" onsubmit="saveTransaction(event)">
+                <input type="hidden" id="transaction-id">
+                <input type="hidden" id="transaction-type" value="expense">
+                
+                <!-- Toggle Tipo -->
                 <div class="type-toggle">
-                    <button type="button" class="type-btn expense active" data-type="expense">💸 Despesa</button>
-                    <button type="button" class="type-btn income" data-type="income">💚 Receita</button>
+                    <button type="button" class="type-btn expense active" onclick="setTransactionType('expense')">
+                        💸 Despesa
+                    </button>
+                    <button type="button" class="type-btn income" onclick="setTransactionType('income')">
+                        💰 Receita
+                    </button>
                 </div>
+
                 <div class="form-group">
-                    <label>Descrição *</label>
-                    <input type="text" id="transDescription" class="input-field" placeholder="Ex: Supermercado" required list="suggestions">
-                    <datalist id="suggestions"></datalist>
+                    <label for="description">Descrição *</label>
+                    <input type="text" id="description" class="input-field" placeholder="Ex: Compra no supermercado" required>
                 </div>
+
                 <div class="form-group">
-                    <label>Valor *</label>
-                    <input type="text" id="transValue" class="input-field" placeholder="0,00" required>
+                    <label for="amount">Valor *</label>
+                    <input type="number" id="amount" class="input-field" placeholder="0,00" step="0.01" min="0" required>
                 </div>
+
                 <div class="form-group">
-                    <label>Categoria *</label>
-                    <select id="transCategory" class="input-field" required></select>
+                    <label for="category">Categoria *</label>
+                    <select id="category" class="input-field" required>
+                        <option value="">Selecione...</option>
+                        <optgroup label="Receitas">
+                            <option value="Salário">Salário</option>
+                            <option value="Freelance">Freelance</option>
+                            <option value="Investimentos">Investimentos</option>
+                            <option value="Outros">Outros</option>
+                        </optgroup>
+                        <optgroup label="Despesas">
+                            <option value="Alimentação">Alimentação</option>
+                            <option value="Transporte">Transporte</option>
+                            <option value="Moradia">Moradia</option>
+                            <option value="Saúde">Saúde</option>
+                            <option value="Educação">Educação</option>
+                            <option value="Lazer">Lazer</option>
+                            <option value="Outros">Outros</option>
+                        </optgroup>
+                    </select>
                 </div>
+
                 <div class="form-group">
-                    <label>Data *</label>
-                    <input type="date" id="transDate" class="input-field" required>
+                    <label for="date">Data *</label>
+                    <input type="date" id="date" class="input-field" required>
                 </div>
-                <div class="form-group">
-                    <label>Observação</label>
-                    <input type="text" id="transNote" class="input-field" placeholder="Opcional...">
-                </div>
+
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="cancelTransaction">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('transaction-modal')">Cancelar</button>
                     <button type="submit" class="btn btn-primary">💾 Salvar</button>
                 </div>
             </form>
         </div>
     </div>
-
-    <!-- ==================== MODAL RECORRENTE ==================== -->
-    <div class="modal-overlay" id="recurringModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>Nova Transação Recorrente</h2>
-                <button class="modal-close" id="recurringModalClose">✕</button>
-            </div>
-            <form id="recurringForm">
-                <input type="hidden" id="recurringId">
-                <div class="type-toggle">
-                    <button type="button" class="type-btn expense active" data-type="expense" data-form="recurring">💸 Despesa</button>
-                    <button type="button" class="type-btn income" data-type="income" data-form="recurring">💚 Receita</button>
-                </div>
-                <div class="form-group">
-                    <label>Descrição *</label>
-                    <input type="text" id="recDescription" class="input-field" placeholder="Ex: Aluguel" required>
-                </div>
-                <div class="form-group">
-                    <label>Valor *</label>
-                    <input type="text" id="recValue" class="input-field" placeholder="0,00" required>
-                </div>
-                <div class="form-group">
-                    <label>Categoria *</label>
-                    <select id="recCategory" class="input-field" required></select>
-                </div>
-                <div class="form-group">
-                    <label>Dia do mês *</label>
-                    <input type="number" id="recDay" class="input-field" min="1" max="31" value="1" required>
-                </div>
-                <div class="form-actions">
-                     <button type="button" class="btn btn-secondary" id="cancelRecurring">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">💾 Salvar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- ==================== MODAL META ==================== -->
-    <div class="modal-overlay" id="goalModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>Nova Meta de Gastos</h2>
-                <button class="modal-close" id="goalModalClose">✕</button>
-            </div>
-            <form id="goalForm">
-                <input type="hidden" id="goalId">
-                <div class="form-group">
-                    <label>Categoria *</label>
-                    <select id="goalCategory" class="input-field" required></select>
-                </div>
-                <div class="form-group">
-                    <label>Limite Mensal *</label>
-                    <input type="text" id="goalLimit" class="input-field" placeholder="0,00" required>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="cancelGoal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">💾 Salvar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Toast -->
-    <div class="toast" id="toast"></div>
 
     <!-- SCRIPT PRINCIPAL -->
     <script src="app.js"></script>
 </body>
 </html>
-                
