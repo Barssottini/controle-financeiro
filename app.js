@@ -1,29 +1,4 @@
-css
-Copiar
-Baixar
-: 1fr;
-    }
-    
-    .filters {
-        grid-template-columns: 1fr;
-    }
-    
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-    
-    .page-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-    }
-    
-    .banks-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-3️⃣ app.js (completo)
+📄 app.js COMPLETO E CORRIGIDO
 
 ```javascript
 // ============================================
@@ -57,18 +32,30 @@ const AVAILABLE_BANKS = [
 let selectedBank = null;
 
 // ============================================
-// NAVIGATION
+// NAVIGATION (CORRIGIDO)
 // ============================================
 function showPage(pageId) {
-// Remove active class from all pages and menu items
+// Remove active class from all pages
 document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+
+// Remove active class from all menu items
 document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
 
 // Add active class to selected page
 document.getElementById(pageId).classList.add('active');
 
 // Add active class to corresponding menu item
-event.target.closest('.menu-item')?.classList.add('active');
+const menuItems = document.querySelectorAll('.menu-item');
+menuItems.forEach(item => {
+const itemText = item.querySelector('.menu-text').textContent.toLowerCase();
+if (
+(pageId === 'dashboard' && itemText === 'dashboard') ||
+(pageId === 'transactions' && itemText === 'transações') ||
+(pageId === 'open-banking' && itemText === 'open banking')
+) {
+item.classList.add('active');
+}
+});
 
 // Update content based on page
 if (pageId === 'dashboard') {
@@ -384,7 +371,10 @@ const mockTransactions = [
 { description: 'Salário', amount: 5000.00, type: 'income', category: 'Salário' },
 { description: 'Uber', amount: 45.80, type: 'expense', category: 'Transporte' },
 { description: 'Netflix', amount: 39.90, type: 'expense', category: 'Lazer' },
-{ description: 'Farmácia', amount: 67.20, type: 'expense', category: 'Saúde' }
+{ description: 'Farmácia', amount: 67.20, type: 'expense', category: 'Saúde' },
+{ description: 'Freelance - Site', amount: 1500.00, type: 'income', category: 'Freelance' },
+{ description: 'Conta de Luz', amount: 156.70, type: 'expense', category: 'Moradia' },
+{ description: 'Academia', amount: 89.90, type: 'expense', category: 'Saúde' }
 ];
 
 const today = new Date();
@@ -402,6 +392,7 @@ state.openBanking.lastSync = new Date().toISOString();
 function syncTransactions() {
 // Simular sincronização
 const btn = event.target;
+const originalText = btn.textContent;
 btn.textContent = '⏳ Sincronizando...';
 btn.disabled = true;
 
@@ -411,7 +402,7 @@ state.openBanking.lastSync = new Date().toISOString();
 saveOpenBankingData();
 updateOpenBankingPage();
 
-btn.textContent = '🔄 Sincronizar';
+btn.textContent = originalText;
 btn.disabled = false;
 
 alert('✅ Transações sincronizadas!');
@@ -467,13 +458,13 @@ ${formatCurrency(acc.balance)}
 
 ${state.openBanking.lastSync ?
 `
-
-Sync: ${new Date(state.openBanking.lastSync).toLocaleString('pt-BR', {
-day: '2-digit',
-month: '2-digit',
-hour: '2-digit',
-minute: '2-digit'
-})}
+-size: 11px; color: var(--text-lighter); margin-top: 4px;">
+                            Sync: ${new Date(state.openBanking.lastSync).toLocaleString('pt-BR', { 
+                                day: '2-digit', 
+                                month: '2-digit', 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                            })}
                         </div>` : ''
                     }
                     <button class="btn btn-danger btn-small" onclick="disconnectBank(${acc.id})" style="margin-top: 8px;">
@@ -538,6 +529,18 @@ function importToTransactions(transactionId) {
     const imported = state.openBanking.importedTransactions.find(t => t.id === transactionId);
     
     if (!imported) return;
+    
+    // Verificar se já foi importada
+    const alreadyImported = state.transactions.some(t => 
+        t.description === imported.description && 
+        t.amount === imported.amount && 
+        t.date === imported.date
+    );
+    
+    if (alreadyImported) {
+        alert('⚠️ Esta transação já foi adicionada!');
+        return;
+    }
     
     // Adicionar às transações principais
     const newTransaction = {
@@ -631,6 +634,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadOpenBankingData();
     initEventListeners();
     renderBanksList();
-    showPage('dashboard');
     updateDashboard();
+    
+    // Mostrar dashboard por padrão
+    showPage('dashboard');
 });
