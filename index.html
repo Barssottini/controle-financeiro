@@ -14,15 +14,15 @@
         </div>
         
         <nav class="sidebar-nav">
-            <a href="#" class="menu-item active" onclick="showPage('dashboard')">
+            <a href="#" class="menu-item active" onclick="showPage('dashboard'); return false;">
                 <span class="menu-icon">📊</span>
                 <span class="menu-text">Dashboard</span>
             </a>
-            <a href="#" class="menu-item" onclick="showPage('transactions')">
+            <a href="#" class="menu-item" onclick="showPage('transactions'); return false;">
                 <span class="menu-icon">💳</span>
                 <span class="menu-text">Transações</span>
             </a>
-            <a href="#" class="menu-item" onclick="showPage('open-banking')">
+            <a href="#" class="menu-item" onclick="showPage('open-banking'); return false;">
                 <span class="menu-icon">🏦</span>
                 <span class="menu-text">Open Banking</span>
             </a>
@@ -71,9 +71,14 @@
             <div class="card">
                 <div class="card-title-row">
                     <h3>Últimas Transações</h3>
-                    <a href="#" class="link" onclick="showPage('transactions')">Ver todas →</a>
+                    <a href="#" class="link" onclick="showPage('transactions'); return false;">Ver todas →</a>
                 </div>
-                <div id="recent-transactions"></div>
+                <div id="recent-transactions">
+                    <div class="empty-state">
+                        <span class="empty-icon">💳</span>
+                        <p>Nenhuma transação cadastrada</p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -115,7 +120,12 @@
 
             <!-- Lista de Transações -->
             <div class="card">
-                <div id="transactions-list"></div>
+                <div id="transactions-list">
+                    <div class="empty-state">
+                        <span class="empty-icon">💳</span>
+                        <p>Nenhuma transação encontrada</p>
+                    </div>
+                </div>
             </div>
         </div>
 
