@@ -3,269 +3,1238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle Financeiro</title>
-    <link rel="stylesheet" href="style.css">
+    <title>FinControl</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --ink:        #0f0e0d;
+            --ink-2:      #3a3733;
+            --ink-3:      #7a746e;
+            --ink-4:      #b8b2ac;
+            --paper:      #faf8f5;
+            --paper-2:    #f0ece6;
+            --paper-3:    #e4ddd5;
+            --gold:       #c9933a;
+            --gold-light: #f5e6cc;
+            --green:      #2d7a4f;
+            --green-light:#d4efe1;
+            --red:        #c0392b;
+            --red-light:  #fce8e6;
+            --sidebar-w:  280px;
+            --r:          10px;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--paper);
+            color: var(--ink);
+            min-height: 100vh;
+        }
+
+        /* ── LOGIN ── */
+        #login-screen {
+            position: fixed; inset: 0; z-index: 9999;
+            background: var(--ink);
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity .4s, transform .4s;
+        }
+        #login-screen.hidden { opacity: 0; pointer-events: none; transform: scale(1.04); }
+
+        .login-box {
+            background: var(--paper);
+            border-radius: 20px;
+            padding: 56px 48px;
+            width: 100%; max-width: 420px;
+            box-shadow: 0 40px 80px rgba(0,0,0,.5);
+            position: relative; overflow: hidden;
+        }
+        .login-box::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, var(--gold), #e8b96a, var(--gold));
+        }
+        .login-logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 32px; color: var(--ink);
+            margin-bottom: 8px; display: flex; align-items: center; gap: 10px;
+        }
+        .login-logo span { color: var(--gold); }
+        .login-sub { font-size: 13px; color: var(--ink-3); margin-bottom: 40px; }
+
+        .login-label {
+            display: block; font-size: 11px; font-weight: 700;
+            letter-spacing: .08em; text-transform: uppercase;
+            color: var(--ink-3); margin-bottom: 8px;
+        }
+        .login-input {
+            width: 100%; padding: 13px 16px;
+            border: 1.5px solid var(--paper-3);
+            border-radius: var(--r);
+            font-family: 'DM Sans', sans-serif; font-size: 14px;
+            background: var(--paper-2); color: var(--ink);
+            transition: border-color .2s, box-shadow .2s;
+            margin-bottom: 20px;
+        }
+        .login-input:focus {
+            outline: none; border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(201,147,58,.15);
+        }
+        .login-btn {
+            width: 100%; padding: 14px;
+            background: var(--ink); color: var(--paper);
+            border: none; border-radius: var(--r);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px; font-weight: 600;
+            cursor: pointer; transition: all .2s;
+            margin-top: 4px;
+        }
+        .login-btn:hover { background: var(--gold); }
+        .login-error {
+            background: var(--red-light); color: var(--red);
+            border-radius: var(--r); padding: 10px 14px;
+            font-size: 13px; margin-bottom: 16px;
+            display: none;
+        }
+        .login-error.show { display: block; }
+
+        /* ── APP SHELL ── */
+        #app { display: none; min-height: 100vh; }
+        #app.visible { display: flex; }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: var(--sidebar-w);
+            background: var(--ink);
+            color: var(--paper);
+            position: fixed; top: 0; left: 0; height: 100vh;
+            z-index: 100; overflow-y: auto;
+            display: flex; flex-direction: column;
+        }
+        .sidebar-top { padding: 32px 24px 24px; border-bottom: 1px solid rgba(255,255,255,.08); }
+        .sidebar-logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 26px; color: var(--paper);
+            display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+        }
+        .sidebar-logo span { color: var(--gold); }
+        .sidebar-user { font-size: 12px; color: var(--ink-4); }
+        .sidebar-user strong { color: var(--paper); display: block; font-size: 13px; margin-top: 2px; }
+
+        .sidebar-nav { padding: 16px 12px; flex: 1; }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 14px; border-radius: 8px;
+            color: var(--ink-4); text-decoration: none;
+            font-size: 14px; font-weight: 500;
+            margin-bottom: 2px; cursor: pointer;
+            transition: all .2s;
+        }
+        .nav-item:hover { background: rgba(255,255,255,.06); color: var(--paper); }
+        .nav-item.active { background: var(--gold); color: var(--ink); }
+        .nav-icon { font-size: 18px; width: 22px; text-align: center; }
+
+        .sidebar-footer {
+            padding: 16px 12px;
+            border-top: 1px solid rgba(255,255,255,.08);
+        }
+        .logout-btn {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 10px 14px; border-radius: 8px;
+            background: none; border: none; color: var(--ink-4);
+            font-family: 'DM Sans', sans-serif; font-size: 13px;
+            cursor: pointer; transition: all .2s;
+        }
+        .logout-btn:hover { background: rgba(255,255,255,.06); color: var(--red); }
+
+        /* ── MAIN ── */
+        .main { margin-left: var(--sidebar-w); flex: 1; padding: 40px 36px; }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        .page-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 36px;
+        }
+        .page-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 34px; color: var(--ink); line-height: 1;
+        }
+        .page-subtitle { font-size: 13px; color: var(--ink-3); margin-top: 6px; }
+
+        /* ── SUMMARY CARDS ── */
+        .cards-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 32px; }
+
+        .sum-card {
+            background: var(--paper-2); border: 1px solid var(--paper-3);
+            border-radius: 14px; padding: 24px;
+            position: relative; overflow: hidden; transition: transform .2s;
+        }
+        .sum-card:hover { transform: translateY(-2px); }
+        .sum-card::after {
+            content: ''; position: absolute;
+            bottom: -20px; right: -20px;
+            width: 80px; height: 80px; border-radius: 50%;
+            opacity: .06;
+        }
+        .sum-card.income::after  { background: var(--green); }
+        .sum-card.expense::after { background: var(--red);   }
+        .sum-card.balance::after { background: var(--gold);  }
+
+        .sum-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+        .sum-value { font-family: 'DM Serif Display', serif; font-size: 30px; margin-top: 8px; line-height: 1; }
+        .sum-card.income  .sum-value { color: var(--green); }
+        .sum-card.expense .sum-value { color: var(--red);   }
+        .sum-card.balance .sum-value { color: var(--ink);   }
+
+        /* ── PANEL ── */
+        .panel {
+            background: var(--paper);
+            border: 1px solid var(--paper-3);
+            border-radius: 14px; padding: 28px;
+            margin-bottom: 24px;
+        }
+        .panel-head {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 24px;
+        }
+        .panel-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); }
+
+        /* ── BUTTONS ── */
+        .btn {
+            padding: 10px 20px; border: none; border-radius: var(--r);
+            font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; gap: 7px;
+        }
+        .btn-primary   { background: var(--ink); color: var(--paper); }
+        .btn-primary:hover { background: var(--gold); color: var(--ink); }
+        .btn-secondary { background: var(--paper-2); color: var(--ink); border: 1px solid var(--paper-3); }
+        .btn-secondary:hover { background: var(--paper-3); }
+        .btn-danger    { background: var(--red-light); color: var(--red); }
+        .btn-danger:hover { background: var(--red); color: white; }
+        .btn-sm        { padding: 6px 12px; font-size: 12px; }
+        .btn-gold      { background: var(--gold); color: var(--ink); }
+        .btn-gold:hover { background: #b5832e; color: white; }
+
+        /* ── TRANSACTIONS LIST ── */
+        .tx-item {
+            display: flex; align-items: center; gap: 14px;
+            padding: 14px 8px; border-bottom: 1px solid var(--paper-2);
+            border-radius: 8px; transition: background .15s;
+        }
+        .tx-item:last-child { border-bottom: none; }
+        .tx-item:hover { background: var(--paper-2); }
+        .tx-item:hover .tx-actions { opacity: 1; }
+
+        .tx-icon {
+            width: 42px; height: 42px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+        }
+        .tx-icon.income  { background: var(--green-light); }
+        .tx-icon.expense { background: var(--red-light);   }
+
+        .tx-info { flex: 1; min-width: 0; }
+        .tx-desc { font-weight: 600; font-size: 14px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tx-meta { font-size: 12px; color: var(--ink-3); }
+
+        .tx-amount { font-family: 'DM Serif Display', serif; font-size: 17px; white-space: nowrap; }
+        .tx-amount.income  { color: var(--green); }
+        .tx-amount.expense { color: var(--red);   }
+
+        .tx-actions { display: flex; gap: 6px; opacity: 0; transition: opacity .2s; }
+        .icon-btn {
+            width: 30px; height: 30px; border: none; border-radius: 7px;
+            background: var(--paper-2); cursor: pointer; font-size: 14px;
+            display: flex; align-items: center; justify-content: center; transition: all .2s;
+        }
+        .icon-btn:hover { background: var(--paper-3); }
+        .icon-btn.del:hover { background: var(--red-light); }
+
+        /* ── FILTERS ── */
+        .filters { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; }
+        .field {
+            width: 100%; padding: 10px 14px;
+            border: 1.5px solid var(--paper-3); border-radius: var(--r);
+            font-family: 'DM Sans', sans-serif; font-size: 13px;
+            background: var(--paper); color: var(--ink); transition: border-color .2s;
+        }
+        .field:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,147,58,.12); }
+
+        /* ── MODAL ── */
+        .overlay {
+            position: fixed; inset: 0; background: rgba(15,14,13,.6);
+            display: none; align-items: center; justify-content: center;
+            z-index: 500; backdrop-filter: blur(4px);
+        }
+        .overlay.open { display: flex; }
+        .modal {
+            background: var(--paper); border-radius: 16px;
+            width: 90%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+            box-shadow: 0 24px 48px rgba(0,0,0,.2);
+            animation: slideIn .2s ease-out;
+        }
+        .modal-lg { max-width: 680px; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .modal-head {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 24px; border-bottom: 1px solid var(--paper-3);
+        }
+        .modal-head h3 { font-family: 'DM Serif Display', serif; font-size: 22px; }
+        .close-btn {
+            width: 30px; height: 30px; border: none; border-radius: 7px;
+            background: var(--paper-2); cursor: pointer; font-size: 16px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--ink-3); transition: all .2s;
+        }
+        .close-btn:hover { background: var(--paper-3); color: var(--ink); }
+        .modal-body { padding: 24px; }
+
+        .form-group { margin-bottom: 20px; }
+        .form-label {
+            display: block; font-size: 11px; font-weight: 700;
+            letter-spacing: .07em; text-transform: uppercase;
+            color: var(--ink-3); margin-bottom: 8px;
+        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+
+        .toggle-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .toggle-opt { position: relative; cursor: pointer; }
+        .toggle-opt input { position: absolute; opacity: 0; pointer-events: none; }
+        .toggle-opt span {
+            display: block; padding: 12px; border: 1.5px solid var(--paper-3);
+            border-radius: var(--r); text-align: center;
+            font-weight: 600; font-size: 13px; transition: all .2s;
+        }
+        .toggle-opt input:checked + span {
+            border-color: var(--gold); background: var(--gold-light); color: var(--ink);
+        }
+
+        /* ── OPEN BANKING ── */
+        .banks-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 12px; max-height: 380px; overflow-y: auto;
+        }
+        .bank-card {
+            display: flex; align-items: center; gap: 12px;
+            padding: 14px; border: 1.5px solid var(--paper-3);
+            border-radius: 10px; cursor: pointer; transition: all .2s;
+        }
+        .bank-card:hover { border-color: var(--gold); background: var(--gold-light); transform: translateY(-2px); }
+        .bank-logo { font-size: 26px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: var(--paper-2); border-radius: 8px; }
+        .bank-name { font-size: 13px; font-weight: 600; }
+        .bank-avail { font-size: 11px; color: var(--green); margin-top: 2px; }
+
+        .connected-card {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px; background: var(--paper-2); border-radius: 10px;
+            border: 1px solid var(--paper-3); margin-bottom: 12px;
+        }
+        .connected-info { display: flex; align-items: center; gap: 14px; }
+        .connected-bal { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--gold); }
+        .connected-details { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+
+        /* ── OFX IMPORT ── */
+        .import-zone {
+            border: 2px dashed var(--paper-3); border-radius: 12px;
+            padding: 40px 20px; text-align: center;
+            cursor: pointer; transition: all .2s; margin-bottom: 16px;
+        }
+        .import-zone:hover, .import-zone.drag-over { border-color: var(--gold); background: var(--gold-light); }
+        .import-icon { font-size: 40px; margin-bottom: 12px; }
+        .import-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+        .import-sub { font-size: 13px; color: var(--ink-3); }
+        #file-input-hidden { display: none; }
+
+        .import-result { margin-top: 16px; }
+        .import-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px; border-radius: 8px; background: var(--paper-2);
+            margin-bottom: 8px; font-size: 13px;
+        }
+        .import-row .chk { width: 16px; height: 16px; cursor: pointer; accent-color: var(--gold); }
+        .import-row .badge {
+            font-size: 10px; font-weight: 700; padding: 2px 7px;
+            border-radius: 20px; white-space: nowrap;
+        }
+        .badge-in  { background: var(--green-light); color: var(--green); }
+        .badge-out { background: var(--red-light); color: var(--red); }
+
+        /* ── EMPTY ── */
+        .empty { text-align: center; padding: 48px 20px; color: var(--ink-3); }
+        .empty-icon { font-size: 48px; display: block; margin-bottom: 12px; opacity: .4; }
+
+        /* ── BADGE ── */
+        .sync-badge {
+            display: inline-block; background: var(--green-light); color: var(--green);
+            padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 860px) {
+            .sidebar { transform: translateX(-100%); transition: transform .3s; }
+            .main { margin-left: 0; padding: 24px 16px; }
+            .cards-row { grid-template-columns: 1fr; }
+            .filters { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
-    <!-- ==================== SIDEBAR ==================== -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <h1 class="logo">💰 FinControl</h1>
-        </div>
 
+<!-- ═══════════════════════ LOGIN ═══════════════════════ -->
+<div id="login-screen">
+    <div class="login-box">
+        <div class="login-logo">Fin<span>Control</span></div>
+        <p class="login-sub">Seu controle financeiro pessoal</p>
+
+        <div class="login-error" id="login-error">E-mail ou senha incorretos.</div>
+
+        <label class="login-label">E-mail</label>
+        <input class="login-input" type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
+
+        <label class="login-label">Senha</label>
+        <input class="login-input" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+
+        <button class="login-btn" onclick="doLogin()">Entrar</button>
+    </div>
+</div>
+
+<!-- ═══════════════════════ APP ═══════════════════════ -->
+<div id="app">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-top">
+            <div class="sidebar-logo">Fin<span>Control</span></div>
+            <div class="sidebar-user">Logado como <strong id="user-display"></strong></div>
+        </div>
         <nav class="sidebar-nav">
-            <a href="#" class="menu-item active" onclick="showPage('dashboard'); return false;">
-                <span class="menu-icon">📊</span>
-                <span class="menu-text">Dashboard</span>
-            </a>
-            <a href="#" class="menu-item" onclick="showPage('transactions'); return false;">
-                <span class="menu-icon">💳</span>
-                <span class="menu-text">Transações</span>
-            </a>
-            <a href="#" class="menu-item" onclick="showPage('open-banking'); return false;">
-                <span class="menu-icon">🏦</span>
-                <span class="menu-text">Open Banking</span>
-            </a>
+            <div class="nav-item active" onclick="showPage('dashboard')">
+                <span class="nav-icon">📊</span> Dashboard
+            </div>
+            <div class="nav-item" onclick="showPage('transactions')">
+                <span class="nav-icon">💳</span> Transações
+            </div>
+            <div class="nav-item" onclick="showPage('open-banking')">
+                <span class="nav-icon">🏦</span> Open Banking
+            </div>
+            <div class="nav-item" onclick="showPage('import')">
+                <span class="nav-icon">📥</span> Importar Extrato
+            </div>
         </nav>
+        <div class="sidebar-footer">
+            <button class="logout-btn" onclick="doLogout()">
+                <span>🚪</span> Sair da conta
+            </button>
+        </div>
     </aside>
 
-    <!-- ==================== MAIN CONTENT ==================== -->
-    <main class="main-content">
+    <!-- MAIN -->
+    <main class="main">
 
-        <!-- ==================== DASHBOARD PAGE ==================== -->
+        <!-- ── DASHBOARD ── -->
         <div class="page active" id="dashboard">
             <div class="page-header">
-                <h2 class="page-title">Dashboard</h2>
-                <button class="btn btn-primary" onclick="openModal('transaction-modal')">
-                    ➕ Nova Transação
-                </button>
+                <div>
+                    <h1 class="page-title">Dashboard</h1>
+                    <p class="page-subtitle" id="dash-date"></p>
+                </div>
+                <button class="btn btn-primary" onclick="openModal('tx-modal')">➕ Nova Transação</button>
             </div>
 
-            <div class="summary-cards">
-                <div class="summary-card income">
-                    <div class="card-icon">💰</div>
-                    <div class="card-info">
-                        <span class="card-label">Receitas</span>
-                        <h3 class="card-value" id="total-income">R$ 0,00</h3>
-                    </div>
+            <div class="cards-row">
+                <div class="sum-card income">
+                    <div class="sum-label">Receitas</div>
+                    <div class="sum-value" id="total-income">R$ 0,00</div>
                 </div>
-                <div class="summary-card expense">
-                    <div class="card-icon">💸</div>
-                    <div class="card-info">
-                        <span class="card-label">Despesas</span>
-                        <h3 class="card-value" id="total-expense">R$ 0,00</h3>
-                    </div>
+                <div class="sum-card expense">
+                    <div class="sum-label">Despesas</div>
+                    <div class="sum-value" id="total-expense">R$ 0,00</div>
                 </div>
-                <div class="summary-card balance">
-                    <div class="card-icon">📈</div>
-                    <div class="card-info">
-                        <span class="card-label">Saldo</span>
-                        <h3 class="card-value" id="total-balance">R$ 0,00</h3>
-                    </div>
+                <div class="sum-card balance">
+                    <div class="sum-label">Saldo</div>
+                    <div class="sum-value" id="total-balance">R$ 0,00</div>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-title-row">
-                    <h3>Últimas Transações</h3>
-                    <a href="#" class="link" onclick="showPage('transactions'); return false;">Ver todas →</a>
+            <div class="panel">
+                <div class="panel-head">
+                    <h3 class="panel-title">Últimas Transações</h3>
+                    <a href="#" class="btn btn-secondary btn-sm" onclick="showPage('transactions'); return false;">Ver todas →</a>
                 </div>
-                <div id="recent-transactions">
-                    <div class="empty-state">
-                        <span class="empty-icon">💳</span>
-                        <p>Nenhuma transação cadastrada</p>
-                    </div>
-                </div>
+                <div id="recent-list"></div>
             </div>
         </div>
 
-        <!-- ==================== TRANSACTIONS PAGE ==================== -->
+        <!-- ── TRANSACTIONS ── -->
         <div class="page" id="transactions">
             <div class="page-header">
-                <h2 class="page-title">Transações</h2>
-                <button class="btn btn-primary" onclick="openModal('transaction-modal')">
-                    ➕ Nova Transação
-                </button>
+                <div>
+                    <h1 class="page-title">Transações</h1>
+                    <p class="page-subtitle" id="tx-count-label"></p>
+                </div>
+                <button class="btn btn-primary" onclick="openModal('tx-modal')">➕ Nova Transação</button>
             </div>
-
-            <div class="card">
+            <div class="panel">
                 <div class="filters">
-                    <input type="text" id="search-input" class="input-field" placeholder="🔍 Buscar transação..." onkeyup="filterTransactions()">
-                    <select id="filter-type" class="input-field" onchange="filterTransactions()">
+                    <input class="field" id="search" placeholder="🔍 Buscar..." onkeyup="renderTxList()">
+                    <select class="field" id="ftype" onchange="renderTxList()">
                         <option value="">Todos os tipos</option>
                         <option value="income">Receitas</option>
                         <option value="expense">Despesas</option>
                     </select>
-                    <select id="filter-category" class="input-field" onchange="filterTransactions()">
+                    <select class="field" id="fcat" onchange="renderTxList()">
                         <option value="">Todas categorias</option>
-                        <option value="Salário">Salário</option>
-                        <option value="Freelance">Freelance</option>
-                        <option value="Investimentos">Investimentos</option>
-                        <option value="Alimentação">Alimentação</option>
-                        <option value="Transporte">Transporte</option>
-                        <option value="Moradia">Moradia</option>
-                        <option value="Lazer">Lazer</option>
-                        <option value="Saúde">Saúde</option>
-                        <option value="Educação">Educação</option>
-                        <option value="Outros">Outros</option>
+                        <option>Salário</option><option>Freelance</option><option>Investimentos</option>
+                        <option>Alimentação</option><option>Transporte</option><option>Moradia</option>
+                        <option>Lazer</option><option>Saúde</option><option>Educação</option><option>Outros</option>
                     </select>
                 </div>
             </div>
+            <div class="panel"><div id="tx-list"></div></div>
+        </div>
 
-            <div class="card">
-                <div id="transactions-list">
-                    <div class="empty-state">
-                        <span class="empty-icon">💳</span>
-                        <p>Nenhuma transação encontrada</p>
-                    </div>
+        <!-- ── OPEN BANKING (simulado) ── -->
+        <div class="page" id="open-banking">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Open Banking</h1>
+                    <p class="page-subtitle">Contas conectadas (simulação — dados fictícios)</p>
                 </div>
+            </div>
+            <div class="panel">
+                <div class="panel-head">
+                    <h3 class="panel-title">🏦 Contas Conectadas</h3>
+                    <button class="btn btn-primary" onclick="openModal('bank-select-modal')">➕ Adicionar Banco</button>
+                </div>
+                <div id="connected-accounts"></div>
+            </div>
+            <div class="panel" id="imported-section" style="display:none">
+                <div class="panel-head">
+                    <h3 class="panel-title">📥 Transações Importadas</h3>
+                    <button class="btn btn-secondary btn-sm" onclick="syncBank(event)">🔄 Sincronizar</button>
+                </div>
+                <div id="imported-list"></div>
             </div>
         </div>
 
-        <!-- ==================== OPEN BANKING PAGE ==================== -->
-        <div class="page" id="open-banking">
+        <!-- ── IMPORTAR EXTRATO ── -->
+        <div class="page" id="import">
             <div class="page-header">
-                <h2 class="page-title">Open Banking</h2>
+                <div>
+                    <h1 class="page-title">Importar Extrato</h1>
+                    <p class="page-subtitle">Suporte a arquivos OFX e CSV exportados do seu banco</p>
+                </div>
             </div>
 
-            <div class="card">
-                <div class="card-title-row">
-                    <h3>🏦 Contas Conectadas</h3>
-                    <button class="btn btn-primary" onclick="openModal('bank-selection-modal')">
-                        ➕ Adicionar Banco
-                    </button>
+            <div class="panel">
+                <h3 class="panel-title" style="margin-bottom:16px">📂 Selecionar Arquivo</h3>
+                <div class="import-zone" id="drop-zone" onclick="document.getElementById('file-input-hidden').click()"
+                     ondragover="ev.preventDefault();this.classList.add('drag-over')"
+                     ondragleave="this.classList.remove('drag-over')"
+                     ondrop="handleDrop(event)">
+                    <div class="import-icon">📄</div>
+                    <div class="import-title">Arraste seu arquivo aqui ou clique para selecionar</div>
+                    <div class="import-sub">Formatos aceitos: .OFX (padrão bancário) · .CSV</div>
                 </div>
-                <div id="connected-accounts">
-                    <div class="empty-state">
-                        <span class="empty-icon">🏦</span>
-                        <p>Nenhuma conta conectada ainda</p>
-                        <button class="btn btn-primary" onclick="openModal('bank-selection-modal')" style="margin-top: 16px;">
-                            Conectar meu banco
-                        </button>
+                <input type="file" id="file-input-hidden" accept=".ofx,.csv,.txt" onchange="handleFileInput(event)">
+                <div id="import-preview"></div>
+            </div>
+
+            <div class="panel" style="background:var(--paper-2)">
+                <h3 class="panel-title" style="margin-bottom:12px">💡 Como exportar seu extrato</h3>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:16px">
+                    <div style="background:var(--paper);border-radius:10px;padding:16px;border:1px solid var(--paper-3)">
+                        <div style="font-size:22px;margin-bottom:8px">🟣</div>
+                        <div style="font-weight:700;margin-bottom:4px">Nubank</div>
+                        <div style="font-size:12px;color:var(--ink-3)">App → Perfil → Exportar extrato → OFX</div>
+                    </div>
+                    <div style="background:var(--paper);border-radius:10px;padding:16px;border:1px solid var(--paper-3)">
+                        <div style="font-size:22px;margin-bottom:8px">🟠</div>
+                        <div style="font-weight:700;margin-bottom:4px">Itaú</div>
+                        <div style="font-size:12px;color:var(--ink-3)">Internet Banking → Extratos → Exportar → OFX</div>
+                    </div>
+                    <div style="background:var(--paper);border-radius:10px;padding:16px;border:1px solid var(--paper-3)">
+                        <div style="font-size:22px;margin-bottom:8px">🔴</div>
+                        <div style="font-weight:700;margin-bottom:4px">Bradesco</div>
+                        <div style="font-size:12px;color:var(--ink-3)">NetEmpresas → Saldo/Extrato → Exportar OFX</div>
+                    </div>
+                    <div style="background:var(--paper);border-radius:10px;padding:16px;border:1px solid var(--paper-3)">
+                        <div style="font-size:22px;margin-bottom:8px">🔵</div>
+                        <div style="font-weight:700;margin-bottom:4px">Caixa</div>
+                        <div style="font-size:12px;color:var(--ink-3)">Internet Banking → Extrato → Salvar como OFX</div>
+                    </div>
+                    <div style="background:var(--paper);border-radius:10px;padding:16px;border:1px solid var(--paper-3)">
+                        <div style="font-size:22px;margin-bottom:8px">🟠</div>
+                        <div style="font-weight:700;margin-bottom:4px">Inter</div>
+                        <div style="font-size:12px;color:var(--ink-3)">App → Extrato → Exportar → OFX ou CSV</div>
+                    </div>
+                    <div style="background:var(--paper);border-radius:10px;padding:16px;border:1px solid var(--paper-3)">
+                        <div style="font-size:22px;margin-bottom:8px">⚫</div>
+                        <div style="font-weight:700;margin-bottom:4px">C6 Bank</div>
+                        <div style="font-size:12px;color:var(--ink-3)">App → Extrato → Compartilhar → OFX</div>
                     </div>
                 </div>
-            </div>
-
-            <div class="card" id="imported-section" style="display: none;">
-                <div class="card-title-row">
-                    <h3>📥 Transações Importadas</h3>
-                    <button class="btn btn-secondary btn-small" onclick="syncTransactions(event)">
-                        🔄 Sincronizar
-                    </button>
-                </div>
-                <div id="imported-transactions"></div>
             </div>
         </div>
 
     </main>
+</div>
 
-    <!-- ==================== MODAL TRANSAÇÃO ==================== -->
-    <div class="modal-overlay" id="transaction-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 id="modal-title">Nova Transação</h2>
-                <button class="modal-close" onclick="closeModal('transaction-modal')">✕</button>
-            </div>
-            <form onsubmit="saveTransaction(event)">
-                <div class="form-group">
-                    <label>Tipo</label>
-                    <div class="toggle-group">
-                        <label class="toggle-option">
-                            <input type="radio" name="type" value="income" checked>
-                            <span>💰 Receita</span>
-                        </label>
-                        <label class="toggle-option">
-                            <input type="radio" name="type" value="expense">
-                            <span>💸 Despesa</span>
-                        </label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Descrição</label>
-                    <input type="text" id="description" class="input-field" placeholder="Ex: Salário, Aluguel..." required>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Valor</label>
-                        <input type="number" id="amount" class="input-field" placeholder="0.00" step="0.01" min="0.01" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Data</label>
-                        <input type="date" id="date" class="input-field" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Categoria</label>
-                    <select id="category" class="input-field" required>
-                        <option value="">Selecione...</option>
-                        <optgroup label="Receitas">
-                            <option value="Salário">Salário</option>
-                            <option value="Freelance">Freelance</option>
-                            <option value="Investimentos">Investimentos</option>
-                        </optgroup>
-                        <optgroup label="Despesas">
-                            <option value="Alimentação">Alimentação</option>
-                            <option value="Transporte">Transporte</option>
-                            <option value="Moradia">Moradia</option>
-                            <option value="Lazer">Lazer</option>
-                            <option value="Saúde">Saúde</option>
-                            <option value="Educação">Educação</option>
-                        </optgroup>
-                        <option value="Outros">Outros</option>
-                    </select>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('transaction-modal')">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Salvar</button>
-                </div>
-            </form>
+<!-- ═══ MODAL: TRANSAÇÃO ═══ -->
+<div class="overlay" id="tx-modal">
+    <div class="modal">
+        <div class="modal-head">
+            <h3 id="modal-title">Nova Transação</h3>
+            <button class="close-btn" onclick="closeModal('tx-modal')">✕</button>
         </div>
-    </div>
-
-    <!-- ==================== MODAL SELEÇÃO DE BANCO ==================== -->
-    <div class="modal-overlay" id="bank-selection-modal">
-        <div class="modal modal-large">
-            <div class="modal-header">
-                <h2>🏦 Selecione seu Banco</h2>
-                <button class="modal-close" onclick="closeModal('bank-selection-modal')">✕</button>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Tipo</label>
+                <div class="toggle-row">
+                    <label class="toggle-opt">
+                        <input type="radio" name="tx-type" value="income" checked>
+                        <span>💰 Receita</span>
+                    </label>
+                    <label class="toggle-opt">
+                        <input type="radio" name="tx-type" value="expense">
+                        <span>💸 Despesa</span>
+                    </label>
+                </div>
             </div>
-            <div style="padding: 24px;">
-                <input type="text" id="bank-search" class="input-field" placeholder="🔍 Buscar banco..." onkeyup="filterBanks()" style="margin-bottom: 20px;">
-                <div id="banks-list" class="banks-grid"></div>
+            <div class="form-group">
+                <label class="form-label">Descrição</label>
+                <input class="field" type="text" id="tx-desc" placeholder="Ex: Salário, Aluguel..." required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Valor</label>
+                    <input class="field" type="number" id="tx-amount" placeholder="0,00" step="0.01" min="0.01">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Data</label>
+                    <input class="field" type="date" id="tx-date">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Categoria</label>
+                <select class="field" id="tx-cat">
+                    <option value="">Selecione...</option>
+                    <optgroup label="Receitas">
+                        <option>Salário</option><option>Freelance</option><option>Investimentos</option>
+                    </optgroup>
+                    <optgroup label="Despesas">
+                        <option>Alimentação</option><option>Transporte</option><option>Moradia</option>
+                        <option>Lazer</option><option>Saúde</option><option>Educação</option>
+                    </optgroup>
+                    <option>Outros</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="closeModal('tx-modal')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveTx()">Salvar</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- ==================== MODAL AUTENTICAÇÃO ==================== -->
-    <div class="modal-overlay" id="bank-auth-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <span id="auth-bank-logo" style="font-size: 24px;"></span>
-                    <h2 id="auth-bank-name">Banco</h2>
-                </div>
-                <button class="modal-close" onclick="closeModal('bank-auth-modal')">✕</button>
-            </div>
-            <form onsubmit="authenticateBank(event)" style="padding: 24px;">
-                <p style="color: var(--text-light); font-size: 13px; margin-bottom: 20px;">
-                    🔒 Seus dados são protegidos e criptografados
-                </p>
-                <div class="form-group">
-                    <label>Agência</label>
-                    <input type="text" id="agency" class="input-field" placeholder="0000" required>
-                </div>
-                <div class="form-group">
-                    <label>Conta</label>
-                    <input type="text" id="account" class="input-field" placeholder="00000-0" required>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('bank-auth-modal')">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">🔗 Conectar</button>
-                </div>
-            </form>
+<!-- ═══ MODAL: SELECIONAR BANCO ═══ -->
+<div class="overlay" id="bank-select-modal">
+    <div class="modal modal-lg">
+        <div class="modal-head">
+            <h3>🏦 Selecione seu Banco</h3>
+            <button class="close-btn" onclick="closeModal('bank-select-modal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <input class="field" id="bank-search" placeholder="🔍 Buscar banco..." onkeyup="filterBanks()" style="margin-bottom:16px">
+            <div class="banks-grid" id="banks-grid"></div>
         </div>
     </div>
+</div>
 
-    <script src="app.js"></script>
+<!-- ═══ MODAL: AUTH BANCO ═══ -->
+<div class="overlay" id="bank-auth-modal">
+    <div class="modal">
+        <div class="modal-head">
+            <div style="display:flex;align-items:center;gap:10px">
+                <span id="auth-logo" style="font-size:24px"></span>
+                <h3 id="auth-name">Banco</h3>
+            </div>
+            <button class="close-btn" onclick="closeModal('bank-auth-modal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:12px;color:var(--ink-3);margin-bottom:20px">⚠️ Dados fictícios para simulação. Nenhuma informação real é transmitida.</p>
+            <div class="form-group">
+                <label class="form-label">Agência</label>
+                <input class="field" id="ag" placeholder="0000">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Conta</label>
+                <input class="field" id="ac" placeholder="00000-0">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="closeModal('bank-auth-modal')">Cancelar</button>
+                <button class="btn btn-primary" onclick="connectBank()">🔗 Conectar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
+const CRED = { email: 'pedrobgianchetta@gmail.com', pass: 'Chechetta84@' };
+
+function doLogin() {
+    const e = document.getElementById('login-email').value.trim().toLowerCase();
+    const p = document.getElementById('login-pass').value;
+    const err = document.getElementById('login-error');
+
+    if (e === CRED.email && p === CRED.pass) {
+        err.classList.remove('show');
+        sessionStorage.setItem('fincontrol_user', e);
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app').classList.add('visible');
+        document.getElementById('user-display').textContent = e;
+        initApp();
+    } else {
+        err.classList.add('show');
+        document.getElementById('login-pass').value = '';
+    }
+}
+
+function doLogout() {
+    sessionStorage.removeItem('fincontrol_user');
+    location.reload();
+}
+
+// Enter key on login
+['login-email','login-pass'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+});
+
+// Auto-login if session exists
+window.addEventListener('DOMContentLoaded', () => {
+    const saved = sessionStorage.getItem('fincontrol_user');
+    if (saved && saved === CRED.email) {
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app').classList.add('visible');
+        document.getElementById('user-display').textContent = saved;
+        initApp();
+    }
+    renderBanksList();
+});
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+const S = {
+    transactions: [],
+    editId: null,
+    banking: { connected: false, accounts: [], imported: [], lastSync: null }
+};
+
+const BANKS = [
+    { id:1,  name:'Banco do Brasil', logo:'🟡', code:'001' },
+    { id:2,  name:'Bradesco',        logo:'🔴', code:'237' },
+    { id:3,  name:'Caixa Econômica', logo:'🔵', code:'104' },
+    { id:4,  name:'Itaú',            logo:'🟠', code:'341' },
+    { id:5,  name:'Santander',       logo:'🔴', code:'033' },
+    { id:6,  name:'Nubank',          logo:'🟣', code:'260' },
+    { id:7,  name:'Inter',           logo:'🟠', code:'077' },
+    { id:8,  name:'BTG Pactual',     logo:'⚫', code:'208' },
+    { id:9,  name:'C6 Bank',         logo:'⚫', code:'336' },
+    { id:10, name:'Banco Original',  logo:'🟢', code:'212' }
+];
+
+let selBank = null;
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+function initApp() {
+    loadData();
+    document.getElementById('dash-date').textContent = new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    showPage('dashboard');
+}
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => {
+        if (n.getAttribute('onclick') && n.getAttribute('onclick').includes(`'${id}'`)) n.classList.add('active');
+    });
+    if (id === 'dashboard')    updateDashboard();
+    if (id === 'transactions') renderTxList();
+    if (id === 'open-banking') updateBankingPage();
+}
+
+// ══════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════
+function openModal(id) {
+    const m = document.getElementById(id);
+    m.classList.add('open');
+    if (id === 'tx-modal') document.getElementById('tx-date').valueAsDate = new Date();
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+    if (id === 'tx-modal') resetTxForm();
+}
+document.addEventListener('click', e => {
+    document.querySelectorAll('.overlay.open').forEach(o => { if (e.target === o) closeModal(o.id); });
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(o => closeModal(o.id));
+});
+
+// ══════════════════════════════════════════
+// TRANSACTIONS
+// ══════════════════════════════════════════
+function saveTx() {
+    const desc   = document.getElementById('tx-desc').value.trim();
+    const amount = parseFloat(document.getElementById('tx-amount').value);
+    const date   = document.getElementById('tx-date').value;
+    const cat    = document.getElementById('tx-cat').value;
+    const type   = document.querySelector('input[name="tx-type"]:checked').value;
+
+    if (!desc || !amount || !date || !cat) { alert('Preencha todos os campos.'); return; }
+
+    const tx = { id: S.editId || Date.now(), type, description: desc, amount, date, category: cat };
+
+    if (S.editId) {
+        const i = S.transactions.findIndex(t => t.id === S.editId);
+        S.transactions[i] = tx;
+    } else {
+        S.transactions.push(tx);
+    }
+
+    persist();
+    closeModal('tx-modal');
+    updateDashboard();
+    renderTxList();
+}
+
+function editTx(id) {
+    const t = S.transactions.find(x => x.id === id);
+    if (!t) return;
+    S.editId = id;
+    document.getElementById('modal-title').textContent = 'Editar Transação';
+    document.querySelector(`input[name="tx-type"][value="${t.type}"]`).checked = true;
+    document.getElementById('tx-desc').value   = t.description;
+    document.getElementById('tx-amount').value = t.amount;
+    document.getElementById('tx-date').value   = t.date;
+    document.getElementById('tx-cat').value    = t.category;
+    openModal('tx-modal');
+}
+
+function delTx(id) {
+    if (!confirm('Excluir esta transação?')) return;
+    S.transactions = S.transactions.filter(t => t.id !== id);
+    persist();
+    updateDashboard();
+    renderTxList();
+}
+
+function resetTxForm() {
+    document.getElementById('modal-title').textContent = 'Nova Transação';
+    document.getElementById('tx-desc').value   = '';
+    document.getElementById('tx-amount').value = '';
+    document.getElementById('tx-cat').value    = '';
+    document.querySelector('input[name="tx-type"][value="income"]').checked = true;
+    S.editId = null;
+}
+
+// ══════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════
+function fmtCur(v) { return new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v); }
+function fmtDate(s) { return new Date(s+'T00:00:00').toLocaleDateString('pt-BR'); }
+
+function txHTML(t, showActions=true) {
+    return `<div class="tx-item">
+        <div class="tx-icon ${t.type}">${t.type==='income'?'💰':'💸'}</div>
+        <div class="tx-info">
+            <div class="tx-desc">${t.description}</div>
+            <div class="tx-meta">${t.category} · ${fmtDate(t.date)}</div>
+        </div>
+        <div class="tx-amount ${t.type}">${t.type==='income'?'+':'-'} ${fmtCur(t.amount)}</div>
+        ${showActions ? `<div class="tx-actions">
+            <button class="icon-btn" onclick="editTx(${t.id})" title="Editar">✏️</button>
+            <button class="icon-btn del" onclick="delTx(${t.id})" title="Excluir">🗑️</button>
+        </div>` : ''}
+    </div>`;
+}
+
+function emptyHTML(msg) { return `<div class="empty"><span class="empty-icon">💳</span><p>${msg}</p></div>`; }
+
+function updateDashboard() {
+    const income  = S.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+    const expense = S.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+    document.getElementById('total-income').textContent  = fmtCur(income);
+    document.getElementById('total-expense').textContent = fmtCur(expense);
+    document.getElementById('total-balance').textContent = fmtCur(income - expense);
+
+    const recent = [...S.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+    document.getElementById('recent-list').innerHTML = recent.length
+        ? recent.map(t=>txHTML(t)).join('')
+        : emptyHTML('Nenhuma transação cadastrada');
+}
+
+function renderTxList() {
+    const q   = (document.getElementById('search')?.value||'').toLowerCase();
+    const ft  = document.getElementById('ftype')?.value||'';
+    const fc  = document.getElementById('fcat')?.value||'';
+
+    const filtered = S.transactions.filter(t =>
+        (!q  || t.description.toLowerCase().includes(q)) &&
+        (!ft || t.type === ft) &&
+        (!fc || t.category === fc)
+    ).sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+    const label = document.getElementById('tx-count-label');
+    if (label) label.textContent = `${filtered.length} transaç${filtered.length===1?'ão':'ões'} encontrada${filtered.length===1?'':'s'}`;
+
+    const el = document.getElementById('tx-list');
+    if (el) el.innerHTML = filtered.length ? filtered.map(t=>txHTML(t)).join('') : emptyHTML('Nenhuma transação encontrada');
+}
+
+// ══════════════════════════════════════════
+// OPEN BANKING (simulado)
+// ══════════════════════════════════════════
+function renderBanksList() {
+    const g = document.getElementById('banks-grid');
+    if (!g) return;
+    g.innerHTML = BANKS.map(b =>
+        `<div class="bank-card" onclick="selectBank(${b.id})">
+            <div class="bank-logo">${b.logo}</div>
+            <div><div class="bank-name">${b.name}</div><div class="bank-avail">✓ Disponível</div></div>
+        </div>`).join('');
+}
+
+function filterBanks() {
+    const q = document.getElementById('bank-search').value.toLowerCase();
+    const filtered = BANKS.filter(b => b.name.toLowerCase().includes(q));
+    document.getElementById('banks-grid').innerHTML = filtered.map(b =>
+        `<div class="bank-card" onclick="selectBank(${b.id})">
+            <div class="bank-logo">${b.logo}</div>
+            <div><div class="bank-name">${b.name}</div><div class="bank-avail">✓ Disponível</div></div>
+        </div>`).join('');
+}
+
+function selectBank(id) {
+    selBank = BANKS.find(b => b.id === id);
+    document.getElementById('auth-logo').textContent = selBank.logo;
+    document.getElementById('auth-name').textContent = selBank.name;
+    closeModal('bank-select-modal');
+    openModal('bank-auth-modal');
+}
+
+function connectBank() {
+    const ag = document.getElementById('ag').value.trim();
+    const ac = document.getElementById('ac').value.trim();
+    if (!ag || !ac) { alert('Preencha agência e conta.'); return; }
+
+    S.banking.accounts.push({
+        id: Date.now(), bank: selBank, agency: ag, account: ac,
+        type: 'Conta Corrente', balance: Math.random()*10000+2000
+    });
+    S.banking.connected = true;
+    generateMockImported();
+    persistBanking();
+    closeModal('bank-auth-modal');
+    document.getElementById('ag').value = '';
+    document.getElementById('ac').value = '';
+    updateBankingPage();
+    alert('✅ Banco conectado! (dados simulados)');
+}
+
+function generateMockImported() {
+    const mock = [
+        { description:'Supermercado Extra',   amount:234.50,  type:'expense', category:'Alimentação' },
+        { description:'Salário',              amount:5000.00, type:'income',  category:'Salário'     },
+        { description:'Uber',                 amount:45.80,   type:'expense', category:'Transporte'  },
+        { description:'Netflix',              amount:39.90,   type:'expense', category:'Lazer'       },
+        { description:'Freelance - Site',     amount:1500.00, type:'income',  category:'Freelance'   },
+        { description:'Conta de Luz',         amount:156.70,  type:'expense', category:'Moradia'     },
+        { description:'Farmácia',             amount:67.20,   type:'expense', category:'Saúde'       },
+        { description:'Academia',             amount:89.90,   type:'expense', category:'Saúde'       }
+    ];
+    const today = new Date();
+    S.banking.imported = mock.map((t,i) => ({ id: Date.now()+i, ...t, date: new Date(today.getTime()-i*86400000).toISOString().split('T')[0] }));
+    S.banking.lastSync = new Date().toISOString();
+}
+
+function syncBank(event) {
+    const btn = event.currentTarget;
+    btn.textContent = '⏳ Sincronizando...';
+    btn.disabled = true;
+    setTimeout(() => {
+        generateMockImported();
+        persistBanking();
+        updateBankingPage();
+        btn.textContent = '🔄 Sincronizar';
+        btn.disabled = false;
+        alert('✅ Sincronizado!');
+    }, 1800);
+}
+
+function disconnectBank(id) {
+    if (!confirm('Desconectar esta conta?')) return;
+    S.banking.accounts = S.banking.accounts.filter(a => a.id !== id);
+    if (!S.banking.accounts.length) { S.banking.connected = false; S.banking.imported = []; S.banking.lastSync = null; }
+    persistBanking();
+    updateBankingPage();
+}
+
+function importBankTx(id) {
+    const t = S.banking.imported.find(x => x.id === id);
+    if (!t) return;
+    const dup = S.transactions.some(x => x.description===t.description && x.amount===t.amount && x.date===t.date);
+    if (dup) { alert('⚠️ Já importada!'); return; }
+    S.transactions.push({ id: Date.now(), type: t.type, description: t.description, amount: t.amount, date: t.date, category: t.category });
+    persist();
+    updateDashboard();
+    alert('✅ Adicionada!');
+}
+
+function updateBankingPage() {
+    const ac = document.getElementById('connected-accounts');
+    const is = document.getElementById('imported-section');
+    if (S.banking.connected && S.banking.accounts.length) {
+        ac.innerHTML = S.banking.accounts.map(a =>
+            `<div class="connected-card">
+                <div class="connected-info">
+                    <span style="font-size:26px">${a.bank.logo}</span>
+                    <div>
+                        <div style="font-weight:700">${a.bank.name}</div>
+                        <div class="connected-details">Ag: ${a.agency} · Conta: ${a.account} · ${a.type}</div>
+                        ${S.banking.lastSync?`<div style="font-size:11px;color:var(--ink-4);margin-top:3px">Sync: ${new Date(S.banking.lastSync).toLocaleString('pt-BR')}</div>`:''}
+                    </div>
+                </div>
+                <div style="text-align:right">
+                    <div class="connected-bal">${fmtCur(a.balance)}</div>
+                    <button class="btn btn-danger btn-sm" onclick="disconnectBank(${a.id})" style="margin-top:8px">Desconectar</button>
+                </div>
+            </div>`).join('');
+        is.style.display = 'block';
+        const il = document.getElementById('imported-list');
+        il.innerHTML = S.banking.imported.length
+            ? S.banking.imported.map(t =>
+                `<div class="tx-item">
+                    <div class="tx-icon ${t.type}">${t.type==='income'?'💰':'💸'}</div>
+                    <div class="tx-info">
+                        <div class="tx-desc">${t.description}</div>
+                        <div class="tx-meta"><span class="sync-badge">🔄 Importada</span> ${t.category} · ${fmtDate(t.date)}</div>
+                    </div>
+                    <div class="tx-amount ${t.type}">${t.type==='income'?'+':'-'} ${fmtCur(t.amount)}</div>
+                    <div class="tx-actions" style="opacity:1">
+                        <button class="btn btn-primary btn-sm" onclick="importBankTx(${t.id})">➕ Adicionar</button>
+                    </div>
+                </div>`).join('')
+            : emptyHTML('Nenhuma transação importada');
+    } else {
+        ac.innerHTML = `<div class="empty"><span class="empty-icon">🏦</span><p>Nenhuma conta conectada ainda</p>
+            <button class="btn btn-primary" onclick="openModal('bank-select-modal')" style="margin-top:16px">Conectar meu banco</button></div>`;
+        is.style.display = 'none';
+    }
+}
+
+// ══════════════════════════════════════════
+// OFX / CSV IMPORT (REAL)
+// ══════════════════════════════════════════
+let parsedRows = [];
+
+function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+}
+
+function handleFileInput(e) {
+    const file = e.target.files[0];
+    if (file) processFile(file);
+    e.target.value = '';
+}
+
+function processFile(file) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const text = ev.target.result;
+        const ext  = file.name.toLowerCase();
+        parsedRows = ext.endsWith('.ofx') || ext.endsWith('.qfx')
+            ? parseOFX(text)
+            : parseCSV(text);
+        renderImportPreview(file.name);
+    };
+    reader.readAsText(file, 'latin1');
+}
+
+function parseOFX(text) {
+    const rows = [];
+    const txRegex = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi;
+    let match;
+    while ((match = txRegex.exec(text)) !== null) {
+        const block = match[1];
+        const get = tag => { const m = new RegExp(`<${tag}>([^<\r\n]+)`, 'i').exec(block); return m ? m[1].trim() : ''; };
+        const trntype = get('TRNTYPE');
+        const dtposted= get('DTPOSTED');
+        const amt     = parseFloat(get('TRNAMT').replace(',', '.'));
+        const memo    = get('MEMO') || get('NAME') || 'Sem descrição';
+
+        const year  = dtposted.substring(0,4);
+        const month = dtposted.substring(4,6);
+        const day   = dtposted.substring(6,8);
+        const date  = `${year}-${month}-${day}`;
+
+        const type = amt >= 0 ? 'income' : 'expense';
+        const category = guessCategory(memo);
+
+        rows.push({ type, description: cleanDesc(memo), amount: Math.abs(amt), date, category });
+    }
+    return rows;
+}
+
+function parseCSV(text) {
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) return [];
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+        const cols = splitCSV(lines[i]);
+        if (cols.length < 3) continue;
+        // Try to detect columns: date, description, value
+        const dateRaw = cols[0]?.trim() || '';
+        const desc    = cols[1]?.trim() || cols[2]?.trim() || 'Sem descrição';
+        const rawAmt  = (cols[cols.length-1]||'').trim().replace(/[^\d,.-]/g,'').replace(',','.');
+        const amt     = parseFloat(rawAmt);
+        if (!amt && amt !== 0) continue;
+        const date  = normalizeDate(dateRaw);
+        const type  = amt >= 0 ? 'income' : 'expense';
+        const category = guessCategory(desc);
+        rows.push({ type, description: cleanDesc(desc), amount: Math.abs(amt), date, category });
+    }
+    return rows;
+}
+
+function splitCSV(line) {
+    const cols = []; let cur = ''; let inQ = false;
+    for (const c of line) {
+        if (c === '"') { inQ = !inQ; }
+        else if ((c === ',' || c === ';') && !inQ) { cols.push(cur); cur = ''; }
+        else cur += c;
+    }
+    cols.push(cur);
+    return cols;
+}
+
+function normalizeDate(raw) {
+    const clean = raw.replace(/[^\d/.-]/g,'');
+    const parts = clean.split(/[/.-]/);
+    if (parts.length === 3) {
+        if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+        return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+    }
+    return new Date().toISOString().split('T')[0];
+}
+
+function cleanDesc(s) {
+    return s.replace(/\s+/g,' ').replace(/[*#]/g,'').trim().substring(0,80);
+}
+
+function guessCategory(desc) {
+    const d = desc.toLowerCase();
+    if (/salario|salário|salary/.test(d))      return 'Salário';
+    if (/freelance|servico|serviço/.test(d))   return 'Freelance';
+    if (/investimento|rend|dividendo/.test(d)) return 'Investimentos';
+    if (/mercado|superm|padaria|restaurante|food|ifood|rappi|lanche|aliment/.test(d)) return 'Alimentação';
+    if (/uber|99|taxi|táxi|onibus|ônibus|metro|metrô|combustiv|gasolina/.test(d)) return 'Transporte';
+    if (/aluguel|condomin|água|luz|energia|gás|internet|telefone/.test(d)) return 'Moradia';
+    if (/netflix|spotify|cinema|show|lazer|steam|game/.test(d)) return 'Lazer';
+    if (/farmácia|farmacia|médico|medico|plano|saude|saúde|hospital/.test(d)) return 'Saúde';
+    if (/escola|facul|curso|livro|educa/.test(d)) return 'Educação';
+    return 'Outros';
+}
+
+function renderImportPreview(filename) {
+    const preview = document.getElementById('import-preview');
+    if (!parsedRows.length) {
+        preview.innerHTML = `<div style="background:var(--red-light);color:var(--red);padding:14px;border-radius:10px;margin-top:4px">
+            ❌ Nenhuma transação encontrada no arquivo <strong>${filename}</strong>. Verifique se é um OFX ou CSV válido.
+        </div>`;
+        return;
+    }
+    preview.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;margin-top:4px">
+            <div style="font-weight:700">📄 ${filename} — <span style="color:var(--gold)">${parsedRows.length} transação(ões) encontradas</span></div>
+            <div style="display:flex;gap:8px">
+                <button class="btn btn-secondary btn-sm" onclick="toggleAllImport(true)">Selecionar tudo</button>
+                <button class="btn btn-secondary btn-sm" onclick="toggleAllImport(false)">Desmarcar tudo</button>
+                <button class="btn btn-gold" onclick="confirmImport()">✅ Importar selecionadas</button>
+            </div>
+        </div>
+        <div class="import-result" id="import-rows">
+            ${parsedRows.map((t,i) => `
+                <div class="import-row">
+                    <input type="checkbox" class="chk import-chk" data-i="${i}" checked>
+                    <span class="badge ${t.type==='income'?'badge-in':'badge-out'}">${t.type==='income'?'Receita':'Despesa'}</span>
+                    <span style="flex:1;font-weight:500">${t.description}</span>
+                    <span style="color:var(--ink-3);font-size:12px">${t.category}</span>
+                    <span style="color:var(--ink-3);font-size:12px">${fmtDate(t.date)}</span>
+                    <span style="font-weight:700;color:${t.type==='income'?'var(--green)':'var(--red)'}">${fmtCur(t.amount)}</span>
+                </div>`).join('')}
+        </div>`;
+}
+
+function toggleAllImport(state) {
+    document.querySelectorAll('.import-chk').forEach(c => c.checked = state);
+}
+
+function confirmImport() {
+    const selected = [...document.querySelectorAll('.import-chk:checked')].map(c => parseInt(c.dataset.i));
+    if (!selected.length) { alert('Selecione ao menos uma transação.'); return; }
+
+    let added = 0, dup = 0;
+    selected.forEach(i => {
+        const t = parsedRows[i];
+        const isDup = S.transactions.some(x => x.description===t.description && x.amount===t.amount && x.date===t.date);
+        if (isDup) { dup++; return; }
+        S.transactions.push({ id: Date.now() + Math.random(), ...t });
+        added++;
+    });
+
+    persist();
+    updateDashboard();
+    document.getElementById('import-preview').innerHTML = `
+        <div style="background:var(--green-light);color:var(--green);padding:16px;border-radius:10px;font-weight:600">
+            ✅ ${added} transação(ões) importada(s) com sucesso!${dup?` (${dup} ignorada(s) por serem duplicatas)`:''}
+        </div>`;
+    parsedRows = [];
+}
+
+// ══════════════════════════════════════════
+// PERSISTENCE
+// ══════════════════════════════════════════
+function persist() { localStorage.setItem('fincontrol_tx', JSON.stringify(S.transactions)); }
+function persistBanking() { localStorage.setItem('fincontrol_banking', JSON.stringify(S.banking)); }
+function loadData() {
+    const tx = localStorage.getItem('fincontrol_tx');
+    const bk = localStorage.getItem('fincontrol_banking');
+    if (tx) S.transactions = JSON.parse(tx);
+    if (bk) S.banking = JSON.parse(bk);
+}
+</script>
 </body>
 </html>
