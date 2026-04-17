@@ -16,16 +16,14 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer((req, res) => {
-    // LOG CORRIGIDO - linha 19
     console.log(new Date().toISOString() + ' - ' + req.method + ' ' + req.url);
-    
+
     let filePath = req.url === '/' ? '/index.html' : req.url;
-    
+
     // Remove query strings
     filePath = filePath.split('?')[0];
-    
     filePath = path.join(__dirname, filePath);
-    
+
     const ext = path.extname(filePath);
     const contentType = MIME_TYPES[ext] || 'text/plain';
 
@@ -52,7 +50,6 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log('Ambiente: ' + (process.env.NODE_ENV || 'development'));
 });
 
-// Tratamento de erros
 server.on('error', (err) => {
     console.error('Erro no servidor:', err);
     process.exit(1);
