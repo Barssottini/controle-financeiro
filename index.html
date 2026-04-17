@@ -582,46 +582,9 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
     </div>
   </div>
 </div>
-
-<script>
-// ═══ AUTH ═══
-const CRED={email:'pedrobgianchetta@gmail.com',pass:'Chechetta84@'};
-function doLogin(){
-  const e=document.getElementById('lemail').value.trim().toLowerCase();
-  const p=document.getElementById('lpass').value;
-  const err=document.getElementById('lerr');
-  const passInput=document.getElementById('lpass');
-  if(e===CRED.email&&p===CRED.pass){
-    err.classList.remove('show');
-    sessionStorage.setItem('bf_u',e);
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('app').classList.add('visible');
-    document.getElementById('udisp').textContent=e;
-    initApp();
-  }else{
-    err.classList.remove('show');
-    void err.offsetWidth; // force reflow to re-trigger animation
-    err.classList.add('show');
-    passInput.value='';
-    passInput.style.borderColor='#fca5a5';
-    passInput.focus();
-    setTimeout(()=>{passInput.style.borderColor='';},2000);
-  }
-}
-function doLogout(){sessionStorage.removeItem('bf_u');location.reload();}
-['lemail','lpass'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
-window.addEventListener('DOMContentLoaded',()=>{
-  buildBankGuide();
-  renderBanksList();
-  const u=sessionStorage.getItem('bf_u');
-  if(u===CRED.email){
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('app').classList.add('visible');
-    document.getElementById('udisp').textContent=u;
-    initApp();
-  }
-});
-
+  
+  <script src="app.js">
+    
 // ═══ STATE ═══
 const S={
   transactions:[],
