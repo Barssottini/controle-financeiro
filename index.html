@@ -230,8 +230,8 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
     <nav class="sb-nav">
       <div class="sb-section">Principal</div>
       <div class="navi active" onclick="showPage('dashboard')"><span class="ni">📊</span>Dashboard</div>
-      <div class="navi" onclick="showPage('transactions')"><span class="ni">💳</span>Transações</div>
-      <div class="navi" onclick="showPage('credit-card')"><span class="ni">🟣</span>Cartão de Crédito</div>
+      <div class="navi" onclick="showPage('transactions')"><span class="ni">🔄</span>Transações</div>
+      <div class="navi" onclick="showPage('credit-card')"><span class="ni">💳</span>Cartão de Crédito</div>
       <div class="sb-section">Patrimônio</div>
       <div class="navi" onclick="showPage('investments')"><span class="ni">📈</span>Investimentos</div>
       <div class="navi" onclick="showPage('goals')"><span class="ni">🎯</span>Metas &amp; Reserva</div>
@@ -530,6 +530,17 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
         <div class="fgrp"><label class="flbl">Já guardado (R$)</label><input class="field" type="number" id="g-current" placeholder="0,00" step="0.01" min="0" value="0"></div>
       </div>
       <div class="fgrp"><label class="flbl">Prazo (opcional)</label><input class="field" type="date" id="g-deadline"></div>
+      <div class="fgrp">
+        <label class="flbl">Rendimento CDI (opcional)</label>
+        <select class="field" id="g-cdi">
+          <option value="0">Sem rendimento (guardado manualmente)</option>
+          <option value="100">100% do CDI — Caixinha Nubank</option>
+          <option value="115">115% do CDI — Caixinha Turbo Nubank</option>
+        </select>
+        <div id="g-cdi-info" style="display:none;background:var(--goldl);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--ink2);margin-top:8px;line-height:1.6">
+          📌 O rendimento será calculado automaticamente sobre o valor já guardado, a partir de hoje.
+        </div>
+      </div>
       <div class="factions">
         <button class="btn btn-secondary" onclick="closeModal('goal-modal')">Cancelar</button>
         <button class="btn btn-primary" onclick="saveGoal()">Salvar</button>
@@ -632,6 +643,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const el = document.getElementById(id);
     if(el) el.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
   });
+  // Show/hide CDI info box in goal modal
+  const gCdi=document.getElementById('g-cdi');
+  const gCdiInfo=document.getElementById('g-cdi-info');
+  if(gCdi&&gCdiInfo){
+    gCdi.addEventListener('change',()=>{
+      gCdiInfo.style.display=gCdi.value!=='0'?'block':'none';
+    });
+  }
 });
 
     
@@ -688,7 +707,12 @@ function closeModal(id){
   document.getElementById(id).classList.remove('open');
   if(id==='tx-modal')resetTxForm();
   if(id==='inv-modal'){S.invEditId=null;document.getElementById('inv-modal-title').textContent='Novo Investimento';}
-  if(id==='goal-modal'){S.goalEditId=null;document.getElementById('goal-modal-title').textContent='Nova Meta';}
+  if(id==='goal-modal'){
+    S.goalEditId=null;
+    document.getElementById('goal-modal-title').textContent='Nova Meta';
+    const gc=document.getElementById('g-cdi');if(gc)gc.value='0';
+    const gi=document.getElementById('g-cdi-info');if(gi)gi.style.display='none';
+  }
 }
 document.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').forEach(o=>{if(e.target===o)closeModal(o.id);});});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>closeModal(o.id));});
@@ -853,8 +877,14 @@ function saveGoal(){
   const current=parseFloat(document.getElementById('g-current').value)||0;
   const deadline=document.getElementById('g-deadline').value;
   const type=document.querySelector('input[name="gtype"]:checked').value;
+  const cdi=parseInt(document.getElementById('g-cdi').value)||0;
   if(!name||!target){alert('Preencha nome e valor.');return;}
-  const g={id:S.goalEditId||Date.now(),name,type,target,current,deadline};
+  const existing=S.goalEditId?S.goals.find(x=>x.id===S.goalEditId):null;
+  // Keep cdiStartDate if editing and current value didn't change, else reset
+  const cdiStartDate=(existing&&cdi>0&&existing.cdi===cdi&&existing.current===current)
+    ?existing.cdiStartDate
+    :(cdi>0?new Date().toISOString().split('T')[0]:null);
+  const g={id:S.goalEditId||Date.now(),name,type,target,current,deadline,cdi,cdiStartDate};
   if(S.goalEditId){const i=S.goals.findIndex(x=>x.id===S.goalEditId);S.goals[i]=g;}
   else S.goals.push(g);
   persistGoals();closeModal('goal-modal');renderGoalsPage();updateDashboard();
@@ -868,6 +898,10 @@ function editGoal(id){
   document.getElementById('g-target').value=g.target;
   document.getElementById('g-current').value=g.current;
   document.getElementById('g-deadline').value=g.deadline||'';
+  const cdiSel=document.getElementById('g-cdi');
+  if(cdiSel)cdiSel.value=g.cdi||0;
+  const cdiInfo=document.getElementById('g-cdi-info');
+  if(cdiInfo)cdiInfo.style.display=(g.cdi>0)?'block':'none';
   openModal('goal-modal');
 }
 function delGoal(id){
@@ -888,9 +922,22 @@ function updateGoalProgress(){
   g.current=val;
   persistGoals();closeModal('goal-progress-modal');renderGoalsPage();updateDashboard();
 }
+function calcGoalCDI(g){
+  if(!g.cdi||!g.cdiStartDate||!g.current)return null;
+  const rate=CDI*(g.cdi/100);
+  const daily=Math.pow(1+rate,1/252)-1;
+  const start=new Date(g.cdiStartDate+'T00:00:00');
+  const today=new Date();
+  let days=0,d=new Date(start);
+  while(d<=today){const dw=d.getDay();if(dw!==0&&dw!==6)days++;d.setDate(d.getDate()+1);}
+  const withYield=g.current*Math.pow(1+daily,days);
+  return{withYield,yieldAmt:withYield-g.current,days};
+}
 function renderGoalCard(g){
-  const pct=Math.min(100,Math.round(g.current/g.target*100));
-  const rem=Math.max(0,g.target-g.current);
+  const cdiResult=calcGoalCDI(g);
+  const effectiveCurrent=cdiResult?cdiResult.withYield:g.current;
+  const pct=Math.min(100,Math.round(effectiveCurrent/g.target*100));
+  const rem=Math.max(0,g.target-effectiveCurrent);
   const done=pct>=100;
   const badgeClass=g.type==='emergency'?'emergency':'meta';
   const badgeLabel=g.type==='emergency'?'🛡️ Reserva de Emergência':'🎯 Meta';
@@ -900,11 +947,18 @@ function renderGoalCard(g){
     const diff=Math.ceil((dl-new Date())/(86400000));
     dlInfo=' &nbsp;·&nbsp; <span style="color:'+(diff<30?'var(--red)':'var(--ink3)')+'">Prazo: '+fmtDate(g.deadline)+(diff>0?' ('+diff+' dias)':' (vencido)')+'</span>';
   }
+  const cdiTag=g.cdi>0
+    ?'<span style="background:var(--goldl);color:var(--gold);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px">'+g.cdi+'% CDI</span>'
+    :'';
+  const cdiYieldLine=cdiResult
+    ?'<div style="font-size:12px;color:var(--green);font-weight:600;margin-top:2px">+ '+fmtCur(cdiResult.yieldAmt)+' em rendimentos ('+cdiResult.days+' dias úteis)</div>'
+    :'';
   return '<div class="goal-card">'+
-    '<div class="goal-name">'+g.name+'</div>'+
+    '<div class="goal-name">'+g.name+cdiTag+'</div>'+
     '<span class="goal-type-badge '+badgeClass+'">'+badgeLabel+'</span>'+
     '<div class="goal-amounts">'+
-    '<div><div class="goal-current">'+fmtCur(g.current)+'</div>'+
+    '<div><div class="goal-current">'+fmtCur(effectiveCurrent)+'</div>'+
+    cdiYieldLine+
     '<div style="font-size:12px;color:var(--ink3)">guardado'+dlInfo+'</div></div>'+
     '<div style="text-align:right"><div class="goal-target">Meta: '+fmtCur(g.target)+'</div>'+
     (done?'<div style="color:var(--green);font-size:12px;font-weight:700">✅ Meta atingida!</div>':
