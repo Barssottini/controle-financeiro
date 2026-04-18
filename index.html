@@ -1236,7 +1236,7 @@ function confirmImport(){
     S.transactions.push({id:Date.now()+Math.random(),...t});added++;
   });
   persist();updateDashboard();populateMonthFilter();
-  document.getElementById('import-preview').innerHTML='<div style="background:var(--greenl);color:var(--green);padding:14px;border-radius:10px;font-weight:600">✅ '+added+' transação(ões) importada(s)!'+(dup?' ('+dup+' duplicata(s) ignorada(s))')+'</div>';
+  document.getElementById('import-preview').innerHTML='<div style="background:var(--greenl);color:var(--green);padding:14px;border-radius:10px;font-weight:600">✅ '+added+' transação(ões) importada(s)!'+(dup?' ('+dup+' duplicata(s) ignorada(s))':'')+'</div>';
   parsedRows=[];
 }
 
