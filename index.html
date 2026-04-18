@@ -537,8 +537,12 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
           <option value="100">100% do CDI — Caixinha Nubank</option>
           <option value="115">115% do CDI — Caixinha Turbo Nubank</option>
         </select>
-        <div id="g-cdi-info" style="display:none;background:var(--goldl);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--ink2);margin-top:8px;line-height:1.6">
-          📌 O rendimento será calculado automaticamente sobre o valor já guardado, a partir de hoje.
+        <div id="g-cdi-info" style="display:none;margin-top:10px">
+          <label class="flbl">Data de início do rendimento</label>
+          <input class="field" type="date" id="g-cdi-date">
+          <div style="background:var(--goldl);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--ink2);margin-top:8px;line-height:1.6">
+            📌 O rendimento será calculado sobre o valor já guardado, a partir da data escolhida.
+          </div>
         </div>
       </div>
       <div class="factions">
@@ -646,9 +650,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // Show/hide CDI info box in goal modal
   const gCdi=document.getElementById('g-cdi');
   const gCdiInfo=document.getElementById('g-cdi-info');
+  const gCdiDate=document.getElementById('g-cdi-date');
   if(gCdi&&gCdiInfo){
     gCdi.addEventListener('change',()=>{
-      gCdiInfo.style.display=gCdi.value!=='0'?'block':'none';
+      const on=gCdi.value!=='0';
+      gCdiInfo.style.display=on?'block':'none';
+      if(on&&gCdiDate&&!gCdiDate.value)gCdiDate.valueAsDate=new Date();
     });
   }
 });
@@ -712,6 +719,7 @@ function closeModal(id){
     document.getElementById('goal-modal-title').textContent='Nova Meta';
     const gc=document.getElementById('g-cdi');if(gc)gc.value='0';
     const gi=document.getElementById('g-cdi-info');if(gi)gi.style.display='none';
+    const gd=document.getElementById('g-cdi-date');if(gd)gd.value='';
   }
 }
 document.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').forEach(o=>{if(e.target===o)closeModal(o.id);});});
@@ -879,11 +887,9 @@ function saveGoal(){
   const type=document.querySelector('input[name="gtype"]:checked').value;
   const cdi=parseInt(document.getElementById('g-cdi').value)||0;
   if(!name||!target){alert('Preencha nome e valor.');return;}
+  const chosenDate=document.getElementById('g-cdi-date')?.value||new Date().toISOString().split('T')[0];
   const existing=S.goalEditId?S.goals.find(x=>x.id===S.goalEditId):null;
-  // Keep cdiStartDate if editing and current value didn't change, else reset
-  const cdiStartDate=(existing&&cdi>0&&existing.cdi===cdi&&existing.current===current)
-    ?existing.cdiStartDate
-    :(cdi>0?new Date().toISOString().split('T')[0]:null);
+  const cdiStartDate=cdi>0?chosenDate:null;
   const g={id:S.goalEditId||Date.now(),name,type,target,current,deadline,cdi,cdiStartDate};
   if(S.goalEditId){const i=S.goals.findIndex(x=>x.id===S.goalEditId);S.goals[i]=g;}
   else S.goals.push(g);
@@ -902,6 +908,8 @@ function editGoal(id){
   if(cdiSel)cdiSel.value=g.cdi||0;
   const cdiInfo=document.getElementById('g-cdi-info');
   if(cdiInfo)cdiInfo.style.display=(g.cdi>0)?'block':'none';
+  const cdiDateEl=document.getElementById('g-cdi-date');
+  if(cdiDateEl)cdiDateEl.value=g.cdiStartDate||new Date().toISOString().split('T')[0];
   openModal('goal-modal');
 }
 function delGoal(id){
