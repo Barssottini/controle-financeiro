@@ -874,6 +874,17 @@ const BANKS=[
 ];
 const CDI=0.1065;
 let selBank=null,dashChart=null;
+function bizDays(start,end){
+  const ms=86400000,s=new Date(start),e=new Date(end);
+  const total=Math.round((e-s)/ms);if(total<=0)return 0;
+  const weeks=Math.floor(total/7),rem=total%7,dow=s.getDay();
+  let extra=0;for(let i=0;i<rem;i++){const d=(dow+i)%7;if(d===0||d===6)extra++;}
+  return weeks*5+(rem-extra);
+}
+function newId(){
+  const all=[...S.transactions,...S.ccItems,...S.investments,...S.goals,...S.budgets,...S.recurring];
+  return all.reduce((m,x)=>Math.max(m,typeof x.id==='number'?x.id:0),0)+1;
+}
 
 // ═══ INIT ═══
 function initApp(){
@@ -1024,12 +1035,10 @@ function renderCCPage(){
 
 // ═══ INVESTMENTS ═══
 function calcYield(inv){
-  const rate=CDI*(inv.cdi/100);
+  const cdiRate=S.settings.cdi||CDI;
+  const rate=cdiRate*(inv.cdi/100);
   const daily=Math.pow(1+rate,1/252)-1;
-  const start=new Date(inv.date+'T00:00:00');
-  const today=new Date();
-  let days=0,d=new Date(start);
-  while(d<=today){const dw=d.getDay();if(dw!==0&&dw!==6)days++;d.setDate(d.getDate()+1);}
+  const days=bizDays(new Date(inv.date+'T00:00:00'),new Date());
   const current=inv.principal*Math.pow(1+daily,days);
   return{current,yieldAmt:current-inv.principal,days};
 }
@@ -1093,11 +1102,10 @@ function saveGoal(){
   const cdi=parseInt(document.getElementById('g-cdi').value)||0;
   if(!name||!target){alert('Preencha nome e valor.');return;}
   const existing=S.goalEditId?S.goals.find(x=>x.id===S.goalEditId):null;
-  // Keep cdiStartDate if editing and current value didn't change, else reset
-  const cdiStartDate=(existing&&cdi>0&&existing.cdi===cdi&&existing.current===current)
-    ?existing.cdiStartDate
-    :(cdi>0?new Date().toISOString().split('T')[0]:null);
-  const g={id:S.goalEditId||Date.now(),name,type,target,current,deadline,cdi,cdiStartDate};
+  const unchanged=existing&&cdi>0&&existing.cdi===cdi&&existing.current===current;
+  const cdiStartDate=unchanged?existing.cdiStartDate:(cdi>0?new Date().toISOString().split('T')[0]:null);
+  const cdiPrincipal=unchanged?existing.cdiPrincipal:(cdi>0?current:null);
+  const g={id:S.goalEditId||Date.now(),name,type,target,current,deadline,cdi,cdiStartDate,cdiPrincipal};
   if(S.goalEditId){const i=S.goals.findIndex(x=>x.id===S.goalEditId);S.goals[i]=g;}
   else S.goals.push(g);
   persistGoals();closeModal('goal-modal');renderGoalsPage();updateDashboard();
@@ -1133,18 +1141,18 @@ function updateGoalProgress(){
   const val=parseFloat(document.getElementById('gp-current').value)||0;
   const g=S.goals.find(x=>x.id===id);if(!g)return;
   g.current=val;
+  if(g.cdi>0){g.cdiPrincipal=val;g.cdiStartDate=new Date().toISOString().split('T')[0];}
   persistGoals();closeModal('goal-progress-modal');renderGoalsPage();updateDashboard();
 }
 function calcGoalCDI(g){
   if(!g.cdi||!g.cdiStartDate||!g.current)return null;
-  const rate=CDI*(g.cdi/100);
+  const cdiRate=S.settings.cdi||CDI;
+  const rate=cdiRate*(g.cdi/100);
   const daily=Math.pow(1+rate,1/252)-1;
-  const start=new Date(g.cdiStartDate+'T00:00:00');
-  const today=new Date();
-  let days=0,d=new Date(start);
-  while(d<=today){const dw=d.getDay();if(dw!==0&&dw!==6)days++;d.setDate(d.getDate()+1);}
-  const withYield=g.current*Math.pow(1+daily,days);
-  return{withYield,yieldAmt:withYield-g.current,days};
+  const days=bizDays(new Date(g.cdiStartDate+'T00:00:00'),new Date());
+  const base=g.cdiPrincipal??g.current;
+  const withYield=base*Math.pow(1+daily,days);
+  return{withYield,yieldAmt:withYield-base,days};
 }
 function renderGoalCard(g){
   const cdiResult=calcGoalCDI(g);
@@ -1424,7 +1432,8 @@ function parseCSV(text){
     const desc=cols[1]?.trim()||'Sem descrição';
     const rawAmt=(cols[cols.length-1]||'').trim().replace(/[^\d,.-]/g,'').replace(',','.');
     const amt=parseFloat(rawAmt);if(isNaN(amt))continue;
-    rows.push({type:amt>=0?'income':'expense',description:cleanDesc(desc),amount:Math.abs(amt),date:normalizeDate(dateRaw),category:guessCategory(desc)});
+    const date=normalizeDate(dateRaw);if(!date)continue;
+    rows.push({type:amt>=0?'income':'expense',description:cleanDesc(desc),amount:Math.abs(amt),date,category:guessCategory(desc)});
   }
   return rows;
 }
@@ -1438,9 +1447,9 @@ function normalizeDate(raw){
   const parts=clean.split(/[/.-]/);
   if(parts.length===3){
     if(parts[0].length===4)return parts[0]+'-'+parts[1].padStart(2,'0')+'-'+parts[2].padStart(2,'0');
-    return parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0');
+    if(parts[2].length===4)return parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0');
   }
-  return new Date().toISOString().split('T')[0];
+  return null;
 }
 function cleanDesc(s){
   // Fix common OFX encoding artifacts + remove CPF masks
@@ -1500,7 +1509,7 @@ function confirmImport(){
   sel.forEach(i=>{
     const t=parsedRows[i];
     if(S.transactions.some(x=>x.description===t.description&&x.amount===t.amount&&x.date===t.date)){dup++;return;}
-    S.transactions.push({id:Date.now()+Math.random(),...t});added++;
+    S.transactions.push({id:newId(),...t});added++;
   });
   persist();updateDashboard();populateMonthFilter();
   document.getElementById('import-preview').innerHTML='<div style="background:var(--greenl);color:var(--green);padding:14px;border-radius:10px;font-weight:600">✅ '+added+' transação(ões) importada(s)!'+(dup?' ('+dup+' duplicata(s) ignorada(s))':'')+'</div>';
@@ -1675,7 +1684,7 @@ async function pluggySync(manual=false){
           const amt=Math.abs(tx.amount||0);
           if(!date||!amt)continue;
           if(S.transactions.some(x=>x.description===desc&&x.amount===amt&&x.date===date))continue;
-          S.transactions.push({id:Date.now()+Math.random(),type,description:desc,amount:amt,date,category:guessCategory(desc),source:'pluggy'});
+          S.transactions.push({id:newId(),type,description:desc,amount:amt,date,category:guessCategory(desc),source:'pluggy'});
           added++;
         }
       }
@@ -1813,7 +1822,7 @@ function checkRecurring(){
     const day=Math.min(r.day,maxDay);
     const date=month+'-'+String(day).padStart(2,'0');
     const dup=S.transactions.some(t=>t.description===r.description+' (recorrente)'&&t.date===date);
-    if(!dup)S.transactions.push({id:Date.now()+Math.random(),type:r.type,description:r.description+' (recorrente)',amount:r.amount,date,category:r.category});
+    if(!dup)S.transactions.push({id:newId(),type:r.type,description:r.description+' (recorrente)',amount:r.amount,date,category:r.category});
     r.lastGenerated=month;
     changed=true;
   });
