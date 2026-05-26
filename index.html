@@ -1594,7 +1594,7 @@ function _loadPluggyScript(){
   return new Promise((resolve,reject)=>{
     if(window.PluggyConnect){resolve();return;}
     const s=document.createElement('script');
-    s.src='https://cdn.pluggy.ai/pluggy-connect/v2/pluggy-connect.js';
+    s.src='https://cdn.pluggy.ai/pluggy-connect/latest/pluggy-connect.js';
     s.onload=resolve;
     s.onerror=()=>reject(new Error('Não foi possível carregar o widget Pluggy. Verifique sua conexão.'));
     document.head.appendChild(s);
