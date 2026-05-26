@@ -206,6 +206,22 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 </head>
 <body>
 
+<!-- SETUP (primeiro acesso) -->
+<div id="setup-screen" style="position:fixed;inset:0;z-index:10000;background:#0d0d0d;display:none;align-items:center;justify-content:center">
+  <div class="login-box">
+    <div class="login-brand">Barssottini <span>&amp;</span> Finanças</div>
+    <p class="login-sub">Configure sua senha de acesso</p>
+    <div class="lerr" id="setup-err"><span style="font-size:16px">🔴</span><span id="setup-err-msg">Preencha todos os campos.</span></div>
+    <label class="lbl">E-mail</label>
+    <input class="linput" type="email" id="setup-email" placeholder="seu@email.com" autocomplete="email">
+    <label class="lbl">Senha</label>
+    <input class="linput" type="password" id="setup-pass" placeholder="Mínimo 6 caracteres">
+    <label class="lbl">Confirmar senha</label>
+    <input class="linput" type="password" id="setup-pass2" placeholder="Repita a senha">
+    <button class="lbtn" onclick="doSetup()">Criar acesso</button>
+  </div>
+</div>
+
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
@@ -238,6 +254,8 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       <div class="sb-section">Banco</div>
       <div class="navi" onclick="showPage('import')"><span class="ni">📥</span>Importar Extrato</div>
       <div class="navi" onclick="showPage('open-banking')"><span class="ni">🏦</span>Open Banking</div>
+      <div class="sb-section">Sistema</div>
+      <div class="navi" onclick="showPage('settings')"><span class="ni">⚙️</span>Configurações</div>
     </nav>
     <div class="sb-footer">
       <button class="logout-btn" onclick="doLogout()"><span>🚪</span>Sair da conta</button>
@@ -406,6 +424,56 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       </div>
     </div>
 
+    <!-- SETTINGS -->
+    <div class="page" id="settings">
+      <div class="ph">
+        <div><h1 class="pt">Configurações</h1><p class="ps">Monitoramento automático e preferências do sistema</p></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">📊 Taxa CDI</span></div>
+        <div style="max-width:280px;margin-bottom:6px">
+          <label class="flbl">CDI atual (% a.a.)</label>
+          <input class="field" type="number" id="set-cdi" placeholder="10.65" step="0.01" min="0.01">
+        </div>
+        <p style="font-size:12px;color:var(--ink3)">Consulte em <a href="https://www.bcb.gov.br" target="_blank" style="color:var(--gold)">bcb.gov.br</a> e atualize quando o Banco Central mudar a taxa.</p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">🏦 Monitoramento Automático — Pluggy</span>
+          <span class="sync-badge" id="settings-sync-badge" style="display:none"></span>
+        </div>
+        <div style="background:var(--goldl);border-radius:var(--r);padding:12px 14px;font-size:12px;color:var(--ink2);margin-bottom:18px;line-height:1.7">
+          📌 <strong>Como usar:</strong> crie uma conta gratuita em <strong>pluggy.ai</strong>, acesse o painel dev, copie seu <em>Client ID</em> e <em>Client Secret</em> e cole abaixo.<br>
+          O app conecta aos seus bancos via <strong>Open Finance Brasil</strong> (regulado pelo Banco Central) e importa transações automaticamente.
+        </div>
+        <div class="frow">
+          <div class="fgrp">
+            <label class="flbl">Client ID</label>
+            <input class="field" type="text" id="set-pluggy-id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+          </div>
+          <div class="fgrp">
+            <label class="flbl">Client Secret</label>
+            <input class="field" type="password" id="set-pluggy-secret" placeholder="••••••••••••••••" autocomplete="off">
+          </div>
+        </div>
+        <label style="display:flex;align-items:center;gap:9px;cursor:pointer;margin-bottom:18px">
+          <input type="checkbox" id="set-autosync" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer">
+          <span style="font-size:13px;font-weight:500">Sincronizar automaticamente a cada 30 minutos</span>
+        </label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+          <button class="btn btn-primary" onclick="saveSettings()">💾 Salvar</button>
+          <button class="btn btn-secondary" onclick="pluggyConnect(this)">🔗 Conectar banco</button>
+          <button class="btn btn-green" onclick="pluggySync(true)">🔄 Sincronizar agora</button>
+        </div>
+        <div style="font-size:12px;color:var(--ink3);line-height:2">
+          <div id="pluggy-status">Nenhum banco conectado via Pluggy.</div>
+          <div id="last-sync-info"></div>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -537,12 +605,8 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
           <option value="100">100% do CDI — Caixinha Nubank</option>
           <option value="115">115% do CDI — Caixinha Turbo Nubank</option>
         </select>
-        <div id="g-cdi-info" style="display:none;margin-top:10px">
-          <label class="flbl">Data de início do rendimento</label>
-          <input class="field" type="date" id="g-cdi-date">
-          <div style="background:var(--goldl);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--ink2);margin-top:8px;line-height:1.6">
-            📌 O rendimento será calculado sobre o valor já guardado, a partir da data escolhida.
-          </div>
+        <div id="g-cdi-info" style="display:none;background:var(--goldl);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--ink2);margin-top:8px;line-height:1.6">
+          📌 O rendimento será calculado automaticamente sobre o valor já guardado, a partir de hoje.
         </div>
       </div>
       <div class="factions">
@@ -600,29 +664,63 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
   
 <script>
 // ═══ AUTH ═══
-const CRED={email:'pedrobgianchetta@gmail.com',pass:'Chechetta84@'};
+async function sha256(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
 
-function doLogin(){
-  const e=document.getElementById('lemail').value.trim().toLowerCase();
-  const p=document.getElementById('lpass').value;
+function esc(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+async function doLogin(){
+  const email=document.getElementById('lemail').value.trim().toLowerCase();
+  const pass=document.getElementById('lpass').value;
   const err=document.getElementById('lerr');
   const passInput=document.getElementById('lpass');
-  if(e===CRED.email && p===CRED.pass){
+  const storedHash=localStorage.getItem('bf_pw');
+  const storedEmail=localStorage.getItem('bf_email')||'';
+  const hash=await sha256(pass);
+  if(email===storedEmail&&hash===storedHash){
     err.classList.remove('show');
-    sessionStorage.setItem('bf_u', e);
+    sessionStorage.setItem('bf_u',email);
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('app').classList.add('visible');
-    document.getElementById('udisp').textContent = e;
+    document.getElementById('udisp').textContent=email;
     initApp();
-  } else {
+  }else{
     err.classList.remove('show');
     void err.offsetWidth;
     err.classList.add('show');
-    passInput.value = '';
-    passInput.style.borderColor = '#fca5a5';
+    passInput.value='';
+    passInput.style.borderColor='#fca5a5';
     passInput.focus();
-    setTimeout(()=>{ passInput.style.borderColor=''; }, 2000);
+    setTimeout(()=>{passInput.style.borderColor='';},2000);
   }
+}
+
+async function doSetup(){
+  const email=document.getElementById('setup-email').value.trim().toLowerCase();
+  const pass=document.getElementById('setup-pass').value;
+  const pass2=document.getElementById('setup-pass2').value;
+  const errEl=document.getElementById('setup-err');
+  const msgEl=document.getElementById('setup-err-msg');
+  const showErr=msg=>{msgEl.textContent=msg;errEl.classList.add('show');};
+  errEl.classList.remove('show');
+  if(!email||!pass){showErr('Preencha todos os campos.');return;}
+  if(pass.length<6){showErr('Senha muito curta (mínimo 6 caracteres).');return;}
+  if(pass!==pass2){showErr('As senhas não conferem.');return;}
+  const hash=await sha256(pass);
+  localStorage.setItem('bf_email',email);
+  localStorage.setItem('bf_pw',hash);
+  document.getElementById('setup-screen').style.display='none';
+  sessionStorage.setItem('bf_u',email);
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('udisp').textContent=email;
+  initApp();
 }
 
 function doLogout(){
@@ -630,33 +728,35 @@ function doLogout(){
   location.reload();
 }
 
-window.addEventListener('DOMContentLoaded', ()=>{
+window.addEventListener('DOMContentLoaded',()=>{
   buildBankGuide();
   renderBanksList();
-  const u = sessionStorage.getItem('bf_u');
-  if(u === CRED.email){
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('app').classList.add('visible');
-    document.getElementById('udisp').textContent = u;
-    initApp();
-  }
-});
-
-document.addEventListener('DOMContentLoaded', ()=>{
+  // Setup listeners
   ['lemail','lpass'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
   });
-  // Show/hide CDI info box in goal modal
+  ['setup-pass','setup-pass2'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')doSetup();});
+  });
   const gCdi=document.getElementById('g-cdi');
   const gCdiInfo=document.getElementById('g-cdi-info');
-  const gCdiDate=document.getElementById('g-cdi-date');
-  if(gCdi&&gCdiInfo){
-    gCdi.addEventListener('change',()=>{
-      const on=gCdi.value!=='0';
-      gCdiInfo.style.display=on?'block':'none';
-      if(on&&gCdiDate&&!gCdiDate.value)gCdiDate.valueAsDate=new Date();
-    });
+  if(gCdi&&gCdiInfo)gCdi.addEventListener('change',()=>{gCdiInfo.style.display=gCdi.value!=='0'?'block':'none';});
+  // Check first run vs session
+  const storedHash=localStorage.getItem('bf_pw');
+  if(!storedHash){
+    document.getElementById('setup-screen').style.display='flex';
+    document.getElementById('login-screen').style.display='none';
+    return;
+  }
+  const u=sessionStorage.getItem('bf_u');
+  const storedEmail=localStorage.getItem('bf_email')||'';
+  if(u&&u===storedEmail){
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.add('visible');
+    document.getElementById('udisp').textContent=u;
+    initApp();
   }
 });
 
@@ -668,7 +768,8 @@ const S={
   investments:[],
   goals:[],
   editId:null,invEditId:null,goalEditId:null,
-  banking:{connected:false,accounts:[],imported:[],lastSync:null}
+  banking:{connected:false,accounts:[],imported:[],lastSync:null},
+  settings:{cdi:10.65,pluggyClientId:'',pluggyClientSecret:'',pluggyApiKey:'',pluggyItems:[],autoSync:false,lastPluggySync:null}
 };
 const BANKS=[
   {id:1,name:'Banco do Brasil',logo:'🟡'},{id:2,name:'Bradesco',logo:'🔴'},
@@ -686,6 +787,7 @@ function initApp(){
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   checkReminder();
   populateMonthFilter();
+  startAutoSync();
   showPage('dashboard');
 }
 
@@ -701,6 +803,7 @@ function showPage(id){
   if(id==='investments')renderInvPage();
   if(id==='goals')renderGoalsPage();
   if(id==='open-banking')updateBankingPage();
+  if(id==='settings')renderSettings();
 }
 
 // ═══ MODAL ═══
@@ -719,7 +822,6 @@ function closeModal(id){
     document.getElementById('goal-modal-title').textContent='Nova Meta';
     const gc=document.getElementById('g-cdi');if(gc)gc.value='0';
     const gi=document.getElementById('g-cdi-info');if(gi)gi.style.display='none';
-    const gd=document.getElementById('g-cdi-date');if(gd)gd.value='';
   }
 }
 document.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').forEach(o=>{if(e.target===o)closeModal(o.id);});});
@@ -807,8 +909,8 @@ function renderCCPage(){
   document.getElementById('cc-list').innerHTML=sorted.length?sorted.map(c=>
     '<div class="tx-item" style="'+(c.status==='paid'?'opacity:.55':'')+'">'+
     '<div class="tx-icon cc">🟣</div>'+
-    '<div class="tx-info"><div class="tx-desc">'+c.description+'</div>'+
-    '<div class="tx-meta">'+c.category+' · '+fmtDate(c.date)+' · <span style="color:'+(c.status==='paid'?'var(--green)':'var(--purple)')+'">● '+(c.status==='paid'?'Pago':'Em aberto')+'</span></div></div>'+
+    '<div class="tx-info"><div class="tx-desc">'+esc(c.description)+'</div>'+
+    '<div class="tx-meta">'+esc(c.category)+' · '+fmtDate(c.date)+' · <span style="color:'+(c.status==='paid'?'var(--green)':'var(--purple)')+'">● '+(c.status==='paid'?'Pago':'Em aberto')+'</span></div></div>'+
     '<div class="tx-amount cc">− '+fmtCur(c.amount)+'</div>'+
     '<div class="tx-actions" style="opacity:1">'+
     '<button class="btn btn-sm '+(c.status==='open'?'btn-green':'btn-secondary')+'" onclick="toggleCCStatus('+c.id+')">'+(c.status==='open'?'✓ Pagar':'↩ Reabrir')+'</button>'+
@@ -868,7 +970,7 @@ function renderInvPage(){
     return '<div class="inv-card">'+
       '<div class="inv-actions"><button class="ibt" onclick="editInv('+inv.id+')" title="Editar">✏️</button>'+
       '<button class="ibt del" onclick="delInv('+inv.id+')" title="Excluir">🗑️</button></div>'+
-      '<div class="inv-name">'+inv.name+'</div>'+
+      '<div class="inv-name">'+esc(inv.name)+'</div>'+
       '<div style="display:flex;align-items:baseline;gap:10px">'+
       '<div class="inv-amount">'+fmtCur(r.current)+'</div>'+
       '<span style="background:var(--goldl);color:var(--gold);font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">'+inv.cdi+'% CDI</span></div>'+
@@ -887,9 +989,11 @@ function saveGoal(){
   const type=document.querySelector('input[name="gtype"]:checked').value;
   const cdi=parseInt(document.getElementById('g-cdi').value)||0;
   if(!name||!target){alert('Preencha nome e valor.');return;}
-  const chosenDate=document.getElementById('g-cdi-date')?.value||new Date().toISOString().split('T')[0];
   const existing=S.goalEditId?S.goals.find(x=>x.id===S.goalEditId):null;
-  const cdiStartDate=cdi>0?chosenDate:null;
+  // Keep cdiStartDate if editing and current value didn't change, else reset
+  const cdiStartDate=(existing&&cdi>0&&existing.cdi===cdi&&existing.current===current)
+    ?existing.cdiStartDate
+    :(cdi>0?new Date().toISOString().split('T')[0]:null);
   const g={id:S.goalEditId||Date.now(),name,type,target,current,deadline,cdi,cdiStartDate};
   if(S.goalEditId){const i=S.goals.findIndex(x=>x.id===S.goalEditId);S.goals[i]=g;}
   else S.goals.push(g);
@@ -908,8 +1012,6 @@ function editGoal(id){
   if(cdiSel)cdiSel.value=g.cdi||0;
   const cdiInfo=document.getElementById('g-cdi-info');
   if(cdiInfo)cdiInfo.style.display=(g.cdi>0)?'block':'none';
-  const cdiDateEl=document.getElementById('g-cdi-date');
-  if(cdiDateEl)cdiDateEl.value=g.cdiStartDate||new Date().toISOString().split('T')[0];
   openModal('goal-modal');
 }
 function delGoal(id){
@@ -962,7 +1064,7 @@ function renderGoalCard(g){
     ?'<div style="font-size:12px;color:var(--green);font-weight:600;margin-top:2px">+ '+fmtCur(cdiResult.yieldAmt)+' em rendimentos ('+cdiResult.days+' dias úteis)</div>'
     :'';
   return '<div class="goal-card">'+
-    '<div class="goal-name">'+g.name+cdiTag+'</div>'+
+    '<div class="goal-name">'+esc(g.name)+cdiTag+'</div>'+
     '<span class="goal-type-badge '+badgeClass+'">'+badgeLabel+'</span>'+
     '<div class="goal-amounts">'+
     '<div><div class="goal-current">'+fmtCur(effectiveCurrent)+'</div>'+
@@ -1015,8 +1117,8 @@ function txHTML(t,showAct=true){
   const cats={income:'Receita',expense:'Despesa',cc:'Crédito',investment:'Investimento'};
   return '<div class="tx-item">'+
     '<div class="tx-icon '+(t.type||'expense')+'">'+icons[t.type||'expense']+'</div>'+
-    '<div class="tx-info"><div class="tx-desc">'+t.description+'</div>'+
-    '<div class="tx-meta">'+(t.category||cats[t.type])+' · '+fmtDate(t.date)+'</div></div>'+
+    '<div class="tx-info"><div class="tx-desc">'+esc(t.description)+'</div>'+
+    '<div class="tx-meta">'+esc(t.category||cats[t.type])+' · '+fmtDate(t.date)+'</div></div>'+
     '<div class="tx-amount '+(t.type||'expense')+'">'+(signs[t.type]||'')+ ' '+fmtCur(t.amount)+'</div>'+
     (showAct?'<div class="tx-actions"><button class="ibt" onclick="editTx('+t.id+')">✏️</button><button class="ibt del" onclick="delTx('+t.id+')">🗑️</button></div>':'')+
     '</div>';
@@ -1141,15 +1243,15 @@ function updateBankingPage(){
   if(S.banking.connected&&S.banking.accounts.length){
     ac.innerHTML=S.banking.accounts.map(a=>
       '<div class="conn-card"><div class="conn-info"><span style="font-size:24px">'+a.bank.logo+'</span>'+
-      '<div><div style="font-weight:700">'+a.bank.name+'</div><div class="conn-det">Ag: '+a.agency+' · Conta: '+a.account+'</div></div></div>'+
+      '<div><div style="font-weight:700">'+esc(a.bank.name)+'</div><div class="conn-det">Ag: '+esc(a.agency)+' · Conta: '+esc(a.account)+'</div></div></div>'+
       '<div style="text-align:right"><div class="conn-bal">'+fmtCur(a.balance)+'</div>'+
       '<button class="btn btn-danger btn-sm" onclick="disconnectBank('+a.id+')" style="margin-top:8px">Desconectar</button></div></div>'
     ).join('');
     is.style.display='block';
     document.getElementById('imported-list').innerHTML=S.banking.imported.length?S.banking.imported.map(t=>
       '<div class="tx-item"><div class="tx-icon '+(t.type==='income'?'income':'expense')+'">'+(t.type==='income'?'💰':'💸')+'</div>'+
-      '<div class="tx-info"><div class="tx-desc">'+t.description+'</div>'+
-      '<div class="tx-meta"><span class="sync-badge">🔄 Importada</span> '+t.category+' · '+fmtDate(t.date)+'</div></div>'+
+      '<div class="tx-info"><div class="tx-desc">'+esc(t.description)+'</div>'+
+      '<div class="tx-meta"><span class="sync-badge">🔄 Importada</span> '+esc(t.category)+' · '+fmtDate(t.date)+'</div></div>'+
       '<div class="tx-amount '+(t.type==='income'?'income':'expense')+'">'+(t.type==='income'?'+':'−')+' '+fmtCur(t.amount)+'</div>'+
       '<div class="tx-actions" style="opacity:1"><button class="btn btn-primary btn-sm" onclick="importBankTx('+t.id+')">+ Adicionar</button></div></div>'
     ).join(''):emptyHTML('Nenhuma transação importada');
@@ -1280,8 +1382,8 @@ function renderImportPreview(filename){
       '<div class="imp-row">'+
       '<input type="checkbox" class="chk imp-chk" data-i="'+i+'" checked>'+
       '<span class="badge '+(t.type==='income'?'badge-in':'badge-out')+'">'+(t.type==='income'?'Receita':'Despesa')+'</span>'+
-      '<span style="flex:1;font-weight:500;min-width:120px">'+t.description+'</span>'+
-      '<span style="color:var(--ink3);font-size:12px">'+t.category+'</span>'+
+      '<span style="flex:1;font-weight:500;min-width:120px">'+esc(t.description)+'</span>'+
+      '<span style="color:var(--ink3);font-size:12px">'+esc(t.category)+'</span>'+
       '<span style="color:var(--ink3);font-size:12px">'+fmtDate(t.date)+'</span>'+
       '<span style="font-weight:700;color:'+(t.type==='income'?'var(--green)':'var(--red)')+'">'+fmtCur(t.amount)+'</span>'+
       '</div>'
@@ -1323,17 +1425,172 @@ function persistCC(){localStorage.setItem('bf_cc',JSON.stringify(S.ccItems));}
 function persistInv(){localStorage.setItem('bf_inv',JSON.stringify(S.investments));}
 function persistGoals(){localStorage.setItem('bf_goals',JSON.stringify(S.goals));}
 function persistBanking(){localStorage.setItem('bf_banking',JSON.stringify(S.banking));}
+function persistSettings(){localStorage.setItem('bf_settings',JSON.stringify(S.settings));}
 function loadData(){
-  const tx=localStorage.getItem('bf_tx');
-  const cc=localStorage.getItem('bf_cc');
-  const inv=localStorage.getItem('bf_inv');
-  const gl=localStorage.getItem('bf_goals');
-  const bk=localStorage.getItem('bf_banking');
-  if(tx)S.transactions=JSON.parse(tx);
-  if(cc)S.ccItems=JSON.parse(cc);
-  if(inv)S.investments=JSON.parse(inv);
-  if(gl)S.goals=JSON.parse(gl);
-  if(bk)S.banking=JSON.parse(bk);
+  const parse=(key,fb)=>{try{const v=localStorage.getItem(key);return v?JSON.parse(v):fb;}catch(e){console.warn('Erro ao carregar '+key,e);return fb;}};
+  S.transactions=parse('bf_tx',[]);
+  S.ccItems=parse('bf_cc',[]);
+  S.investments=parse('bf_inv',[]);
+  S.goals=parse('bf_goals',[]);
+  S.banking=parse('bf_banking',{connected:false,accounts:[],imported:[],lastSync:null});
+  S.settings={...S.settings,...parse('bf_settings',{})};
+}
+
+// ═══ SETTINGS ═══
+function renderSettings(){
+  const cs=S.settings;
+  document.getElementById('set-cdi').value=cs.cdi||10.65;
+  document.getElementById('set-pluggy-id').value=cs.pluggyClientId||'';
+  document.getElementById('set-pluggy-secret').value=cs.pluggyClientSecret||'';
+  document.getElementById('set-autosync').checked=!!cs.autoSync;
+  _updateSyncStatus();
+}
+
+function saveSettings(){
+  const cdi=parseFloat(document.getElementById('set-cdi').value);
+  if(!isNaN(cdi)&&cdi>0&&cdi<100)S.settings.cdi=cdi;
+  S.settings.pluggyClientId=document.getElementById('set-pluggy-id').value.trim();
+  S.settings.pluggyClientSecret=document.getElementById('set-pluggy-secret').value.trim();
+  S.settings.autoSync=document.getElementById('set-autosync').checked;
+  persistSettings();
+  startAutoSync();
+  alert('✅ Configurações salvas!');
+}
+
+function _updateSyncStatus(){
+  const statusEl=document.getElementById('pluggy-status');
+  const syncEl=document.getElementById('last-sync-info');
+  const badge=document.getElementById('settings-sync-badge');
+  if(!statusEl)return;
+  const items=S.settings.pluggyItems||[];
+  statusEl.textContent=items.length?'✅ '+items.length+' banco(s) conectado(s) via Pluggy.':'Nenhum banco conectado via Pluggy.';
+  if(syncEl)syncEl.textContent=S.settings.lastPluggySync?'Última sincronização: '+new Date(S.settings.lastPluggySync).toLocaleString('pt-BR'):'';
+  if(badge){
+    if(S.settings.lastPluggySync){
+      badge.textContent='🔄 '+new Date(S.settings.lastPluggySync).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      badge.style.display='inline-block';
+    }else{badge.style.display='none';}
+  }
+}
+
+// ═══ PLUGGY ═══
+function _loadPluggyScript(){
+  return new Promise((resolve,reject)=>{
+    if(window.PluggyConnect){resolve();return;}
+    const s=document.createElement('script');
+    s.src='https://cdn.pluggy.ai/pluggy-connect/v2/pluggy-connect.js';
+    s.onload=resolve;
+    s.onerror=()=>reject(new Error('Não foi possível carregar o widget Pluggy. Verifique sua conexão.'));
+    document.head.appendChild(s);
+  });
+}
+
+async function _pluggyGetApiKey(){
+  const{pluggyClientId:clientId,pluggyClientSecret:clientSecret}=S.settings;
+  if(!clientId||!clientSecret)throw new Error('Configure o Client ID e Client Secret nas Configurações.');
+  const res=await fetch('https://api.pluggy.ai/auth',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({clientId,clientSecret})
+  });
+  if(!res.ok)throw new Error('Erro de autenticação Pluggy ('+res.status+'). Verifique suas credenciais.');
+  const{apiKey}=await res.json();
+  return apiKey;
+}
+
+async function _pluggyGetConnectToken(apiKey){
+  const res=await fetch('https://api.pluggy.ai/connect_token',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-API-KEY':apiKey}
+  });
+  if(!res.ok)throw new Error('Erro ao obter connect token ('+res.status+').');
+  const{accessToken}=await res.json();
+  return accessToken;
+}
+
+async function pluggyConnect(btn){
+  const origText=btn.textContent;
+  btn.disabled=true;btn.textContent='⏳ Carregando...';
+  try{
+    await _loadPluggyScript();
+    const apiKey=await _pluggyGetApiKey();
+    const connectToken=await _pluggyGetConnectToken(apiKey);
+    S.settings.pluggyApiKey=apiKey;
+    persistSettings();
+    new PluggyConnect({
+      connectToken,
+      onSuccess:(itemData)=>{
+        const id=itemData.item.id;
+        if(!(S.settings.pluggyItems||[]).includes(id)){
+          S.settings.pluggyItems=[...(S.settings.pluggyItems||[]),id];
+          persistSettings();
+        }
+        _updateSyncStatus();
+        pluggySync(true);
+      },
+      onError:(err)=>alert('Erro ao conectar banco: '+(err.message||err)),
+      onClose:()=>{}
+    }).init();
+  }catch(e){
+    alert('Erro: '+e.message);
+  }finally{
+    btn.disabled=false;btn.textContent=origText;
+  }
+}
+
+async function pluggySync(manual=false){
+  const items=S.settings.pluggyItems||[];
+  if(!items.length){if(manual)alert('Nenhum banco conectado. Clique em "Conectar banco" primeiro.');return;}
+  const syncEl=document.getElementById('last-sync-info');
+  if(syncEl)syncEl.textContent='⏳ Sincronizando...';
+  try{
+    const apiKey=await _pluggyGetApiKey();
+    S.settings.pluggyApiKey=apiKey;
+    const now=new Date();
+    const from=new Date(now.getFullYear(),now.getMonth()-2,1).toISOString().split('T')[0];
+    const to=now.toISOString().split('T')[0];
+    let added=0;
+    for(const itemId of items){
+      const accRes=await fetch('https://api.pluggy.ai/accounts?itemId='+itemId,{headers:{'X-API-KEY':apiKey}});
+      if(!accRes.ok)continue;
+      const{results:accounts}=await accRes.json();
+      for(const acc of(accounts||[])){
+        const txRes=await fetch(
+          'https://api.pluggy.ai/transactions?accountId='+acc.id+'&from='+from+'&to='+to+'&pageSize=200',
+          {headers:{'X-API-KEY':apiKey}}
+        );
+        if(!txRes.ok)continue;
+        const{results:txs}=await txRes.json();
+        for(const tx of(txs||[])){
+          const type=tx.type==='CREDIT'?'income':'expense';
+          const date=(tx.date||'').split('T')[0];
+          const desc=tx.description||(tx.merchant&&tx.merchant.name)||'Transação bancária';
+          const amt=Math.abs(tx.amount||0);
+          if(!date||!amt)continue;
+          if(S.transactions.some(x=>x.description===desc&&x.amount===amt&&x.date===date))continue;
+          S.transactions.push({id:Date.now()+Math.random(),type,description:desc,amount:amt,date,category:guessCategory(desc),source:'pluggy'});
+          added++;
+        }
+      }
+    }
+    S.settings.lastPluggySync=new Date().toISOString();
+    persist();persistSettings();
+    updateDashboard();renderTxList();populateMonthFilter();
+    _updateSyncStatus();
+    if(manual)alert(added>0?'✅ '+added+' transação(ões) importada(s)!':'✅ Sincronizado! Nenhuma novidade.');
+  }catch(e){
+    if(syncEl)syncEl.textContent='❌ Erro: '+e.message;
+    if(manual)alert('Erro ao sincronizar: '+e.message);
+    console.error('Pluggy sync error:',e);
+  }
+}
+
+let _autoSyncTimer=null;
+function startAutoSync(){
+  if(_autoSyncTimer){clearInterval(_autoSyncTimer);_autoSyncTimer=null;}
+  if(S.settings.autoSync&&(S.settings.pluggyItems||[]).length){
+    _autoSyncTimer=setInterval(()=>pluggySync(false),30*60*1000);
+  }
 }
 </script>
 </body>
