@@ -453,6 +453,16 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       </div>
 
       <div class="panel">
+        <div class="panel-head"><span class="panel-title">📤 Exportar &amp; Backup</span></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+          <button class="btn btn-secondary" onclick="exportJSON()">⬇️ Backup completo (JSON)</button>
+          <button class="btn btn-secondary" onclick="exportCSV()">⬇️ Exportar transações (CSV)</button>
+          <button class="btn btn-secondary" onclick="importBackup()">⬆️ Restaurar backup (JSON)</button>
+        </div>
+        <p style="font-size:12px;color:var(--ink3)">O JSON inclui tudo: transações, cartão, investimentos, metas, orçamentos e recorrentes. Use para backup ou migrar para outro dispositivo.</p>
+      </div>
+
+      <div class="panel">
         <div class="panel-head">
           <span class="panel-title">🏦 Monitoramento Automático — Pluggy</span>
           <span class="sync-badge" id="settings-sync-badge" style="display:none"></span>
@@ -1808,6 +1818,66 @@ function checkRecurring(){
     changed=true;
   });
   if(changed){persist();persistRecurring();}
+}
+
+// ═══ EXPORT & BACKUP ═══
+function exportJSON(){
+  const data={
+    exportedAt:new Date().toISOString(),
+    transactions:S.transactions,
+    ccItems:S.ccItems,
+    investments:S.investments,
+    goals:S.goals,
+    budgets:S.budgets,
+    recurring:S.recurring
+  };
+  _download(JSON.stringify(data,null,2),'backup_financas_'+_dateStr()+'.json','application/json');
+}
+
+function exportCSV(){
+  const rows=[['Data','Descrição','Tipo','Categoria','Valor (R$)']];
+  [...S.transactions]
+    .sort((a,b)=>new Date(b.date)-new Date(a.date))
+    .forEach(t=>rows.push([t.date,t.description,t.type,t.category,t.amount.toFixed(2)]));
+  S.ccItems
+    .sort((a,b)=>new Date(b.date)-new Date(a.date))
+    .forEach(c=>rows.push([c.date,c.description,'cartao',c.category,c.amount.toFixed(2)]));
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  _download('﻿'+csv,'transacoes_'+_dateStr()+'.csv','text/csv;charset=utf-8');
+}
+
+function importBackup(){
+  const input=document.createElement('input');
+  input.type='file';input.accept='.json';
+  input.onchange=e=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        if(!confirm('Isso substituirá todos os dados atuais. Continuar?'))return;
+        if(data.transactions)S.transactions=data.transactions;
+        if(data.ccItems)S.ccItems=data.ccItems;
+        if(data.investments)S.investments=data.investments;
+        if(data.goals)S.goals=data.goals;
+        if(data.budgets)S.budgets=data.budgets;
+        if(data.recurring)S.recurring=data.recurring;
+        persist();persistCC();persistInv();persistGoals();persistBudgets();persistRecurring();
+        updateDashboard();renderTxList();populateMonthFilter();
+        alert('✅ Backup restaurado com sucesso!');
+      }catch(err){alert('❌ Arquivo inválido: '+err.message);}
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function _dateStr(){return new Date().toISOString().split('T')[0];}
+function _download(content,filename,type){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 
 let _autoSyncTimer=null;
