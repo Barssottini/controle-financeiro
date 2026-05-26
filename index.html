@@ -144,17 +144,6 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 .topt span{display:block;padding:11px 8px;border:1.5px solid var(--paper3);border-radius:var(--r);text-align:center;font-weight:600;font-size:13px;transition:all .2s}
 .topt input:checked+span{border-color:var(--gold);background:var(--goldl);color:var(--ink)}
 
-/* BANKS */
-.banks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:11px;max-height:370px;overflow-y:auto}
-.bank-card{display:flex;align-items:center;gap:11px;padding:13px;border:1.5px solid var(--paper3);border-radius:10px;cursor:pointer;transition:all .2s}
-.bank-card:hover{border-color:var(--gold);background:var(--goldl);transform:translateY(-2px)}
-.bk-logo{font-size:24px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--paper2);border-radius:8px}
-.bk-name{font-size:13px;font-weight:600}.bk-avail{font-size:11px;color:var(--green);margin-top:2px}
-.conn-card{display:flex;align-items:center;justify-content:space-between;padding:15px;background:var(--paper2);border-radius:10px;border:1px solid var(--paper3);margin-bottom:11px}
-.conn-info{display:flex;align-items:center;gap:13px}
-.conn-bal{font-size:18px;font-weight:800;color:var(--gold);letter-spacing:-.5px}
-.conn-det{font-size:11.5px;color:var(--ink3);margin-top:2px}
-
 /* IMPORT */
 .drop-zone{border:2px dashed var(--paper3);border-radius:12px;padding:38px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:14px}
 .drop-zone:hover,.drop-zone.drag-over{border-color:var(--gold);background:var(--goldl)}
@@ -254,7 +243,6 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       <div class="navi" onclick="showPage('budget')"><span class="ni">💰</span>Orçamento</div>
       <div class="sb-section">Banco</div>
       <div class="navi" onclick="showPage('import')"><span class="ni">📥</span>Importar Extrato</div>
-      <div class="navi" onclick="showPage('open-banking')"><span class="ni">🏦</span>Open Banking</div>
       <div class="sb-section">Sistema</div>
       <div class="navi" onclick="showPage('settings')"><span class="ni">⚙️</span>Configurações</div>
     </nav>
@@ -407,27 +395,6 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       </div>
     </div>
 
-    <!-- OPEN BANKING -->
-    <div class="page" id="open-banking">
-      <div class="ph">
-        <div><h1 class="pt">Open Banking</h1><p class="ps">Dados simulados para demonstração</p></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head">
-          <span class="panel-title">🏦 Contas Conectadas</span>
-          <button class="btn btn-primary" onclick="openModal('bank-select-modal')">+ Adicionar Banco</button>
-        </div>
-        <div id="connected-accounts"></div>
-      </div>
-      <div class="panel" id="imported-section" style="display:none">
-        <div class="panel-head">
-          <span class="panel-title">📥 Transações Importadas</span>
-          <button class="btn btn-secondary btn-sm" onclick="syncBank(event)">🔄 Sincronizar</button>
-        </div>
-        <div id="imported-list"></div>
-      </div>
-    </div>
-
     <!-- BUDGET -->
     <div class="page" id="budget">
       <div class="ph">
@@ -440,7 +407,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
     <!-- SETTINGS -->
     <div class="page" id="settings">
       <div class="ph">
-        <div><h1 class="pt">Configurações</h1><p class="ps">Monitoramento automático e preferências do sistema</p></div>
+        <div><h1 class="pt">Configurações</h1><p class="ps">Preferências do sistema</p></div>
       </div>
 
       <div class="panel">
@@ -450,6 +417,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
           <input class="field" type="number" id="set-cdi" placeholder="10.65" step="0.01" min="0.01">
         </div>
         <p style="font-size:12px;color:var(--ink3)">Consulte em <a href="https://www.bcb.gov.br" target="_blank" style="color:var(--gold)">bcb.gov.br</a> e atualize quando o Banco Central mudar a taxa.</p>
+        <button class="btn btn-primary" style="margin-top:14px" onclick="saveSettings()">💾 Salvar</button>
       </div>
 
       <div class="panel">
@@ -462,39 +430,6 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
         <p style="font-size:12px;color:var(--ink3)">O JSON inclui tudo: transações, cartão, investimentos, metas, orçamentos e recorrentes. Use para backup ou migrar para outro dispositivo.</p>
       </div>
 
-      <div class="panel">
-        <div class="panel-head">
-          <span class="panel-title">🏦 Monitoramento Automático — Pluggy</span>
-          <span class="sync-badge" id="settings-sync-badge" style="display:none"></span>
-        </div>
-        <div style="background:var(--goldl);border-radius:var(--r);padding:12px 14px;font-size:12px;color:var(--ink2);margin-bottom:18px;line-height:1.7">
-          📌 <strong>Como usar:</strong> crie uma conta gratuita em <strong>pluggy.ai</strong>, acesse o painel dev, copie seu <em>Client ID</em> e <em>Client Secret</em> e cole abaixo.<br>
-          O app conecta aos seus bancos via <strong>Open Finance Brasil</strong> (regulado pelo Banco Central) e importa transações automaticamente.
-        </div>
-        <div class="frow">
-          <div class="fgrp">
-            <label class="flbl">Client ID</label>
-            <input class="field" type="text" id="set-pluggy-id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
-          </div>
-          <div class="fgrp">
-            <label class="flbl">Client Secret</label>
-            <input class="field" type="password" id="set-pluggy-secret" placeholder="••••••••••••••••" autocomplete="off">
-          </div>
-        </div>
-        <label style="display:flex;align-items:center;gap:9px;cursor:pointer;margin-bottom:18px">
-          <input type="checkbox" id="set-autosync" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer">
-          <span style="font-size:13px;font-weight:500">Sincronizar automaticamente a cada 30 minutos</span>
-        </label>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
-          <button class="btn btn-primary" onclick="saveSettings()">💾 Salvar</button>
-          <button class="btn btn-secondary" onclick="pluggyConnect(this)">🔗 Conectar banco</button>
-          <button class="btn btn-green" onclick="pluggySync(true)">🔄 Sincronizar agora</button>
-        </div>
-        <div style="font-size:12px;color:var(--ink3);line-height:2">
-          <div id="pluggy-status">Nenhum banco conectado via Pluggy.</div>
-          <div id="last-sync-info"></div>
-        </div>
-      </div>
     </div>
 
   </main>
@@ -656,35 +591,6 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 </div>
 
 <!-- MODAL: BANCO SELECT -->
-<div class="overlay" id="bank-select-modal">
-  <div class="modal modal-lg">
-    <div class="mhead"><h3>🏦 Selecione seu Banco</h3><button class="xbtn" onclick="closeModal('bank-select-modal')">✕</button></div>
-    <div class="mbody">
-      <input class="field" id="bk-srch" placeholder="🔍 Buscar banco..." onkeyup="filterBanks()" style="margin-bottom:14px">
-      <div class="banks-grid" id="banks-grid"></div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: BANCO AUTH -->
-<div class="overlay" id="bank-auth-modal">
-  <div class="modal">
-    <div class="mhead">
-      <div style="display:flex;align-items:center;gap:10px"><span id="auth-logo" style="font-size:22px"></span><h3 id="auth-name"></h3></div>
-      <button class="xbtn" onclick="closeModal('bank-auth-modal')">✕</button>
-    </div>
-    <div class="mbody">
-      <p style="font-size:12px;color:var(--ink3);margin-bottom:18px">⚠️ Dados fictícios — nenhuma informação real é transmitida.</p>
-      <div class="fgrp"><label class="flbl">Agência</label><input class="field" id="bk-ag" placeholder="0000"></div>
-      <div class="fgrp"><label class="flbl">Conta</label><input class="field" id="bk-ac" placeholder="00000-0"></div>
-      <div class="factions">
-        <button class="btn btn-secondary" onclick="closeModal('bank-auth-modal')">Cancelar</button>
-        <button class="btn btn-primary" onclick="connectBank()">🔗 Conectar</button>
-      </div>
-    </div>
-  </div>
-</div>
-  
 <!-- MODAL: ORÇAMENTO -->
 <div class="overlay" id="budget-modal">
   <div class="modal">
@@ -862,18 +768,10 @@ const S={
   editId:null,invEditId:null,goalEditId:null,budgetEditId:null,
   budgets:[],
   recurring:[],
-  banking:{connected:false,accounts:[],imported:[],lastSync:null},
-  settings:{cdi:10.65,pluggyClientId:'',pluggyClientSecret:'',pluggyApiKey:'',pluggyItems:[],autoSync:false,lastPluggySync:null}
+  settings:{cdi:10.65}
 };
-const BANKS=[
-  {id:1,name:'Banco do Brasil',logo:'🟡'},{id:2,name:'Bradesco',logo:'🔴'},
-  {id:3,name:'Caixa Econômica',logo:'🔵'},{id:4,name:'Itaú',logo:'🟠'},
-  {id:5,name:'Santander',logo:'🔴'},{id:6,name:'Nubank',logo:'🟣'},
-  {id:7,name:'Inter',logo:'🟠'},{id:8,name:'BTG Pactual',logo:'⚫'},
-  {id:9,name:'C6 Bank',logo:'⚫'},{id:10,name:'Banco Original',logo:'🟢'}
-];
 const CDI=0.1065;
-let selBank=null,dashChart=null;
+let dashChart=null;
 function bizDays(start,end){
   const ms=86400000,s=new Date(start),e=new Date(end);
   const total=Math.round((e-s)/ms);if(total<=0)return 0;
@@ -893,7 +791,6 @@ function initApp(){
   checkReminder();
   populateMonthFilter();
   checkRecurring();
-  startAutoSync();
   showPage('dashboard');
 }
 
@@ -908,7 +805,6 @@ function showPage(id){
   if(id==='credit-card')renderCCPage();
   if(id==='investments')renderInvPage();
   if(id==='goals')renderGoalsPage();
-  if(id==='open-banking')updateBankingPage();
   if(id==='budget')renderBudgetPage();
   if(id==='settings')renderSettings();
 }
@@ -1295,83 +1191,6 @@ function renderChart(){
   });
 }
 
-// ═══ OPEN BANKING ═══
-function renderBanksList(){
-  const g=document.getElementById('banks-grid');if(!g)return;
-  g.innerHTML=BANKS.map(b=>'<div class="bank-card" onclick="selectBank('+b.id+')"><div class="bk-logo">'+b.logo+'</div><div><div class="bk-name">'+b.name+'</div><div class="bk-avail">✓ Disponível</div></div></div>').join('');
-}
-function filterBanks(){
-  const q=document.getElementById('bk-srch').value.toLowerCase();
-  document.getElementById('banks-grid').innerHTML=BANKS.filter(b=>b.name.toLowerCase().includes(q)).map(b=>'<div class="bank-card" onclick="selectBank('+b.id+')"><div class="bk-logo">'+b.logo+'</div><div><div class="bk-name">'+b.name+'</div><div class="bk-avail">✓ Disponível</div></div></div>').join('');
-}
-function selectBank(id){
-  selBank=BANKS.find(b=>b.id===id);
-  document.getElementById('auth-logo').textContent=selBank.logo;
-  document.getElementById('auth-name').textContent=selBank.name;
-  closeModal('bank-select-modal');openModal('bank-auth-modal');
-}
-function connectBank(){
-  const ag=document.getElementById('bk-ag').value.trim();
-  const ac=document.getElementById('bk-ac').value.trim();
-  if(!ag||!ac){alert('Preencha agência e conta.');return;}
-  S.banking.accounts.push({id:Date.now(),bank:selBank,agency:ag,account:ac,type:'Conta Corrente',balance:Math.random()*10000+2000});
-  S.banking.connected=true;generateMockImported();persistBanking();closeModal('bank-auth-modal');
-  document.getElementById('bk-ag').value='';document.getElementById('bk-ac').value='';
-  updateBankingPage();alert('✅ Banco conectado! (dados simulados)');
-}
-function generateMockImported(){
-  const mock=[
-    {description:'Supermercado Extra',amount:234.50,type:'expense',category:'Alimentação'},
-    {description:'Salário',amount:5000,type:'income',category:'Salário'},
-    {description:'Uber',amount:45.80,type:'expense',category:'Transporte'},
-    {description:'Netflix',amount:39.90,type:'expense',category:'Lazer'},
-    {description:'Freelance - Site',amount:1500,type:'income',category:'Freelance'},
-    {description:'Conta de Luz',amount:156.70,type:'expense',category:'Moradia'},
-  ];
-  const today=new Date();
-  S.banking.imported=mock.map((t,i)=>({id:Date.now()+i,...t,date:new Date(today.getTime()-i*86400000).toISOString().split('T')[0]}));
-  S.banking.lastSync=new Date().toISOString();
-}
-function syncBank(e){
-  const btn=e.currentTarget;btn.textContent='⏳...';btn.disabled=true;
-  setTimeout(()=>{generateMockImported();persistBanking();updateBankingPage();btn.textContent='🔄 Sincronizar';btn.disabled=false;alert('✅ Sincronizado!');},1800);
-}
-function disconnectBank(id){
-  if(!confirm('Desconectar?'))return;
-  S.banking.accounts=S.banking.accounts.filter(a=>a.id!==id);
-  if(!S.banking.accounts.length){S.banking.connected=false;S.banking.imported=[];S.banking.lastSync=null;}
-  persistBanking();updateBankingPage();
-}
-function importBankTx(id){
-  const t=S.banking.imported.find(x=>x.id===id);if(!t)return;
-  if(S.transactions.some(x=>x.description===t.description&&x.amount===t.amount&&x.date===t.date)){alert('⚠️ Já importada!');return;}
-  S.transactions.push({id:Date.now(),type:t.type,description:t.description,amount:t.amount,date:t.date,category:t.category});
-  persist();updateDashboard();alert('✅ Adicionada!');
-}
-function updateBankingPage(){
-  const ac=document.getElementById('connected-accounts');
-  const is=document.getElementById('imported-section');
-  if(S.banking.connected&&S.banking.accounts.length){
-    ac.innerHTML=S.banking.accounts.map(a=>
-      '<div class="conn-card"><div class="conn-info"><span style="font-size:24px">'+a.bank.logo+'</span>'+
-      '<div><div style="font-weight:700">'+esc(a.bank.name)+'</div><div class="conn-det">Ag: '+esc(a.agency)+' · Conta: '+esc(a.account)+'</div></div></div>'+
-      '<div style="text-align:right"><div class="conn-bal">'+fmtCur(a.balance)+'</div>'+
-      '<button class="btn btn-danger btn-sm" onclick="disconnectBank('+a.id+')" style="margin-top:8px">Desconectar</button></div></div>'
-    ).join('');
-    is.style.display='block';
-    document.getElementById('imported-list').innerHTML=S.banking.imported.length?S.banking.imported.map(t=>
-      '<div class="tx-item"><div class="tx-icon '+(t.type==='income'?'income':'expense')+'">'+(t.type==='income'?'💰':'💸')+'</div>'+
-      '<div class="tx-info"><div class="tx-desc">'+esc(t.description)+'</div>'+
-      '<div class="tx-meta"><span class="sync-badge">🔄 Importada</span> '+esc(t.category)+' · '+fmtDate(t.date)+'</div></div>'+
-      '<div class="tx-amount '+(t.type==='income'?'income':'expense')+'">'+(t.type==='income'?'+':'−')+' '+fmtCur(t.amount)+'</div>'+
-      '<div class="tx-actions" style="opacity:1"><button class="btn btn-primary btn-sm" onclick="importBankTx('+t.id+')">+ Adicionar</button></div></div>'
-    ).join(''):emptyHTML('Nenhuma transação importada');
-  }else{
-    ac.innerHTML='<div class="empty"><span class="empty-ico">🏦</span><p>Nenhuma conta conectada</p><button class="btn btn-primary" onclick="openModal(\'bank-select-modal\')" style="margin-top:14px">Conectar banco</button></div>';
-    is.style.display='none';
-  }
-}
-
 // ═══ OFX/CSV IMPORT (encoding fix) ═══
 let parsedRows=[];
 function handleDrop(e){
@@ -1520,11 +1339,15 @@ function confirmImport(){
 function buildBankGuide(){
   const guides=[
     {e:'🟣',n:'Nubank',h:'App → Perfil → Exportar extrato → OFX'},
-    {e:'🟠',n:'Itaú',h:'Internet Banking → Extratos → Exportar → OFX'},
-    {e:'🔴',n:'Bradesco',h:'NetEmpresas → Extrato → Exportar OFX'},
-    {e:'🔵',n:'Caixa',h:'Internet Banking → Extrato → Salvar como OFX'},
     {e:'🟠',n:'Inter',h:'App → Extrato → Exportar → OFX ou CSV'},
     {e:'⚫',n:'C6 Bank',h:'App → Extrato → Compartilhar → OFX'},
+    {e:'🟠',n:'Itaú',h:'Internet Banking → Extratos → Exportar → OFX'},
+    {e:'🔴',n:'Bradesco',h:'Internet Banking → Extrato → Exportar OFX'},
+    {e:'🔵',n:'Caixa',h:'Internet Banking → Extrato → Salvar como OFX'},
+    {e:'🟡',n:'Banco do Brasil',h:'Internet Banking → Extrato → Exportar → OFX'},
+    {e:'🔴',n:'Santander',h:'Internet Banking → Extrato → Exportar OFX'},
+    {e:'⚫',n:'BTG Pactual',h:'App → Extrato → Exportar → CSV'},
+    {e:'🟢',n:'Sicoob / Sicredi',h:'Internet Banking → Extrato → OFX'},
   ];
   const el=document.getElementById('bank-guide-grid');
   if(!el)return;
@@ -1536,7 +1359,6 @@ function persist(){localStorage.setItem('bf_tx',JSON.stringify(S.transactions));
 function persistCC(){localStorage.setItem('bf_cc',JSON.stringify(S.ccItems));}
 function persistInv(){localStorage.setItem('bf_inv',JSON.stringify(S.investments));}
 function persistGoals(){localStorage.setItem('bf_goals',JSON.stringify(S.goals));}
-function persistBanking(){localStorage.setItem('bf_banking',JSON.stringify(S.banking));}
 function persistSettings(){localStorage.setItem('bf_settings',JSON.stringify(S.settings));}
 function persistBudgets(){localStorage.setItem('bf_budgets',JSON.stringify(S.budgets));}
 function persistRecurring(){localStorage.setItem('bf_recurring',JSON.stringify(S.recurring));}
@@ -1548,157 +1370,19 @@ function loadData(){
   S.goals=parse('bf_goals',[]);
   S.budgets=parse('bf_budgets',[]);
   S.recurring=parse('bf_recurring',[]);
-  S.banking=parse('bf_banking',{connected:false,accounts:[],imported:[],lastSync:null});
   S.settings={...S.settings,...parse('bf_settings',{})};
 }
 
 // ═══ SETTINGS ═══
 function renderSettings(){
-  const cs=S.settings;
-  document.getElementById('set-cdi').value=cs.cdi||10.65;
-  document.getElementById('set-pluggy-id').value=cs.pluggyClientId||'';
-  document.getElementById('set-pluggy-secret').value=cs.pluggyClientSecret||'';
-  document.getElementById('set-autosync').checked=!!cs.autoSync;
-  _updateSyncStatus();
+  document.getElementById('set-cdi').value=S.settings.cdi||10.65;
 }
 
 function saveSettings(){
   const cdi=parseFloat(document.getElementById('set-cdi').value);
   if(!isNaN(cdi)&&cdi>0&&cdi<100)S.settings.cdi=cdi;
-  S.settings.pluggyClientId=document.getElementById('set-pluggy-id').value.trim();
-  S.settings.pluggyClientSecret=document.getElementById('set-pluggy-secret').value.trim();
-  S.settings.autoSync=document.getElementById('set-autosync').checked;
   persistSettings();
-  startAutoSync();
   alert('✅ Configurações salvas!');
-}
-
-function _updateSyncStatus(){
-  const statusEl=document.getElementById('pluggy-status');
-  const syncEl=document.getElementById('last-sync-info');
-  const badge=document.getElementById('settings-sync-badge');
-  if(!statusEl)return;
-  const items=S.settings.pluggyItems||[];
-  statusEl.textContent=items.length?'✅ '+items.length+' banco(s) conectado(s) via Pluggy.':'Nenhum banco conectado via Pluggy.';
-  if(syncEl)syncEl.textContent=S.settings.lastPluggySync?'Última sincronização: '+new Date(S.settings.lastPluggySync).toLocaleString('pt-BR'):'';
-  if(badge){
-    if(S.settings.lastPluggySync){
-      badge.textContent='🔄 '+new Date(S.settings.lastPluggySync).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-      badge.style.display='inline-block';
-    }else{badge.style.display='none';}
-  }
-}
-
-// ═══ PLUGGY ═══
-function _loadPluggyScript(){
-  return new Promise((resolve,reject)=>{
-    if(window.PluggyConnect){resolve();return;}
-    const s=document.createElement('script');
-    s.src='https://cdn.pluggy.ai/pluggy-connect/latest/pluggy-connect.js';
-    s.onload=resolve;
-    s.onerror=()=>reject(new Error('Não foi possível carregar o widget Pluggy. Verifique sua conexão.'));
-    document.head.appendChild(s);
-  });
-}
-
-async function _pluggyGetApiKey(){
-  const{pluggyClientId:clientId,pluggyClientSecret:clientSecret}=S.settings;
-  if(!clientId||!clientSecret)throw new Error('Configure o Client ID e Client Secret nas Configurações.');
-  const res=await fetch('https://api.pluggy.ai/auth',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({clientId,clientSecret})
-  });
-  if(!res.ok)throw new Error('Erro de autenticação Pluggy ('+res.status+'). Verifique suas credenciais.');
-  const{apiKey}=await res.json();
-  return apiKey;
-}
-
-async function _pluggyGetConnectToken(apiKey){
-  const res=await fetch('https://api.pluggy.ai/connect_token',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','X-API-KEY':apiKey}
-  });
-  if(!res.ok)throw new Error('Erro ao obter connect token ('+res.status+').');
-  const{accessToken}=await res.json();
-  return accessToken;
-}
-
-async function pluggyConnect(btn){
-  const origText=btn.textContent;
-  btn.disabled=true;btn.textContent='⏳ Carregando...';
-  try{
-    await _loadPluggyScript();
-    const apiKey=await _pluggyGetApiKey();
-    const connectToken=await _pluggyGetConnectToken(apiKey);
-    S.settings.pluggyApiKey=apiKey;
-    persistSettings();
-    new PluggyConnect({
-      connectToken,
-      onSuccess:(itemData)=>{
-        const id=itemData.item.id;
-        if(!(S.settings.pluggyItems||[]).includes(id)){
-          S.settings.pluggyItems=[...(S.settings.pluggyItems||[]),id];
-          persistSettings();
-        }
-        _updateSyncStatus();
-        pluggySync(true);
-      },
-      onError:(err)=>alert('Erro ao conectar banco: '+(err.message||err)),
-      onClose:()=>{}
-    }).init();
-  }catch(e){
-    alert('Erro: '+e.message);
-  }finally{
-    btn.disabled=false;btn.textContent=origText;
-  }
-}
-
-async function pluggySync(manual=false){
-  const items=S.settings.pluggyItems||[];
-  if(!items.length){if(manual)alert('Nenhum banco conectado. Clique em "Conectar banco" primeiro.');return;}
-  const syncEl=document.getElementById('last-sync-info');
-  if(syncEl)syncEl.textContent='⏳ Sincronizando...';
-  try{
-    const apiKey=await _pluggyGetApiKey();
-    S.settings.pluggyApiKey=apiKey;
-    const now=new Date();
-    const from=new Date(now.getFullYear(),now.getMonth()-2,1).toISOString().split('T')[0];
-    const to=now.toISOString().split('T')[0];
-    let added=0;
-    for(const itemId of items){
-      const accRes=await fetch('https://api.pluggy.ai/accounts?itemId='+itemId,{headers:{'X-API-KEY':apiKey}});
-      if(!accRes.ok)continue;
-      const{results:accounts}=await accRes.json();
-      for(const acc of(accounts||[])){
-        const txRes=await fetch(
-          'https://api.pluggy.ai/transactions?accountId='+acc.id+'&from='+from+'&to='+to+'&pageSize=200',
-          {headers:{'X-API-KEY':apiKey}}
-        );
-        if(!txRes.ok)continue;
-        const{results:txs}=await txRes.json();
-        for(const tx of(txs||[])){
-          const type=tx.type==='CREDIT'?'income':'expense';
-          const date=(tx.date||'').split('T')[0];
-          const desc=tx.description||(tx.merchant&&tx.merchant.name)||'Transação bancária';
-          const amt=Math.abs(tx.amount||0);
-          if(!date||!amt)continue;
-          if(S.transactions.some(x=>x.description===desc&&x.amount===amt&&x.date===date))continue;
-          S.transactions.push({id:newId(),type,description:desc,amount:amt,date,category:guessCategory(desc),source:'pluggy'});
-          added++;
-        }
-      }
-    }
-    S.settings.lastPluggySync=new Date().toISOString();
-    persist();persistSettings();
-    updateDashboard();renderTxList();populateMonthFilter();
-    _updateSyncStatus();
-    if(manual)alert(added>0?'✅ '+added+' transação(ões) importada(s)!':'✅ Sincronizado! Nenhuma novidade.');
-  }catch(e){
-    if(syncEl)syncEl.textContent='❌ Erro: '+e.message;
-    if(manual)alert('Erro ao sincronizar: '+e.message);
-    console.error('Pluggy sync error:',e);
-  }
 }
 
 // ═══ BUDGET ═══
@@ -1889,13 +1573,7 @@ function _download(content,filename,type){
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 
-let _autoSyncTimer=null;
-function startAutoSync(){
-  if(_autoSyncTimer){clearInterval(_autoSyncTimer);_autoSyncTimer=null;}
-  if(S.settings.autoSync&&(S.settings.pluggyItems||[]).length){
-    _autoSyncTimer=setInterval(()=>pluggySync(false),30*60*1000);
-  }
-}
+
 </script>
 </body>
 </html>
