@@ -251,6 +251,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       <div class="sb-section">Patrimônio</div>
       <div class="navi" onclick="showPage('investments')"><span class="ni">📈</span>Investimentos</div>
       <div class="navi" onclick="showPage('goals')"><span class="ni">🎯</span>Metas &amp; Reserva</div>
+      <div class="navi" onclick="showPage('budget')"><span class="ni">💰</span>Orçamento</div>
       <div class="sb-section">Banco</div>
       <div class="navi" onclick="showPage('import')"><span class="ni">📥</span>Importar Extrato</div>
       <div class="navi" onclick="showPage('open-banking')"><span class="ni">🏦</span>Open Banking</div>
@@ -314,7 +315,10 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
     <div class="page" id="transactions">
       <div class="ph">
         <div><h1 class="pt">Transações</h1><p class="ps" id="tx-count-lbl"></p></div>
-        <button class="btn btn-primary" onclick="openModal('tx-modal')">+ Nova Transação</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" onclick="openModal('recurring-modal')">🔄 Recorrentes</button>
+          <button class="btn btn-primary" onclick="openModal('tx-modal')">+ Nova Transação</button>
+        </div>
       </div>
       <div class="panel">
         <div class="filters">
@@ -422,6 +426,15 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
         </div>
         <div id="imported-list"></div>
       </div>
+    </div>
+
+    <!-- BUDGET -->
+    <div class="page" id="budget">
+      <div class="ph">
+        <div><h1 class="pt">Orçamento</h1><p class="ps" id="budget-month-lbl">Controle de gastos por categoria</p></div>
+        <button class="btn btn-primary" onclick="openModal('budget-modal')">+ Novo Orçamento</button>
+      </div>
+      <div id="budget-list"></div>
     </div>
 
     <!-- SETTINGS -->
@@ -662,6 +675,75 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
   </div>
 </div>
   
+<!-- MODAL: ORÇAMENTO -->
+<div class="overlay" id="budget-modal">
+  <div class="modal">
+    <div class="mhead"><h3 id="budget-modal-title">Novo Orçamento</h3><button class="xbtn" onclick="closeModal('budget-modal')">✕</button></div>
+    <div class="mbody">
+      <div class="fgrp">
+        <label class="flbl">Categoria</label>
+        <select class="field" id="b-cat">
+          <option value="">Selecione a categoria...</option>
+          <option>Alimentação</option><option>Transporte</option><option>Moradia</option>
+          <option>Lazer</option><option>Saúde</option><option>Educação</option>
+          <option>Rolê com o meu amor</option><option>Metas</option><option>Outros</option>
+        </select>
+      </div>
+      <div class="fgrp">
+        <label class="flbl">Limite Mensal (R$)</label>
+        <input class="field" type="number" id="b-limit" placeholder="Ex: 500,00" step="0.01" min="1">
+      </div>
+      <div class="factions">
+        <button class="btn btn-secondary" onclick="closeModal('budget-modal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveBudget()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: RECORRENTES -->
+<div class="overlay" id="recurring-modal">
+  <div class="modal modal-lg">
+    <div class="mhead"><h3>🔄 Transações Recorrentes</h3><button class="xbtn" onclick="closeModal('recurring-modal')">✕</button></div>
+    <div class="mbody">
+      <div id="recurring-list" style="margin-bottom:18px"></div>
+      <div style="border-top:1px solid var(--paper3);padding-top:18px">
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:14px">+ Nova Recorrência</div>
+        <div class="fgrp">
+          <label class="flbl">Tipo</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <label class="topt"><input type="radio" name="rtype" value="income" checked><span>💰 Receita</span></label>
+            <label class="topt"><input type="radio" name="rtype" value="expense"><span>💸 Despesa</span></label>
+          </div>
+        </div>
+        <div class="frow">
+          <div class="fgrp"><label class="flbl">Descrição</label><input class="field" id="r-desc" placeholder="Ex: Aluguel, Salário..."></div>
+          <div class="fgrp"><label class="flbl">Valor (R$)</label><input class="field" type="number" id="r-amt" placeholder="0,00" step="0.01" min="0.01"></div>
+        </div>
+        <div class="frow">
+          <div class="fgrp">
+            <label class="flbl">Categoria</label>
+            <select class="field" id="r-cat">
+              <option value="">Selecione...</option>
+              <option>Salário</option><option>Freelance</option><option>Investimentos</option>
+              <option>Alimentação</option><option>Transporte</option><option>Moradia</option>
+              <option>Lazer</option><option>Saúde</option><option>Educação</option>
+              <option>Rolê com o meu amor</option><option>Metas</option><option>Outros</option>
+            </select>
+          </div>
+          <div class="fgrp">
+            <label class="flbl">Dia do mês (1–28)</label>
+            <input class="field" type="number" id="r-day" placeholder="Ex: 5" min="1" max="28" value="5">
+          </div>
+        </div>
+        <div class="factions" style="justify-content:flex-start">
+          <button class="btn btn-primary" onclick="saveRecurring()">+ Adicionar recorrência</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══ AUTH ═══
 async function sha256(str){
@@ -767,7 +849,9 @@ const S={
   ccItems:[],
   investments:[],
   goals:[],
-  editId:null,invEditId:null,goalEditId:null,
+  editId:null,invEditId:null,goalEditId:null,budgetEditId:null,
+  budgets:[],
+  recurring:[],
   banking:{connected:false,accounts:[],imported:[],lastSync:null},
   settings:{cdi:10.65,pluggyClientId:'',pluggyClientSecret:'',pluggyApiKey:'',pluggyItems:[],autoSync:false,lastPluggySync:null}
 };
@@ -787,6 +871,7 @@ function initApp(){
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   checkReminder();
   populateMonthFilter();
+  checkRecurring();
   startAutoSync();
   showPage('dashboard');
 }
@@ -803,6 +888,7 @@ function showPage(id){
   if(id==='investments')renderInvPage();
   if(id==='goals')renderGoalsPage();
   if(id==='open-banking')updateBankingPage();
+  if(id==='budget')renderBudgetPage();
   if(id==='settings')renderSettings();
 }
 
@@ -812,6 +898,7 @@ function openModal(id){
   if(id==='tx-modal')document.getElementById('tx-date').valueAsDate=new Date();
   if(id==='cc-modal')document.getElementById('cc-date').valueAsDate=new Date();
   if(id==='inv-modal')document.getElementById('inv-date').valueAsDate=new Date();
+  if(id==='recurring-modal')renderRecurringList();
 }
 function closeModal(id){
   document.getElementById(id).classList.remove('open');
@@ -822,6 +909,12 @@ function closeModal(id){
     document.getElementById('goal-modal-title').textContent='Nova Meta';
     const gc=document.getElementById('g-cdi');if(gc)gc.value='0';
     const gi=document.getElementById('g-cdi-info');if(gi)gi.style.display='none';
+  }
+  if(id==='budget-modal'){
+    S.budgetEditId=null;
+    document.getElementById('budget-modal-title').textContent='Novo Orçamento';
+    document.getElementById('b-cat').value='';
+    document.getElementById('b-limit').value='';
   }
 }
 document.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').forEach(o=>{if(e.target===o)closeModal(o.id);});});
@@ -1426,12 +1519,16 @@ function persistInv(){localStorage.setItem('bf_inv',JSON.stringify(S.investments
 function persistGoals(){localStorage.setItem('bf_goals',JSON.stringify(S.goals));}
 function persistBanking(){localStorage.setItem('bf_banking',JSON.stringify(S.banking));}
 function persistSettings(){localStorage.setItem('bf_settings',JSON.stringify(S.settings));}
+function persistBudgets(){localStorage.setItem('bf_budgets',JSON.stringify(S.budgets));}
+function persistRecurring(){localStorage.setItem('bf_recurring',JSON.stringify(S.recurring));}
 function loadData(){
   const parse=(key,fb)=>{try{const v=localStorage.getItem(key);return v?JSON.parse(v):fb;}catch(e){console.warn('Erro ao carregar '+key,e);return fb;}};
   S.transactions=parse('bf_tx',[]);
   S.ccItems=parse('bf_cc',[]);
   S.investments=parse('bf_inv',[]);
   S.goals=parse('bf_goals',[]);
+  S.budgets=parse('bf_budgets',[]);
+  S.recurring=parse('bf_recurring',[]);
   S.banking=parse('bf_banking',{connected:false,accounts:[],imported:[],lastSync:null});
   S.settings={...S.settings,...parse('bf_settings',{})};
 }
@@ -1583,6 +1680,134 @@ async function pluggySync(manual=false){
     if(manual)alert('Erro ao sincronizar: '+e.message);
     console.error('Pluggy sync error:',e);
   }
+}
+
+// ═══ BUDGET ═══
+function saveBudget(){
+  const cat=document.getElementById('b-cat').value;
+  const limit=parseFloat(document.getElementById('b-limit').value);
+  if(!cat||!limit||limit<=0){alert('Preencha categoria e limite.');return;}
+  if(S.budgetEditId){
+    const i=S.budgets.findIndex(b=>b.id===S.budgetEditId);
+    if(i>-1)S.budgets[i]={...S.budgets[i],category:cat,limit};
+  }else{
+    if(S.budgets.some(b=>b.category===cat)){alert('Já existe um orçamento para esta categoria.');return;}
+    S.budgets.push({id:Date.now(),category:cat,limit});
+  }
+  persistBudgets();closeModal('budget-modal');renderBudgetPage();
+}
+function editBudget(id){
+  const b=S.budgets.find(x=>x.id===id);if(!b)return;
+  S.budgetEditId=id;
+  document.getElementById('budget-modal-title').textContent='Editar Orçamento';
+  document.getElementById('b-cat').value=b.category;
+  document.getElementById('b-limit').value=b.limit;
+  openModal('budget-modal');
+}
+function delBudget(id){
+  if(!confirm('Excluir orçamento?'))return;
+  S.budgets=S.budgets.filter(x=>x.id!==id);
+  persistBudgets();renderBudgetPage();
+}
+function renderBudgetPage(){
+  const now=new Date();
+  const month=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const lbl=now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const el=document.getElementById('budget-month-lbl');
+  if(el)el.textContent='Orçamento de '+lbl;
+  const spent={};
+  S.transactions.filter(t=>t.date.startsWith(month)&&(t.type==='expense'||t.type==='cc'))
+    .forEach(t=>{spent[t.category]=(spent[t.category]||0)+t.amount;});
+  S.ccItems.filter(c=>c.date.startsWith(month))
+    .forEach(c=>{spent[c.category]=(spent[c.category]||0)+c.amount;});
+  const list=document.getElementById('budget-list');
+  if(!S.budgets.length){list.innerHTML=emptyHTML('Nenhum orçamento configurado. Clique em "+ Novo Orçamento" para começar.');return;}
+  list.innerHTML=S.budgets.map(b=>{
+    const s=spent[b.category]||0;
+    const pct=Math.min(100,Math.round(s/b.limit*100));
+    const color=pct>=100?'var(--red)':pct>=70?'#d97706':'var(--green)';
+    const over=s>b.limit;
+    return '<div class="goal-card">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+      '<div class="goal-name">'+esc(b.category)+'</div>'+
+      '<div style="display:flex;gap:6px">'+
+      '<button class="btn btn-secondary btn-sm" onclick="editBudget('+b.id+')">✏️</button>'+
+      '<button class="btn btn-danger btn-sm" onclick="delBudget('+b.id+')">🗑️</button>'+
+      '</div></div>'+
+      '<div class="goal-amounts">'+
+      '<div><div class="goal-current" style="color:'+color+'">'+fmtCur(s)+'</div>'+
+      '<div style="font-size:12px;color:var(--ink3)">gasto em '+lbl+'</div></div>'+
+      '<div style="text-align:right"><div class="goal-target">Limite: '+fmtCur(b.limit)+'</div>'+
+      (over?'<div style="color:var(--red);font-size:12px;font-weight:700">⚠️ Acima do limite!</div>':
+            '<div class="goal-remaining">Restam '+fmtCur(b.limit-s)+'</div>')+
+      '</div></div>'+
+      '<div class="goal-bar-bg"><div class="goal-bar-fill'+(pct>=100?' done':'')+'" style="width:'+pct+'%;background:'+color+'"></div></div>'+
+      '<div class="goal-pct" style="color:'+color+'">'+pct+'% utilizado</div>'+
+      '</div>';
+  }).join('');
+}
+
+// ═══ RECURRING ═══
+function saveRecurring(){
+  const type=document.querySelector('input[name="rtype"]:checked').value;
+  const desc=document.getElementById('r-desc').value.trim();
+  const amt=parseFloat(document.getElementById('r-amt').value);
+  const cat=document.getElementById('r-cat').value;
+  const day=parseInt(document.getElementById('r-day').value)||5;
+  if(!desc||!amt||!cat){alert('Preencha todos os campos.');return;}
+  if(day<1||day>28){alert('Dia deve ser entre 1 e 28.');return;}
+  S.recurring.push({id:Date.now(),type,description:desc,amount:amt,category:cat,day,active:true,lastGenerated:''});
+  persistRecurring();renderRecurringList();
+  document.getElementById('r-desc').value='';
+  document.getElementById('r-amt').value='';
+  document.getElementById('r-cat').value='';
+  document.getElementById('r-day').value='5';
+  document.querySelector('input[name="rtype"][value="income"]').checked=true;
+}
+function delRecurring(id){
+  if(!confirm('Excluir recorrência?'))return;
+  S.recurring=S.recurring.filter(x=>x.id!==id);
+  persistRecurring();renderRecurringList();
+}
+function toggleRecurring(id){
+  const r=S.recurring.find(x=>x.id===id);if(!r)return;
+  r.active=!r.active;
+  persistRecurring();renderRecurringList();
+}
+function renderRecurringList(){
+  const el=document.getElementById('recurring-list');if(!el)return;
+  if(!S.recurring.length){
+    el.innerHTML='<p style="font-size:13px;color:var(--ink3)">Nenhuma recorrência cadastrada ainda.</p>';
+    return;
+  }
+  const icons={income:'💰',expense:'💸'};
+  el.innerHTML=S.recurring.map(r=>
+    '<div class="tx-item" style="opacity:'+(r.active?'1':'.5')+'">'+
+    '<div class="tx-icon '+r.type+'">'+icons[r.type]+'</div>'+
+    '<div class="tx-info"><div class="tx-desc">'+esc(r.description)+'</div>'+
+    '<div class="tx-meta">'+esc(r.category)+' · Todo dia '+r.day+
+    ' · '+(r.active?'<span style="color:var(--green)">Ativa</span>':'<span style="color:var(--ink3)">Pausada</span>')+'</div></div>'+
+    '<div class="tx-amount '+r.type+'">'+fmtCur(r.amount)+'</div>'+
+    '<div class="tx-actions" style="opacity:1">'+
+    '<button class="btn btn-sm '+(r.active?'btn-secondary':'btn-green')+'" onclick="toggleRecurring('+r.id+')">'+(r.active?'⏸ Pausar':'▶ Ativar')+'</button>'+
+    '<button class="ibt del" onclick="delRecurring('+r.id+')">🗑️</button>'+
+    '</div></div>'
+  ).join('');
+}
+function checkRecurring(){
+  const now=new Date();
+  const month=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  let changed=false;
+  S.recurring.filter(r=>r.active&&r.lastGenerated!==month).forEach(r=>{
+    const maxDay=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+    const day=Math.min(r.day,maxDay);
+    const date=month+'-'+String(day).padStart(2,'0');
+    const dup=S.transactions.some(t=>t.description===r.description+' (recorrente)'&&t.date===date);
+    if(!dup)S.transactions.push({id:Date.now()+Math.random(),type:r.type,description:r.description+' (recorrente)',amount:r.amount,date,category:r.category});
+    r.lastGenerated=month;
+    changed=true;
+  });
+  if(changed){persist();persistRecurring();}
 }
 
 let _autoSyncTimer=null;
