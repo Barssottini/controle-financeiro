@@ -222,6 +222,10 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
     <label class="lbl">Senha</label>
     <input class="linput" type="password" id="lpass" placeholder="••••••••" autocomplete="current-password">
     <button class="lbtn" onclick="doLogin()">Entrar</button>
+    <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--ink3)">
+      Primeiro acesso ou esqueceu a senha?
+      <a href="#" onclick="showSetupScreen();return false" style="color:var(--gold);font-weight:700">Criar / redefinir acesso</a>
+    </p>
   </div>
 </div>
 
@@ -724,6 +728,11 @@ async function doSetup(){
 function doLogout(){
   sessionStorage.removeItem('bf_u');
   location.reload();
+}
+
+function showSetupScreen(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('setup-screen').style.display='flex';
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
