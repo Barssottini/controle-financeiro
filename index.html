@@ -138,7 +138,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 .flbl{display:block;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);margin-bottom:7px}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .factions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
-.trow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.trow{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .topt{position:relative;cursor:pointer}
 .topt input{position:absolute;opacity:0;pointer-events:none}
 .topt span{display:block;padding:11px 8px;border:1.5px solid var(--paper3);border-radius:var(--r);text-align:center;font-weight:600;font-size:13px;transition:all .2s}
@@ -271,7 +271,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
         <div class="sum-card income"><div class="sc-label">Receitas</div><div class="sc-val" id="total-income">R$ 0,00</div><div class="sc-sub">total geral</div></div>
         <div class="sum-card expense"><div class="sc-label">Despesas</div><div class="sc-val" id="total-expense">R$ 0,00</div><div class="sc-sub">total geral</div></div>
         <div class="sum-card cc"><div class="sc-label">Cartão de Crédito</div><div class="sc-val" id="total-cc">R$ 0,00</div><div class="sc-sub">fatura acumulada</div></div>
-        <div class="sum-card balance"><div class="sc-label">Saldo</div><div class="sc-val" id="total-balance">R$ 0,00</div><div class="sc-sub">receitas − despesas</div></div>
+        <div class="sum-card balance"><div class="sc-label">Saldo</div><div class="sc-val" id="total-balance">R$ 0,00</div><div class="sc-sub" id="balance-sub">receitas − despesas − investimentos</div></div>
       </div>
       <div class="panel">
         <div class="panel-head">
@@ -446,6 +446,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
           <label class="topt"><input type="radio" name="txtype" value="income" checked><span>💰 Receita</span></label>
           <label class="topt"><input type="radio" name="txtype" value="expense"><span>💸 Despesa</span></label>
           <label class="topt"><input type="radio" name="txtype" value="cc"><span>🟣 Crédito</span></label>
+          <label class="topt"><input type="radio" name="txtype" value="investment"><span>📈 Investimento</span></label>
         </div>
       </div>
       <div class="fgrp"><label class="flbl">Descrição</label><input class="field" type="text" id="tx-desc" placeholder="Ex: Salário, Aluguel..."></div>
@@ -462,6 +463,9 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
             <option>Alimentação</option><option>Transporte</option><option>Moradia</option>
             <option>Lazer</option><option>Saúde</option><option>Educação</option>
             <option>Rolê com o meu amor</option><option>Metas</option>
+          </optgroup>
+          <optgroup label="Investimentos">
+            <option>Aporte XP</option><option>Caixinha Nubank</option><option>Cripto</option>
           </optgroup>
           <option>Outros</option>
         </select>
@@ -525,11 +529,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
           <option value="115">115% do CDI — Caixinha Turbo Nubank</option>
         </select>
       </div>
-      <div style="background:var(--goldl);border-radius:var(--r);padding:12px;font-size:12px;color:var(--ink2);line-height:1.6">
-        📌 <strong>CDI atual: ~10,65% a.a.</strong><br>
-        100% CDI ≈ 10,65% a.a. &nbsp;·&nbsp; 115% CDI ≈ 12,25% a.a.<br>
-        <span style="color:var(--ink3)">Rendimento calculado por dias úteis (252/ano).</span>
-      </div>
+      <div id="inv-cdi-box" style="background:var(--goldl);border-radius:var(--r);padding:12px;font-size:12px;color:var(--ink2);line-height:1.6"></div>
       <div class="factions">
         <button class="btn btn-secondary" onclick="closeModal('inv-modal')">Cancelar</button>
         <button class="btn btn-primary" onclick="saveInv()">Salvar</button>
@@ -814,7 +814,14 @@ function openModal(id){
   document.getElementById(id).classList.add('open');
   if(id==='tx-modal')document.getElementById('tx-date').valueAsDate=new Date();
   if(id==='cc-modal')document.getElementById('cc-date').valueAsDate=new Date();
-  if(id==='inv-modal')document.getElementById('inv-date').valueAsDate=new Date();
+  if(id==='inv-modal'){
+    document.getElementById('inv-date').valueAsDate=new Date();
+    const cdiNow=S.settings.cdi||10.65;
+    document.getElementById('inv-cdi-box').innerHTML=
+      '📌 <strong>CDI atual: '+cdiNow.toFixed(2).replace('.',',')+'% a.a.</strong> (ajustável em Configurações)<br>'+
+      '100% CDI ≈ '+cdiNow.toFixed(2).replace('.',',')+'% a.a. &nbsp;·&nbsp; 115% CDI ≈ '+(cdiNow*1.15).toFixed(2).replace('.',',')+'% a.a.<br>'+
+      '<span style="color:var(--ink3)">Rendimento calculado por dias úteis (252/ano).</span>';
+  }
   if(id==='recurring-modal')renderRecurringList();
 }
 function closeModal(id){
@@ -1101,11 +1108,14 @@ function emptyHTML(msg){return '<div class="empty"><span class="empty-ico">💳<
 function updateDashboard(){
   const income=S.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=S.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const invested=S.transactions.filter(t=>t.type==='investment').reduce((s,t)=>s+t.amount,0);
   const cc=S.ccItems.reduce((s,c)=>s+c.amount,0);
   document.getElementById('total-income').textContent=fmtCur(income);
   document.getElementById('total-expense').textContent=fmtCur(expense);
   document.getElementById('total-cc').textContent=fmtCur(cc);
-  document.getElementById('total-balance').textContent=fmtCur(income-expense);
+  document.getElementById('total-balance').textContent=fmtCur(income-expense-invested);
+  const bSub=document.getElementById('balance-sub');
+  if(bSub&&invested>0)bSub.textContent='inclui '+fmtCur(invested)+' investidos no período';
 
   const gPanel=document.getElementById('dash-goals-panel');
   const gList=document.getElementById('dash-goals-list');
@@ -1120,7 +1130,7 @@ function updateDashboard(){
 
 function txHTML(t,showAct=true){
   const icons={income:'💰',expense:'💸',cc:'🟣',investment:'📈'};
-  const signs={income:'+',expense:'−',cc:'−',investment:'+'};
+  const signs={income:'+',expense:'−',cc:'−',investment:'→'};
   const cats={income:'Receita',expense:'Despesa',cc:'Crédito',investment:'Investimento'};
   return '<div class="tx-item">'+
     '<div class="tx-icon '+(t.type||'expense')+'">'+icons[t.type||'expense']+'</div>'+
@@ -1287,6 +1297,8 @@ function guessCategory(desc){
   const d=desc.toLowerCase();
   if(/salario|salário|salary/.test(d))return'Salário';
   if(/freelance|servico|serviço/.test(d))return'Freelance';
+  if(/xp invest|bova|mxrf|tesouro|b3 |corretora/.test(d))return'Aporte XP';
+  if(/bitcoin|btc|usdc|cripto|crypto/.test(d))return'Cripto';
   if(/investimento|rend|dividendo|cdi|caixinha/.test(d))return'Investimentos';
   if(/mercado|superm|padaria|restaurante|food|ifood|rappi|lanche|aliment|cafe|café/.test(d))return'Alimentação';
   if(/uber|99|taxi|táxi|onibus|ônibus|metro|metrô|combustiv|gasolina|posto/.test(d))return'Transporte';
@@ -1522,7 +1534,8 @@ function exportJSON(){
     investments:S.investments,
     goals:S.goals,
     budgets:S.budgets,
-    recurring:S.recurring
+    recurring:S.recurring,
+    settings:S.settings
   };
   _download(JSON.stringify(data,null,2),'backup_financas_'+_dateStr()+'.json','application/json');
 }
@@ -1555,7 +1568,8 @@ function importBackup(){
         if(data.goals)S.goals=data.goals;
         if(data.budgets)S.budgets=data.budgets;
         if(data.recurring)S.recurring=data.recurring;
-        persist();persistCC();persistInv();persistGoals();persistBudgets();persistRecurring();
+        if(data.settings)S.settings={...S.settings,...data.settings};
+        persist();persistCC();persistInv();persistGoals();persistBudgets();persistRecurring();persistSettings();
         updateDashboard();renderTxList();populateMonthFilter();
         alert('✅ Backup restaurado com sucesso!');
       }catch(err){alert('❌ Arquivo inválido: '+err.message);}
