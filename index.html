@@ -311,6 +311,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       <div class="ph">
         <div><h1 class="pt">Transações</h1><p class="ps" id="tx-count-lbl"></p></div>
         <div style="display:flex;gap:8px">
+          <button class="btn btn-danger" onclick="clearAllTx()">🗑️ Limpar Transações</button>
           <button class="btn btn-secondary" onclick="openReconcile()">⚖️ Conciliar Saldo</button>
           <button class="btn btn-secondary" onclick="openModal('recurring-modal')">🔄 Recorrentes</button>
           <button class="btn btn-primary" onclick="openModal('tx-modal')">+ Nova Transação</button>
@@ -954,6 +955,17 @@ function closeModal(id){
 }
 document.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').forEach(o=>{if(e.target===o)closeModal(o.id);});});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>closeModal(o.id));});
+
+// ═══ LIMPAR TRANSAÇÕES ═══
+function clearAllTx(){
+  const n=S.transactions.length;
+  if(!n){alert('Não há transações para excluir.');return;}
+  if(!confirm('Excluir TODAS as '+n+' transações?\n\nInvestimentos, metas e configurações NÃO serão afetados.'))return;
+  if(!confirm('Tem certeza? Essa ação não pode ser desfeita.\n\nDica: faça um backup antes em Configurações → Backup completo (JSON).'))return;
+  S.transactions=[];
+  persist();updateDashboard();renderTxList();populateMonthFilter();
+  alert('✅ '+n+' transação(ões) excluída(s). Pode importar o extrato do zero.');
+}
 
 // ═══ CONCILIAÇÃO DE SALDO ═══
 function appBalance(){
