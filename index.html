@@ -244,14 +244,13 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       <div class="sb-section">Principal</div>
       <div class="navi active" onclick="showPage('dashboard')"><span class="ni">📊</span>Dashboard</div>
       <div class="navi" onclick="showPage('transactions')"><span class="ni">🔄</span>Transações</div>
-      <div class="navi" onclick="showPage('credit-card')"><span class="ni">💳</span>Cartão de Crédito</div>
+      <div class="navi" id="nav-cc" onclick="showPage('credit-card')"><span class="ni">💳</span>Cartão de Crédito</div>
       <div class="sb-section">Patrimônio</div>
       <div class="navi" onclick="showPage('investments')"><span class="ni">📈</span>Investimentos</div>
       <div class="navi" onclick="showPage('goals')"><span class="ni">🎯</span>Metas &amp; Reserva</div>
-      <div class="navi" onclick="showPage('budget')"><span class="ni">💰</span>Orçamento</div>
-      <div class="sb-section">Banco</div>
-      <div class="navi" onclick="showPage('import')"><span class="ni">📥</span>Importar Extrato</div>
+      <div class="navi" id="nav-budget" onclick="showPage('budget')"><span class="ni">💰</span>Orçamento</div>
       <div class="sb-section">Sistema</div>
+      <div class="navi" onclick="showPage('import')"><span class="ni">📥</span>Importar Extrato</div>
       <div class="navi" onclick="showPage('settings')"><span class="ni">⚙️</span>Configurações</div>
     </nav>
     <div class="sb-footer">
@@ -275,10 +274,10 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
         </div>
         <button class="rdismiss" onclick="dismissReminder(event)" title="Dispensar hoje">✕</button>
       </div>
-      <div class="cards-row">
+      <div class="cards-row" id="dash-cards">
         <div class="sum-card income"><div class="sc-label">Receitas</div><div class="sc-val" id="total-income">R$ 0,00</div><div class="sc-sub">total geral</div></div>
         <div class="sum-card expense"><div class="sc-label">Despesas</div><div class="sc-val" id="total-expense">R$ 0,00</div><div class="sc-sub">total geral</div></div>
-        <div class="sum-card cc"><div class="sc-label">Cartão de Crédito</div><div class="sc-val" id="total-cc">R$ 0,00</div><div class="sc-sub">fatura acumulada</div></div>
+        <div class="sum-card cc" id="card-cc"><div class="sc-label">Cartão de Crédito</div><div class="sc-val" id="total-cc">R$ 0,00</div><div class="sc-sub">fatura acumulada</div></div>
         <div class="sum-card balance"><div class="sc-label">Saldo</div><div class="sc-val" id="total-balance">R$ 0,00</div><div class="sc-sub" id="balance-sub">receitas − despesas − investimentos</div></div>
       </div>
       <div class="panel">
@@ -358,7 +357,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
     <!-- INVESTMENTS -->
     <div class="page" id="investments">
       <div class="ph">
-        <div><h1 class="pt">Investimentos</h1><p class="ps">Caixinhas com rendimento CDI calculado diariamente</p></div>
+        <div><h1 class="pt">Investimentos</h1><p class="ps">Caixinhas CDI + ativos de bolsa e cripto — sua carteira completa</p></div>
         <button class="btn btn-primary" onclick="openModal('inv-modal')">+ Novo Investimento</button>
       </div>
       <div class="cards-row" style="grid-template-columns:repeat(3,1fr)">
@@ -366,7 +365,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
         <div class="sum-card income"><div class="sc-label">Rendimento Acumulado</div><div class="sc-val" id="inv-yield-total">R$ 0,00</div></div>
         <div class="sum-card" style="background:var(--goldl);border-color:var(--gold)"><div class="sc-label">Patrimônio Total</div><div class="sc-val" style="color:var(--gold)" id="inv-patrimony">R$ 0,00</div></div>
       </div>
-      <div class="panel"><div class="panel-head"><span class="panel-title">Caixinhas &amp; Aplicações</span></div><div id="inv-list"></div></div>
+      <div class="panel"><div class="panel-head"><span class="panel-title">Carteira</span></div><div id="inv-list"></div></div>
     </div>
 
     <!-- GOALS -->
@@ -429,6 +428,14 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       </div>
 
       <div class="panel">
+        <div class="panel-head"><span class="panel-title">🧩 Módulos</span></div>
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:10px;cursor:pointer"><input type="checkbox" id="set-show-cc" class="chk"> Exibir módulo Cartão de Crédito</label>
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="set-show-budget" class="chk"> Exibir módulo Orçamento</label>
+        <p style="font-size:12px;color:var(--ink3);margin-top:10px">Desative o que você não usa para deixar o app mais limpo. Os dados não são apagados — só ficam ocultos.</p>
+        <button class="btn btn-primary" style="margin-top:14px" onclick="saveSettings()">💾 Salvar</button>
+      </div>
+
+      <div class="panel">
         <div class="panel-head"><span class="panel-title">📤 Exportar &amp; Backup</span></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
           <button class="btn btn-secondary" onclick="exportJSON()">⬇️ Backup completo (JSON)</button>
@@ -453,7 +460,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
         <div class="trow">
           <label class="topt"><input type="radio" name="txtype" value="income" checked><span>💰 Receita</span></label>
           <label class="topt"><input type="radio" name="txtype" value="expense"><span>💸 Despesa</span></label>
-          <label class="topt"><input type="radio" name="txtype" value="cc"><span>🟣 Crédito</span></label>
+          <label class="topt" id="topt-cc"><input type="radio" name="txtype" value="cc"><span>🟣 Crédito</span></label>
           <label class="topt"><input type="radio" name="txtype" value="investment"><span>📈 Investimento</span></label>
         </div>
       </div>
@@ -525,19 +532,45 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
   <div class="modal">
     <div class="mhead"><h3 id="inv-modal-title">Novo Investimento</h3><button class="xbtn" onclick="closeModal('inv-modal')">✕</button></div>
     <div class="mbody">
-      <div class="fgrp"><label class="flbl">Nome</label><input class="field" type="text" id="inv-name" placeholder="Ex: Caixinha Nubank"></div>
-      <div class="frow">
-        <div class="fgrp"><label class="flbl">Valor Investido (R$)</label><input class="field" type="number" id="inv-principal" placeholder="0,00" step="0.01" min="0.01"></div>
-        <div class="fgrp"><label class="flbl">Data de Início</label><input class="field" type="date" id="inv-date"></div>
-      </div>
       <div class="fgrp">
-        <label class="flbl">Tipo de Rendimento</label>
-        <select class="field" id="inv-cdi">
-          <option value="100">100% do CDI — Caixinha Nubank</option>
-          <option value="115">115% do CDI — Caixinha Turbo Nubank</option>
-        </select>
+        <label class="flbl">Tipo</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <label class="topt"><input type="radio" name="invkind" value="cdi" checked onchange="toggleInvKind()"><span>💰 Rende CDI</span></label>
+          <label class="topt"><input type="radio" name="invkind" value="asset" onchange="toggleInvKind()"><span>📈 Ativo (bolsa/cripto)</span></label>
+        </div>
       </div>
-      <div id="inv-cdi-box" style="background:var(--goldl);border-radius:var(--r);padding:12px;font-size:12px;color:var(--ink2);line-height:1.6"></div>
+      <div class="fgrp"><label class="flbl">Nome</label><input class="field" type="text" id="inv-name" placeholder="Ex: Caixinha Turbo, BOVA11, Bitcoin..."></div>
+      <div id="inv-cdi-fields">
+        <div class="frow">
+          <div class="fgrp"><label class="flbl">Valor Investido (R$)</label><input class="field" type="number" id="inv-principal" placeholder="0,00" step="0.01" min="0.01"></div>
+          <div class="fgrp"><label class="flbl">Data de Início</label><input class="field" type="date" id="inv-date"></div>
+        </div>
+        <div class="fgrp">
+          <label class="flbl">Tipo de Rendimento</label>
+          <select class="field" id="inv-cdi">
+            <option value="100">100% do CDI — Caixinha Nubank</option>
+            <option value="115">115% do CDI — Caixinha Turbo Nubank</option>
+          </select>
+        </div>
+        <div id="inv-cdi-box" style="background:var(--goldl);border-radius:var(--r);padding:12px;font-size:12px;color:var(--ink2);line-height:1.6"></div>
+      </div>
+      <div id="inv-asset-fields" style="display:none">
+        <div class="frow">
+          <div class="fgrp"><label class="flbl">Quantidade</label><input class="field" type="number" id="inv-qty" placeholder="Ex: 20" step="any" min="0"></div>
+          <div class="fgrp"><label class="flbl">Preço Médio Pago (R$)</label><input class="field" type="number" id="inv-pm" placeholder="0,00" step="0.01" min="0"></div>
+        </div>
+        <div class="frow">
+          <div class="fgrp"><label class="flbl">Preço Atual (R$)</label><input class="field" type="number" id="inv-price" placeholder="0,00" step="0.01" min="0"></div>
+          <div class="fgrp"><label class="flbl">Categoria</label>
+            <select class="field" id="inv-asset-cat">
+              <option>ETF</option><option>FII</option><option>Ação</option><option>Cripto</option><option>Renda Fixa</option><option>Outro</option>
+            </select>
+          </div>
+        </div>
+        <div style="background:var(--goldl);border-radius:var(--r);padding:12px;font-size:12px;color:var(--ink2);line-height:1.6">
+          📌 Atualize o <strong>Preço Atual</strong> periodicamente (ex.: na rotina do dia 1º) para o patrimônio refletir o mercado. Para cripto, use Quantidade 1 e o valor total da posição como preço.
+        </div>
+      </div>
       <div class="factions">
         <button class="btn btn-secondary" onclick="closeModal('inv-modal')">Cancelar</button>
         <button class="btn btn-primary" onclick="saveInv()">Salvar</button>
@@ -804,7 +837,20 @@ function initApp(){
   checkReminder();
   populateMonthFilter();
   checkRecurring();
+  applyModules();
   showPage('dashboard');
+}
+
+// ═══ MÓDULOS OPCIONAIS ═══
+function applyModules(){
+  const cc=!!S.settings.showCC, bg=!!S.settings.showBudget;
+  const navCC=document.getElementById('nav-cc');if(navCC)navCC.style.display=cc?'flex':'none';
+  const navBg=document.getElementById('nav-budget');if(navBg)navBg.style.display=bg?'flex':'none';
+  const cardCC=document.getElementById('card-cc');if(cardCC)cardCC.style.display=cc?'block':'none';
+  const cards=document.getElementById('dash-cards');if(cards)cards.style.gridTemplateColumns='repeat('+(cc?4:3)+',1fr)';
+  const toptCC=document.getElementById('topt-cc');if(toptCC)toptCC.style.display=cc?'block':'none';
+  if(!cc&&document.getElementById('credit-card').classList.contains('active'))showPage('dashboard');
+  if(!bg&&document.getElementById('budget').classList.contains('active'))showPage('dashboard');
 }
 
 // ═══ NAVIGATION ═══
@@ -840,7 +886,13 @@ function openModal(id){
 function closeModal(id){
   document.getElementById(id).classList.remove('open');
   if(id==='tx-modal')resetTxForm();
-  if(id==='inv-modal'){S.invEditId=null;document.getElementById('inv-modal-title').textContent='Novo Investimento';}
+  if(id==='inv-modal'){
+    S.invEditId=null;
+    document.getElementById('inv-modal-title').textContent='Novo Investimento';
+    document.querySelector('input[name="invkind"][value="cdi"]').checked=true;
+    ['inv-name','inv-principal','inv-qty','inv-pm','inv-price'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    toggleInvKind();
+  }
   if(id==='goal-modal'){
     S.goalEditId=null;
     document.getElementById('goal-modal-title').textContent='Nova Meta';
@@ -958,13 +1010,41 @@ function calcYield(inv){
   const current=inv.principal*Math.pow(1+daily,days);
   return{current,yieldAmt:current-inv.principal,days};
 }
+function toggleInvKind(){
+  const k=document.querySelector('input[name="invkind"]:checked').value;
+  document.getElementById('inv-cdi-fields').style.display=k==='cdi'?'block':'none';
+  document.getElementById('inv-asset-fields').style.display=k==='asset'?'block':'none';
+}
+function invNumbers(inv){
+  if((inv.kind||'cdi')==='cdi'){
+    const r=calcYield(inv);
+    return{invested:inv.principal,current:r.current,gain:r.yieldAmt,
+      tag:inv.cdi+'% CDI',
+      meta:'Principal: '+fmtCur(inv.principal)+' · Início: '+fmtDate(inv.date)+' · '+r.days+' dias úteis'};
+  }
+  const invested=inv.qty*inv.pm, current=inv.qty*inv.price;
+  return{invested,current,gain:current-invested,
+    tag:inv.assetCat||'Ativo',
+    meta:inv.qty+' un. · PM '+fmtCur(inv.pm)+' · Preço atual '+fmtCur(inv.price)};
+}
 function saveInv(){
   const name=document.getElementById('inv-name').value.trim();
-  const principal=parseFloat(document.getElementById('inv-principal').value);
-  const date=document.getElementById('inv-date').value;
-  const cdi=parseInt(document.getElementById('inv-cdi').value);
-  if(!name||!principal||!date){alert('Preencha todos os campos.');return;}
-  const inv={id:S.invEditId||Date.now(),name,principal,date,cdi};
+  const kind=document.querySelector('input[name="invkind"]:checked').value;
+  let inv;
+  if(kind==='cdi'){
+    const principal=parseFloat(document.getElementById('inv-principal').value);
+    const date=document.getElementById('inv-date').value;
+    const cdi=parseInt(document.getElementById('inv-cdi').value);
+    if(!name||!principal||!date){alert('Preencha todos os campos.');return;}
+    inv={id:S.invEditId||Date.now(),kind:'cdi',name,principal,date,cdi};
+  }else{
+    const qty=parseFloat(document.getElementById('inv-qty').value);
+    const pm=parseFloat(document.getElementById('inv-pm').value);
+    const price=parseFloat(document.getElementById('inv-price').value);
+    const assetCat=document.getElementById('inv-asset-cat').value;
+    if(!name||!qty||isNaN(pm)||isNaN(price)){alert('Preencha nome, quantidade, preço médio e preço atual.');return;}
+    inv={id:S.invEditId||Date.now(),kind:'asset',name,qty,pm,price,assetCat};
+  }
   if(S.invEditId){const i=S.investments.findIndex(x=>x.id===S.invEditId);S.investments[i]=inv;}
   else S.investments.push(inv);
   persistInv();closeModal('inv-modal');renderInvPage();updateDashboard();
@@ -973,11 +1053,21 @@ function editInv(id){
   const inv=S.investments.find(x=>x.id===id);if(!inv)return;
   S.invEditId=id;
   document.getElementById('inv-modal-title').textContent='Editar Investimento';
+  const kind=inv.kind||'cdi';
+  document.querySelector('input[name="invkind"][value="'+kind+'"]').checked=true;
   document.getElementById('inv-name').value=inv.name;
-  document.getElementById('inv-principal').value=inv.principal;
-  document.getElementById('inv-date').value=inv.date;
-  document.getElementById('inv-cdi').value=inv.cdi;
+  if(kind==='cdi'){
+    document.getElementById('inv-principal').value=inv.principal;
+    document.getElementById('inv-date').value=inv.date;
+    document.getElementById('inv-cdi').value=inv.cdi;
+  }else{
+    document.getElementById('inv-qty').value=inv.qty;
+    document.getElementById('inv-pm').value=inv.pm;
+    document.getElementById('inv-price').value=inv.price;
+    document.getElementById('inv-asset-cat').value=inv.assetCat||'Outro';
+  }
   openModal('inv-modal');
+  toggleInvKind();
 }
 function delInv(id){
   if(!confirm('Excluir investimento?'))return;
@@ -985,25 +1075,27 @@ function delInv(id){
   persistInv();renderInvPage();updateDashboard();
 }
 function renderInvPage(){
-  let totP=0,totY=0;
-  S.investments.forEach(inv=>{const r=calcYield(inv);totP+=inv.principal;totY+=r.yieldAmt;});
-  document.getElementById('inv-total').textContent=fmtCur(totP);
-  document.getElementById('inv-yield-total').textContent=fmtCur(totY);
-  document.getElementById('inv-patrimony').textContent=fmtCur(totP+totY);
+  let totI=0,totG=0;
+  S.investments.forEach(inv=>{const n=invNumbers(inv);totI+=n.invested;totG+=n.gain;});
+  document.getElementById('inv-total').textContent=fmtCur(totI);
+  document.getElementById('inv-yield-total').textContent=fmtCur(totG);
+  document.getElementById('inv-patrimony').textContent=fmtCur(totI+totG);
   const list=document.getElementById('inv-list');
   if(!S.investments.length){list.innerHTML=emptyHTML('Nenhum investimento cadastrado');return;}
   list.innerHTML=S.investments.map(inv=>{
-    const r=calcYield(inv);
-    const pct=(r.yieldAmt/inv.principal*100).toFixed(2);
+    const n=invNumbers(inv);
+    const pct=n.invested>0?(n.gain/n.invested*100).toFixed(2):'0.00';
+    const gainColor=n.gain>=0?'var(--green)':'var(--red)';
+    const gainSign=n.gain>=0?'+ ':'− ';
     return '<div class="inv-card">'+
-      '<div class="inv-actions"><button class="ibt" onclick="editInv('+inv.id+')" title="Editar">✏️</button>'+
+      '<div class="inv-actions"><button class="ibt" onclick="editInv('+inv.id+')" title="Editar / atualizar preço">✏️</button>'+
       '<button class="ibt del" onclick="delInv('+inv.id+')" title="Excluir">🗑️</button></div>'+
       '<div class="inv-name">'+esc(inv.name)+'</div>'+
       '<div style="display:flex;align-items:baseline;gap:10px">'+
-      '<div class="inv-amount">'+fmtCur(r.current)+'</div>'+
-      '<span style="background:var(--goldl);color:var(--gold);font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">'+inv.cdi+'% CDI</span></div>'+
-      '<div class="inv-yield">+ '+fmtCur(r.yieldAmt)+' ('+pct+'%)</div>'+
-      '<div class="inv-meta">Principal: '+fmtCur(inv.principal)+' · Início: '+fmtDate(inv.date)+' · '+r.days+' dias úteis</div>'+
+      '<div class="inv-amount">'+fmtCur(n.current)+'</div>'+
+      '<span style="background:var(--goldl);color:var(--gold);font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">'+esc(n.tag)+'</span></div>'+
+      '<div class="inv-yield" style="color:'+gainColor+'">'+gainSign+fmtCur(Math.abs(n.gain))+' ('+pct+'%)</div>'+
+      '<div class="inv-meta">'+n.meta+'</div>'+
       '</div>';
   }).join('');
 }
@@ -1166,7 +1258,20 @@ function renderTxList(){
   const lbl=document.getElementById('tx-count-lbl');
   if(lbl)lbl.textContent=filtered.length+' transaç'+(filtered.length===1?'ão':'ões');
   const el=document.getElementById('tx-list');
-  if(el)el.innerHTML=filtered.length?filtered.map(t=>txHTML(t)).join(''):emptyHTML('Nenhuma transação encontrada');
+  if(!el)return;
+  if(!filtered.length){el.innerHTML=emptyHTML('Nenhuma transação encontrada');return;}
+  let html='',lastM='';
+  filtered.forEach(t=>{
+    const m=t.date.substring(0,7);
+    if(m!==lastM){
+      lastM=m;
+      const[y,mo]=m.split('-');
+      const label=new Date(y,parseInt(mo)-1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+      html+='<div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);padding:18px 8px 8px;border-bottom:1px solid var(--paper2)">'+label+'</div>';
+    }
+    html+=txHTML(t);
+  });
+  el.innerHTML=html;
 }
 
 function populateMonthFilter(){
@@ -1401,12 +1506,17 @@ function loadData(){
 // ═══ SETTINGS ═══
 function renderSettings(){
   document.getElementById('set-cdi').value=S.settings.cdi||10.65;
+  const cc=document.getElementById('set-show-cc');if(cc)cc.checked=!!S.settings.showCC;
+  const bg=document.getElementById('set-show-budget');if(bg)bg.checked=!!S.settings.showBudget;
 }
 
 function saveSettings(){
   const cdi=parseFloat(document.getElementById('set-cdi').value);
   if(!isNaN(cdi)&&cdi>0&&cdi<100)S.settings.cdi=cdi;
+  const cc=document.getElementById('set-show-cc');if(cc)S.settings.showCC=cc.checked;
+  const bg=document.getElementById('set-show-budget');if(bg)S.settings.showBudget=bg.checked;
   persistSettings();
+  applyModules();
   alert('✅ Configurações salvas!');
 }
 
