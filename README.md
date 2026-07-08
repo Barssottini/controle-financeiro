@@ -2,6 +2,16 @@
 
 Controle financeiro pessoal — 100% local, sem nuvem. Um único `index.html` com tudo dentro.
 
+## Instalador & Atualizador
+
+**`Barssottini & Finanças.exe`** — instala e atualiza o app em qualquer Windows:
+
+- **Primeira vez**: baixa a versão mais recente do GitHub para `%LOCALAPPDATA%\Barssottini Financas`, cria atalhos na Área de Trabalho e no Menu Iniciar
+- **Rodando de novo**: verifica se há versão nova no GitHub e atualiza com um clique (os dados não são tocados — ficam no navegador, não no arquivo)
+- Fonte do instalador: [instalador/instalador.ps1](instalador/instalador.ps1) — compilado com ps2exe
+
+> ⚠️ Windows pode exibir o alerta SmartScreen na primeira execução (executável sem assinatura digital). Clique em "Mais informações → Executar assim mesmo".
+
 ## Como usar como app de desktop (Windows)
 
 O app roda em janela própria (sem barra de navegador) usando o modo aplicativo do Edge:
