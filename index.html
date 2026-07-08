@@ -1130,7 +1130,8 @@ function saveInv(){
     const qty=parseFloat(document.getElementById('inv-qty').value);
     let pm=parseFloat(document.getElementById('inv-pm').value);
     const total=parseFloat(document.getElementById('inv-total').value);
-    if(isNaN(pm)&&!isNaN(total)&&qty>0)pm=total/qty;
+    // Total Pago sempre tem prioridade: recalcula o PM a partir dele
+    if(!isNaN(total)&&total>0&&qty>0)pm=total/qty;
     const price=parseFloat(document.getElementById('inv-price').value);
     const assetCat=document.getElementById('inv-asset-cat').value;
     const ticker=document.getElementById('inv-ticker').value.trim().toUpperCase();
