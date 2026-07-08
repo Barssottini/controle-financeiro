@@ -357,8 +357,11 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
     <!-- INVESTMENTS -->
     <div class="page" id="investments">
       <div class="ph">
-        <div><h1 class="pt">Investimentos</h1><p class="ps">Caixinhas CDI + ativos de bolsa e cripto — sua carteira completa</p></div>
-        <button class="btn btn-primary" onclick="openModal('inv-modal')">+ Novo Investimento</button>
+        <div><h1 class="pt">Investimentos</h1><p class="ps" id="quotes-info">Caixinhas CDI + ativos de bolsa e cripto — sua carteira completa</p></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" id="quotes-btn" onclick="updateQuotes(false)">🔄 Atualizar cotações</button>
+          <button class="btn btn-primary" onclick="openModal('inv-modal')">+ Novo Investimento</button>
+        </div>
       </div>
       <div class="cards-row" style="grid-template-columns:repeat(3,1fr)">
         <div class="sum-card balance"><div class="sc-label">Total Investido</div><div class="sc-val" id="inv-total">R$ 0,00</div></div>
@@ -424,6 +427,16 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
           <input class="field" type="number" id="set-cdi" placeholder="10.65" step="0.01" min="0.01">
         </div>
         <p style="font-size:12px;color:var(--ink3)">Consulte em <a href="https://www.bcb.gov.br" target="_blank" style="color:var(--gold)">bcb.gov.br</a> e atualize quando o Banco Central mudar a taxa.</p>
+        <button class="btn btn-primary" style="margin-top:14px" onclick="saveSettings()">💾 Salvar</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">🔄 Cotações Automáticas</span></div>
+        <div style="max-width:380px;margin-bottom:6px">
+          <label class="flbl">Token brapi.dev (para ativos da B3 — gratuito)</label>
+          <input class="field" type="text" id="set-brapi" placeholder="Cole seu token aqui">
+        </div>
+        <p style="font-size:12px;color:var(--ink3)">Cripto (BTC, USDC...) atualiza sem token via CoinGecko. Para BOVA11, MXRF11 e outros ativos da B3, crie uma conta gratuita em <a href="https://brapi.dev" target="_blank" style="color:var(--gold)">brapi.dev</a> e cole o token acima.</p>
         <button class="btn btn-primary" style="margin-top:14px" onclick="saveSettings()">💾 Salvar</button>
       </div>
 
@@ -567,8 +580,9 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
             </select>
           </div>
         </div>
+        <div class="fgrp"><label class="flbl">Ticker para cotação automática (opcional)</label><input class="field" type="text" id="inv-ticker" placeholder="Ex: BOVA11, MXRF11, BTC, USDC" style="text-transform:uppercase"></div>
         <div style="background:var(--goldl);border-radius:var(--r);padding:12px;font-size:12px;color:var(--ink2);line-height:1.6">
-          📌 Atualize o <strong>Preço Atual</strong> periodicamente (ex.: na rotina do dia 1º) para o patrimônio refletir o mercado. Para cripto, use Quantidade 1 e o valor total da posição como preço.
+          📌 Com o <strong>ticker preenchido</strong>, o preço atual é buscado automaticamente da internet ao abrir a aba Investimentos. Para isso, use a <strong>quantidade real</strong> (no Nubank Cripto, veja a quantidade exata de BTC/USDC) e o preço médio <strong>por unidade</strong>.
         </div>
       </div>
       <div class="factions">
@@ -862,7 +876,11 @@ function showPage(id){
   if(id==='dashboard'){updateDashboard();renderChart();}
   if(id==='transactions')renderTxList();
   if(id==='credit-card')renderCCPage();
-  if(id==='investments')renderInvPage();
+  if(id==='investments'){
+    renderInvPage();quotesInfo();
+    const last=S.settings.lastQuotes?new Date(S.settings.lastQuotes):null;
+    if(!last||Date.now()-last.getTime()>30*60*1000)updateQuotes(true);
+  }
   if(id==='goals')renderGoalsPage();
   if(id==='budget')renderBudgetPage();
   if(id==='settings')renderSettings();
@@ -890,7 +908,7 @@ function closeModal(id){
     S.invEditId=null;
     document.getElementById('inv-modal-title').textContent='Novo Investimento';
     document.querySelector('input[name="invkind"][value="cdi"]').checked=true;
-    ['inv-name','inv-principal','inv-qty','inv-pm','inv-price'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    ['inv-name','inv-principal','inv-qty','inv-pm','inv-price','inv-ticker'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     toggleInvKind();
   }
   if(id==='goal-modal'){
@@ -1010,6 +1028,60 @@ function calcYield(inv){
   const current=inv.principal*Math.pow(1+daily,days);
   return{current,yieldAmt:current-inv.principal,days};
 }
+// ═══ COTAÇÕES AUTOMÁTICAS ═══
+const CRYPTO_IDS={BTC:'bitcoin',ETH:'ethereum',USDC:'usd-coin',USDT:'tether',SOL:'solana',DOT:'polkadot',ADA:'cardano',XRP:'ripple'};
+async function updateQuotes(silent){
+  const assets=S.investments.filter(i=>i.kind==='asset'&&i.ticker);
+  if(!assets.length){if(!silent)alert('Nenhum ativo com ticker configurado.\n\nEdite o ativo (✏️) e preencha o campo "Ticker" — ex: BOVA11, MXRF11, BTC, USDC.');return;}
+  if(!navigator.onLine){if(!silent)alert('Sem conexão com a internet. As cotações serão atualizadas quando você estiver online.');return;}
+  const btn=document.getElementById('quotes-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Atualizando...';}
+  let ok=0;const fail=[];
+  const cryptos=assets.filter(a=>CRYPTO_IDS[a.ticker]);
+  const b3=assets.filter(a=>!CRYPTO_IDS[a.ticker]);
+  try{
+    if(cryptos.length){
+      try{
+        const ids=[...new Set(cryptos.map(a=>CRYPTO_IDS[a.ticker]))].join(',');
+        const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids='+ids+'&vs_currencies=brl');
+        const d=await r.json();
+        cryptos.forEach(a=>{const p=d[CRYPTO_IDS[a.ticker]]&&d[CRYPTO_IDS[a.ticker]].brl;if(p){a.price=p;ok++;}else fail.push(a.ticker);});
+      }catch(e){cryptos.forEach(a=>fail.push(a.ticker));}
+    }
+    if(b3.length){
+      try{
+        const tk=S.settings.brapiToken?'?token='+encodeURIComponent(S.settings.brapiToken):'';
+        const tickers=[...new Set(b3.map(a=>a.ticker))].join(',');
+        const r=await fetch('https://brapi.dev/api/quote/'+tickers+tk);
+        const d=await r.json();
+        const results=d.results||[];
+        b3.forEach(a=>{
+          const q=results.find(x=>x.symbol===a.ticker);
+          if(q&&q.regularMarketPrice){a.price=q.regularMarketPrice;ok++;}else fail.push(a.ticker);
+        });
+      }catch(e){b3.forEach(a=>fail.push(a.ticker));}
+    }
+    if(ok){
+      S.settings.lastQuotes=new Date().toISOString();
+      persistInv();persistSettings();renderInvPage();updateDashboard();
+    }
+    if(!silent){
+      let msg='✅ '+ok+' cotação(ões) atualizada(s).';
+      if(fail.length)msg+='\n⚠️ Falhou: '+fail.join(', ')+(fail.some(t=>!CRYPTO_IDS[t])?'\n\nDica: para ativos da B3, cadastre um token gratuito em brapi.dev e cole em Configurações → Cotações.':'');
+      alert(msg);
+    }
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='🔄 Atualizar cotações';}
+    quotesInfo();
+  }
+}
+function quotesInfo(){
+  const el=document.getElementById('quotes-info');if(!el)return;
+  if(S.settings.lastQuotes){
+    const d=new Date(S.settings.lastQuotes);
+    el.textContent='Cotações atualizadas em '+d.toLocaleDateString('pt-BR')+' às '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+}
 function toggleInvKind(){
   const k=document.querySelector('input[name="invkind"]:checked').value;
   document.getElementById('inv-cdi-fields').style.display=k==='cdi'?'block':'none';
@@ -1025,7 +1097,7 @@ function invNumbers(inv){
   const invested=inv.qty*inv.pm, current=inv.qty*inv.price;
   return{invested,current,gain:current-invested,
     tag:inv.assetCat||'Ativo',
-    meta:inv.qty+' un. · PM '+fmtCur(inv.pm)+' · Preço atual '+fmtCur(inv.price)};
+    meta:inv.qty+' un. · PM '+fmtCur(inv.pm)+' · Preço atual '+fmtCur(inv.price)+(inv.ticker?' · 🔄 '+inv.ticker:'')};
 }
 function saveInv(){
   const name=document.getElementById('inv-name').value.trim();
@@ -1042,8 +1114,9 @@ function saveInv(){
     const pm=parseFloat(document.getElementById('inv-pm').value);
     const price=parseFloat(document.getElementById('inv-price').value);
     const assetCat=document.getElementById('inv-asset-cat').value;
+    const ticker=document.getElementById('inv-ticker').value.trim().toUpperCase();
     if(!name||!qty||isNaN(pm)||isNaN(price)){alert('Preencha nome, quantidade, preço médio e preço atual.');return;}
-    inv={id:S.invEditId||Date.now(),kind:'asset',name,qty,pm,price,assetCat};
+    inv={id:S.invEditId||Date.now(),kind:'asset',name,qty,pm,price,assetCat,ticker};
   }
   if(S.invEditId){const i=S.investments.findIndex(x=>x.id===S.invEditId);S.investments[i]=inv;}
   else S.investments.push(inv);
@@ -1065,6 +1138,7 @@ function editInv(id){
     document.getElementById('inv-pm').value=inv.pm;
     document.getElementById('inv-price').value=inv.price;
     document.getElementById('inv-asset-cat').value=inv.assetCat||'Outro';
+    document.getElementById('inv-ticker').value=inv.ticker||'';
   }
   openModal('inv-modal');
   toggleInvKind();
@@ -1508,6 +1582,7 @@ function renderSettings(){
   document.getElementById('set-cdi').value=S.settings.cdi||10.65;
   const cc=document.getElementById('set-show-cc');if(cc)cc.checked=!!S.settings.showCC;
   const bg=document.getElementById('set-show-budget');if(bg)bg.checked=!!S.settings.showBudget;
+  const bt=document.getElementById('set-brapi');if(bt)bt.value=S.settings.brapiToken||'';
 }
 
 function saveSettings(){
@@ -1515,6 +1590,7 @@ function saveSettings(){
   if(!isNaN(cdi)&&cdi>0&&cdi<100)S.settings.cdi=cdi;
   const cc=document.getElementById('set-show-cc');if(cc)S.settings.showCC=cc.checked;
   const bg=document.getElementById('set-show-budget');if(bg)S.settings.showBudget=bg.checked;
+  const bt=document.getElementById('set-brapi');if(bt)S.settings.brapiToken=bt.value.trim();
   persistSettings();
   applyModules();
   alert('✅ Configurações salvas!');
