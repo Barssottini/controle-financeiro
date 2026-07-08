@@ -1024,7 +1024,7 @@ function renderCCPage(){
 
 // ═══ INVESTMENTS ═══
 function calcYield(inv){
-  const cdiRate=S.settings.cdi||CDI;
+  const cdiRate=S.settings.cdi?S.settings.cdi/100:CDI;
   const rate=cdiRate*(inv.cdi/100);
   const daily=Math.pow(1+rate,1/252)-1;
   const days=bizDays(new Date(inv.date+'T00:00:00'),new Date());
@@ -1251,7 +1251,7 @@ function updateGoalProgress(){
 }
 function calcGoalCDI(g){
   if(!g.cdi||!g.cdiStartDate||!g.current)return null;
-  const cdiRate=S.settings.cdi||CDI;
+  const cdiRate=S.settings.cdi?S.settings.cdi/100:CDI;
   const rate=cdiRate*(g.cdi/100);
   const daily=Math.pow(1+rate,1/252)-1;
   const days=bizDays(new Date(g.cdiStartDate+'T00:00:00'),new Date());
