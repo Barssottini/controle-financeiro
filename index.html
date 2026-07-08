@@ -573,7 +573,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
           <div class="fgrp"><label class="flbl">Preço Médio Pago (R$)</label><input class="field" type="number" id="inv-pm" placeholder="0,00" step="0.01" min="0"></div>
         </div>
         <div class="frow">
-          <div class="fgrp"><label class="flbl">Preço Atual (R$)</label><input class="field" type="number" id="inv-price" placeholder="0,00" step="0.01" min="0"></div>
+          <div class="fgrp"><label class="flbl">Preço Atual (R$) — opcional com ticker</label><input class="field" type="number" id="inv-price" placeholder="Automático via ticker" step="0.01" min="0"></div>
           <div class="fgrp"><label class="flbl">Categoria</label>
             <select class="field" id="inv-asset-cat">
               <option>ETF</option><option>FII</option><option>Ação</option><option>Cripto</option><option>Renda Fixa</option><option>Outro</option>
@@ -1117,12 +1117,14 @@ function saveInv(){
     const price=parseFloat(document.getElementById('inv-price').value);
     const assetCat=document.getElementById('inv-asset-cat').value;
     const ticker=document.getElementById('inv-ticker').value.trim().toUpperCase();
-    if(!name||!qty||isNaN(pm)||isNaN(price)){alert('Preencha nome, quantidade, preço médio e preço atual.');return;}
-    inv={id:S.invEditId||Date.now(),kind:'asset',name,qty,pm,price,assetCat,ticker};
+    if(!name||!qty||isNaN(pm)){alert('Preencha nome, quantidade e preço médio.');return;}
+    if(isNaN(price)&&!ticker){alert('Preencha o Preço Atual ou informe um Ticker para busca automática.');return;}
+    inv={id:S.invEditId||Date.now(),kind:'asset',name,qty,pm,price:isNaN(price)?pm:price,assetCat,ticker};
   }
   if(S.invEditId){const i=S.investments.findIndex(x=>x.id===S.invEditId);S.investments[i]=inv;}
   else S.investments.push(inv);
   persistInv();closeModal('inv-modal');renderInvPage();updateDashboard();
+  if(inv.kind==='asset'&&inv.ticker)updateQuotes(true);
 }
 function editInv(id){
   const inv=S.investments.find(x=>x.id===id);if(!inv)return;
