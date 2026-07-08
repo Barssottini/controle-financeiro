@@ -617,6 +617,17 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       </div>
       <div class="fgrp"><label class="flbl">Prazo (opcional)</label><input class="field" type="date" id="g-deadline"></div>
       <div class="fgrp">
+        <label class="flbl">🔗 Vincular ao patrimônio (automático)</label>
+        <select class="field" id="g-link">
+          <option value="">Não vincular — atualização manual</option>
+          <option value="xp">XP — ETFs, FIIs, Ações e Renda Fixa</option>
+          <option value="cripto">Cripto — BTC, USDC etc.</option>
+          <option value="cdi">Caixinhas CDI</option>
+          <option value="all">Patrimônio total (tudo da aba Investimentos)</option>
+        </select>
+        <p style="font-size:11px;color:var(--ink3);margin-top:6px">Vinculada, a meta acompanha sozinha o valor atual dos investimentos — sem precisar atualizar progresso.</p>
+      </div>
+      <div class="fgrp">
         <label class="flbl">Rendimento CDI (opcional)</label>
         <select class="field" id="g-cdi">
           <option value="0">Sem rendimento (guardado manualmente)</option>
@@ -944,6 +955,7 @@ function closeModal(id){
     S.goalEditId=null;
     document.getElementById('goal-modal-title').textContent='Nova Meta';
     const gc=document.getElementById('g-cdi');if(gc)gc.value='0';
+    const gl=document.getElementById('g-link');if(gl)gl.value='';
     const gi=document.getElementById('g-cdi-info');if(gi)gi.style.display='none';
   }
   if(id==='budget-modal'){
@@ -1270,13 +1282,14 @@ function saveGoal(){
   const current=parseFloat(document.getElementById('g-current').value)||0;
   const deadline=document.getElementById('g-deadline').value;
   const type=document.querySelector('input[name="gtype"]:checked').value;
-  const cdi=parseInt(document.getElementById('g-cdi').value)||0;
+  const link=document.getElementById('g-link').value;
+  const cdi=link?0:(parseInt(document.getElementById('g-cdi').value)||0);
   if(!name||!target){alert('Preencha nome e valor.');return;}
   const existing=S.goalEditId?S.goals.find(x=>x.id===S.goalEditId):null;
   const unchanged=existing&&cdi>0&&existing.cdi===cdi&&existing.current===current;
   const cdiStartDate=unchanged?existing.cdiStartDate:(cdi>0?new Date().toISOString().split('T')[0]:null);
   const cdiPrincipal=unchanged?existing.cdiPrincipal:(cdi>0?current:null);
-  const g={id:S.goalEditId||Date.now(),name,type,target,current,deadline,cdi,cdiStartDate,cdiPrincipal};
+  const g={id:S.goalEditId||Date.now(),name,type,target,current,deadline,cdi,cdiStartDate,cdiPrincipal,link};
   if(S.goalEditId){const i=S.goals.findIndex(x=>x.id===S.goalEditId);S.goals[i]=g;}
   else S.goals.push(g);
   persistGoals();closeModal('goal-modal');renderGoalsPage();updateDashboard();
@@ -1290,6 +1303,8 @@ function editGoal(id){
   document.getElementById('g-target').value=g.target;
   document.getElementById('g-current').value=g.current;
   document.getElementById('g-deadline').value=g.deadline||'';
+  const linkSel=document.getElementById('g-link');
+  if(linkSel)linkSel.value=g.link||'';
   const cdiSel=document.getElementById('g-cdi');
   if(cdiSel)cdiSel.value=g.cdi||0;
   const cdiInfo=document.getElementById('g-cdi-info');
@@ -1325,9 +1340,23 @@ function calcGoalCDI(g){
   const withYield=base*Math.pow(1+daily,days);
   return{withYield,yieldAmt:withYield-base,days};
 }
+function goalLinkedValue(link){
+  let sum=0;
+  S.investments.forEach(inv=>{
+    const n=invNumbers(inv);
+    const isCdi=(inv.kind||'cdi')==='cdi';
+    const cat=inv.assetCat||'';
+    if(link==='all')sum+=n.current;
+    else if(link==='cdi'&&isCdi)sum+=n.current;
+    else if(link==='cripto'&&!isCdi&&cat==='Cripto')sum+=n.current;
+    else if(link==='xp'&&!isCdi&&cat!=='Cripto')sum+=n.current;
+  });
+  return sum;
+}
+const GOAL_LINK_LABELS={xp:'XP',cripto:'Cripto',cdi:'Caixinhas',all:'Patrimônio total'};
 function renderGoalCard(g){
-  const cdiResult=calcGoalCDI(g);
-  const effectiveCurrent=cdiResult?cdiResult.withYield:g.current;
+  const cdiResult=g.link?null:calcGoalCDI(g);
+  const effectiveCurrent=g.link?goalLinkedValue(g.link):(cdiResult?cdiResult.withYield:g.current);
   const pct=Math.min(100,Math.round(effectiveCurrent/g.target*100));
   const rem=Math.max(0,g.target-effectiveCurrent);
   const done=pct>=100;
@@ -1342,11 +1371,14 @@ function renderGoalCard(g){
   const cdiTag=g.cdi>0
     ?'<span style="background:var(--goldl);color:var(--gold);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px">'+g.cdi+'% CDI</span>'
     :'';
+  const linkTag=g.link
+    ?'<span style="background:var(--greenl);color:var(--green);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px">🔗 '+(GOAL_LINK_LABELS[g.link]||'Automática')+'</span>'
+    :'';
   const cdiYieldLine=cdiResult
     ?'<div style="font-size:12px;color:var(--green);font-weight:600;margin-top:2px">+ '+fmtCur(cdiResult.yieldAmt)+' em rendimentos ('+cdiResult.days+' dias úteis)</div>'
     :'';
   return '<div class="goal-card">'+
-    '<div class="goal-name">'+esc(g.name)+cdiTag+'</div>'+
+    '<div class="goal-name">'+esc(g.name)+cdiTag+linkTag+'</div>'+
     '<span class="goal-type-badge '+badgeClass+'">'+badgeLabel+'</span>'+
     '<div class="goal-amounts">'+
     '<div><div class="goal-current">'+fmtCur(effectiveCurrent)+'</div>'+
@@ -1358,7 +1390,7 @@ function renderGoalCard(g){
     '<div class="goal-bar-bg"><div class="goal-bar-fill'+(done?' done':'')+'" style="width:'+pct+'%"></div></div>'+
     '<div class="goal-pct">'+pct+'% concluído</div>'+
     '<div class="goal-actions">'+
-    '<button class="btn btn-gold btn-sm" onclick="openProgressModal('+g.id+')">📊 Atualizar progresso</button>'+
+    (g.link?'':'<button class="btn btn-gold btn-sm" onclick="openProgressModal('+g.id+')">📊 Atualizar progresso</button>')+
     '<button class="btn btn-secondary btn-sm" onclick="editGoal('+g.id+')">✏️ Editar</button>'+
     '<button class="btn btn-danger btn-sm" onclick="delGoal('+g.id+')">🗑️</button>'+
     '</div></div>';
