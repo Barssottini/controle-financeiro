@@ -311,6 +311,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       <div class="ph">
         <div><h1 class="pt">Transações</h1><p class="ps" id="tx-count-lbl"></p></div>
         <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" onclick="openReconcile()">⚖️ Conciliar Saldo</button>
           <button class="btn btn-secondary" onclick="openModal('recurring-modal')">🔄 Recorrentes</button>
           <button class="btn btn-primary" onclick="openModal('tx-modal')">+ Nova Transação</button>
         </div>
@@ -648,6 +649,30 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
   </div>
 </div>
 
+<!-- MODAL: CONCILIAR SALDO -->
+<div class="overlay" id="reconcile-modal">
+  <div class="modal">
+    <div class="mhead"><h3>⚖️ Conciliar Saldo</h3><button class="xbtn" onclick="closeModal('reconcile-modal')">✕</button></div>
+    <div class="mbody">
+      <div style="background:var(--goldl);border-radius:var(--r);padding:12px;font-size:12px;color:var(--ink2);line-height:1.6;margin-bottom:18px">
+        📌 Digite o saldo <strong>real da sua conta</strong> (só a conta — a Caixinha fica na aba Investimentos). O app cria um ajuste único com a diferença, e o Saldo do dashboard passa a bater com o banco.
+      </div>
+      <div class="fgrp">
+        <label class="flbl">Saldo calculado pelo app</label>
+        <input class="field" type="text" id="rec-app-balance" disabled>
+      </div>
+      <div class="fgrp">
+        <label class="flbl">Saldo real na conta (R$)</label>
+        <input class="field" type="number" id="rec-real-balance" placeholder="0,00" step="0.01">
+      </div>
+      <div class="factions">
+        <button class="btn btn-secondary" onclick="closeModal('reconcile-modal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="doReconcile()">Conciliar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: BANCO SELECT -->
 <!-- MODAL: ORÇAMENTO -->
 <div class="overlay" id="budget-modal">
@@ -929,6 +954,35 @@ function closeModal(id){
 }
 document.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').forEach(o=>{if(e.target===o)closeModal(o.id);});});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>closeModal(o.id));});
+
+// ═══ CONCILIAÇÃO DE SALDO ═══
+function appBalance(){
+  const income=S.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const expense=S.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const invested=S.transactions.filter(t=>t.type==='investment').reduce((s,t)=>s+t.amount,0);
+  return income-expense-invested;
+}
+function openReconcile(){
+  document.getElementById('rec-app-balance').value=fmtCur(appBalance());
+  document.getElementById('rec-real-balance').value='';
+  openModal('reconcile-modal');
+}
+function doReconcile(){
+  const real=parseFloat(document.getElementById('rec-real-balance').value);
+  if(isNaN(real)){alert('Digite o saldo real da conta.');return;}
+  const diff=+(real-appBalance()).toFixed(2);
+  if(Math.abs(diff)<0.01){alert('✅ Já está batendo! Nenhum ajuste necessário.');closeModal('reconcile-modal');return;}
+  S.transactions.push({
+    id:newId(),
+    type:diff>0?'income':'expense',
+    description:'Ajuste de conciliação de saldo',
+    amount:Math.abs(diff),
+    date:new Date().toISOString().split('T')[0],
+    category:'Outros'
+  });
+  persist();closeModal('reconcile-modal');updateDashboard();renderTxList();populateMonthFilter();
+  alert('✅ Ajuste de '+fmtCur(Math.abs(diff))+' criado. O Saldo agora bate com o banco.');
+}
 
 // ═══ REMINDER ═══
 function checkReminder(){
@@ -1462,7 +1516,9 @@ function parseOFX(text){
     const memo=get('MEMO')||get('NAME')||'Sem descrição';
     if(!dt||isNaN(amt))continue;
     const date=dt.substring(0,4)+'-'+dt.substring(4,6)+'-'+dt.substring(6,8);
-    rows.push({type:amt>=0?'income':'expense',description:cleanDesc(memo),amount:Math.abs(amt),date,category:guessCategory(memo)});
+    const cat=guessCategory(memo);
+    const type=amt>=0?'income':(/^(Aporte XP|Cripto|Investimentos|Caixinha Nubank)$/.test(cat)?'investment':'expense');
+    rows.push({type,description:cleanDesc(memo),amount:Math.abs(amt),date,category:cat});
   }
   return rows;
 }
@@ -1477,7 +1533,9 @@ function parseCSV(text){
     const rawAmt=(cols[cols.length-1]||'').trim().replace(/[^\d,.-]/g,'').replace(',','.');
     const amt=parseFloat(rawAmt);if(isNaN(amt))continue;
     const date=normalizeDate(dateRaw);if(!date)continue;
-    rows.push({type:amt>=0?'income':'expense',description:cleanDesc(desc),amount:Math.abs(amt),date,category:guessCategory(desc)});
+    const cat=guessCategory(desc);
+    const type=amt>=0?'income':(/^(Aporte XP|Cripto|Investimentos|Caixinha Nubank)$/.test(cat)?'investment':'expense');
+    rows.push({type,description:cleanDesc(desc),amount:Math.abs(amt),date,category:cat});
   }
   return rows;
 }
@@ -1539,7 +1597,7 @@ function renderImportPreview(filename){
     '<div id="imp-rows">'+parsedRows.map((t,i)=>
       '<div class="imp-row">'+
       '<input type="checkbox" class="chk imp-chk" data-i="'+i+'" checked>'+
-      '<span class="badge '+(t.type==='income'?'badge-in':'badge-out')+'">'+(t.type==='income'?'Receita':'Despesa')+'</span>'+
+      '<span class="badge '+(t.type==='income'?'badge-in':'badge-out')+'">'+(t.type==='income'?'Receita':t.type==='investment'?'Investimento':'Despesa')+'</span>'+
       '<span style="flex:1;font-weight:500;min-width:120px">'+esc(t.description)+'</span>'+
       '<span style="color:var(--ink3);font-size:12px">'+esc(t.category)+'</span>'+
       '<span style="color:var(--ink3);font-size:12px">'+fmtDate(t.date)+'</span>'+
