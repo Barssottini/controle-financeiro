@@ -1598,6 +1598,16 @@ function loadData(){
   S.budgets=parse('bf_budgets',[]);
   S.recurring=parse('bf_recurring',[]);
   S.settings={...S.settings,...parse('bf_settings',{})};
+  // Migração: corrige IDs duplicados (causavam edições cruzadas entre itens)
+  [S.investments,S.goals,S.transactions,S.ccItems,S.budgets,S.recurring].forEach(arr=>{
+    const seen=new Set();
+    let fixed=false;
+    arr.forEach(x=>{
+      while(seen.has(x.id)){x.id=x.id+1;fixed=true;}
+      seen.add(x.id);
+    });
+    if(fixed&&arr===S.investments)persistInv();
+  });
 }
 
 // ═══ SETTINGS ═══
