@@ -1049,17 +1049,19 @@ async function updateQuotes(silent){
       }catch(e){cryptos.forEach(a=>fail.push(a.ticker));}
     }
     if(b3.length){
-      try{
-        const tk=S.settings.brapiToken?'?token='+encodeURIComponent(S.settings.brapiToken):'';
-        const tickers=[...new Set(b3.map(a=>a.ticker))].join(',');
-        const r=await fetch('https://brapi.dev/api/quote/'+tickers+tk);
-        const d=await r.json();
-        const results=d.results||[];
-        b3.forEach(a=>{
-          const q=results.find(x=>x.symbol===a.ticker);
-          if(q&&q.regularMarketPrice){a.price=q.regularMarketPrice;ok++;}else fail.push(a.ticker);
-        });
-      }catch(e){b3.forEach(a=>fail.push(a.ticker));}
+      // Plano gratuito da brapi permite 1 ativo por requisição — busca um a um
+      const tk=S.settings.brapiToken?'?token='+encodeURIComponent(S.settings.brapiToken):'';
+      const tickers=[...new Set(b3.map(a=>a.ticker))];
+      for(const t of tickers){
+        try{
+          const r=await fetch('https://brapi.dev/api/quote/'+t+tk);
+          const d=await r.json();
+          const q=(d.results||[])[0];
+          if(q&&q.regularMarketPrice){
+            b3.filter(a=>a.ticker===t).forEach(a=>{a.price=q.regularMarketPrice;ok++;});
+          }else fail.push(t);
+        }catch(e){fail.push(t);}
+      }
     }
     if(ok){
       S.settings.lastQuotes=new Date().toISOString();
