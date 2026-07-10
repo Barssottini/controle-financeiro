@@ -1,6 +1,7 @@
 # Dados pessoais — NUNCA subir para o GitHub (repositório público)
 exportar-informações/
 exportar-informacoes/
+meu-assessor/
 backup*.json
 
 # Configuração local do Claude Code
