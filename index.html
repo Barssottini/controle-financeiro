@@ -1032,7 +1032,7 @@ function saveTx(){
   const type=document.querySelector('input[name="txtype"]:checked').value;
   if(!desc||!amt||!date||!cat){alert('Preencha todos os campos.');return;}
   const tx={id:S.editId||Date.now(),type,description:desc,amount:amt,date,category:cat};
-  if(S.editId){const i=S.transactions.findIndex(t=>t.id===S.editId);S.transactions[i]=tx;}
+  if(S.editId){const i=S.transactions.findIndex(t=>t.id===S.editId);if(S.transactions[i]&&S.transactions[i].time)tx.time=S.transactions[i].time;S.transactions[i]=tx;}
   else S.transactions.push(tx);
   persist();closeModal('tx-modal');updateDashboard();renderTxList();populateMonthFilter();
 }
@@ -1429,18 +1429,24 @@ function updateDashboard(){
     gList.innerHTML=S.goals.slice(0,4).map(renderGoalCard).join('');
   } else gPanel.style.display='none';
 
-  const recent=[...S.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  const recent=[...S.transactions].sort(txCompare).slice(0,5);
   document.getElementById('recent-list').innerHTML=recent.length?recent.map(t=>txHTML(t)).join(''):emptyHTML('Nenhuma transação cadastrada');
 }
 
+function txCompare(a,b){
+  const d=(b.date||'').localeCompare(a.date||'');if(d)return d;
+  const t=(b.time||'').localeCompare(a.time||'');if(t)return t;
+  return (b.id||0)-(a.id||0);
+}
 function txHTML(t,showAct=true){
   const icons={income:'💰',expense:'💸',cc:'🟣',investment:'📈'};
   const signs={income:'+',expense:'−',cc:'−',investment:'→'};
   const cats={income:'Receita',expense:'Despesa',cc:'Crédito',investment:'Investimento'};
+  const timeStr=t.time?' · '+t.time.substring(0,5):'';
   return '<div class="tx-item">'+
     '<div class="tx-icon '+(t.type||'expense')+'">'+icons[t.type||'expense']+'</div>'+
     '<div class="tx-info"><div class="tx-desc">'+esc(t.description)+'</div>'+
-    '<div class="tx-meta">'+esc(t.category||cats[t.type])+' · '+fmtDate(t.date)+'</div></div>'+
+    '<div class="tx-meta">'+esc(t.category||cats[t.type])+' · '+fmtDate(t.date)+timeStr+'</div></div>'+
     '<div class="tx-amount '+(t.type||'expense')+'">'+(signs[t.type]||'')+ ' '+fmtCur(t.amount)+'</div>'+
     (showAct?'<div class="tx-actions"><button class="ibt" onclick="editTx('+t.id+')">✏️</button><button class="ibt del" onclick="delTx('+t.id+')">🗑️</button></div>':'')+
     '</div>';
@@ -1454,7 +1460,7 @@ function renderTxList(){
   const filtered=S.transactions.filter(t=>
     (!q||t.description.toLowerCase().includes(q))&&
     (!ft||t.type===ft)&&(!fc||t.category===fc)&&(!fm||t.date.substring(0,7)===fm)
-  ).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  ).sort(txCompare);
   const lbl=document.getElementById('tx-count-lbl');
   if(lbl)lbl.textContent=filtered.length+' transaç'+(filtered.length===1?'ão':'ões');
   const el=document.getElementById('tx-list');
@@ -1565,9 +1571,11 @@ function parseOFX(text){
     const memo=get('MEMO')||get('NAME')||'Sem descrição';
     if(!dt||isNaN(amt))continue;
     const date=dt.substring(0,4)+'-'+dt.substring(4,6)+'-'+dt.substring(6,8);
+    const digits=dt.replace(/[^0-9].*$/,'');
+    const time=digits.length>=14?digits.substring(8,10)+':'+digits.substring(10,12)+':'+digits.substring(12,14):'';
     const cat=guessCategory(memo);
     const type=amt>=0?'income':(/^(Aporte XP|Cripto|Investimentos|Caixinha Nubank)$/.test(cat)?'investment':'expense');
-    rows.push({type,description:cleanDesc(memo),amount:Math.abs(amt),date,category:cat});
+    rows.push({type,description:cleanDesc(memo),amount:Math.abs(amt),date,time,category:cat});
   }
   return rows;
 }
