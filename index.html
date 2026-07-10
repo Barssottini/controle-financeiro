@@ -1651,16 +1651,22 @@ function renderImportPreview(filename){
     '<button class="btn btn-secondary btn-sm" onclick="toggleAllImport(true)">Selecionar tudo</button>'+
     '<button class="btn btn-secondary btn-sm" onclick="toggleAllImport(false)">Desmarcar tudo</button>'+
     '<button class="btn btn-gold" onclick="confirmImport()">✅ Importar selecionadas</button></div></div>'+
-    '<div id="imp-rows">'+parsedRows.map((t,i)=>
-      '<div class="imp-row">'+
-      '<input type="checkbox" class="chk imp-chk" data-i="'+i+'" checked>'+
+    '<div id="imp-rows">'+parsedRows.map((t,i)=>{
+      const exact=S.transactions.some(x=>x.description===t.description&&x.amount===t.amount&&x.date===t.date);
+      const maybe=!exact&&S.transactions.some(x=>x.amount===t.amount&&x.date===t.date);
+      const flag=exact
+        ?'<span class="badge" style="background:var(--paper3);color:var(--ink3)">Já importada</span>'
+        :maybe?'<span class="badge" style="background:#fef3c7;color:#b45309">⚠️ Possível duplicata</span>':'';
+      return '<div class="imp-row"'+(exact?' style="opacity:.5"':'')+'>'+
+      '<input type="checkbox" class="chk imp-chk" data-i="'+i+'"'+(exact?' disabled':(maybe?'':' checked'))+'>'+
       '<span class="badge '+(t.type==='income'?'badge-in':'badge-out')+'">'+(t.type==='income'?'Receita':t.type==='investment'?'Investimento':'Despesa')+'</span>'+
       '<span style="flex:1;font-weight:500;min-width:120px">'+esc(t.description)+'</span>'+
+      flag+
       '<span style="color:var(--ink3);font-size:12px">'+esc(t.category)+'</span>'+
       '<span style="color:var(--ink3);font-size:12px">'+fmtDate(t.date)+'</span>'+
       '<span style="font-weight:700;color:'+(t.type==='income'?'var(--green)':'var(--red)')+'">'+fmtCur(t.amount)+'</span>'+
-      '</div>'
-    ).join('')+'</div>';
+      '</div>';
+    }).join('')+'</div>';
 }
 function toggleAllImport(state){document.querySelectorAll('.imp-chk').forEach(c=>c.checked=state);}
 function confirmImport(){
