@@ -1554,12 +1554,22 @@ function processFile(file){
   reader.readAsText(file,'UTF-8');
 }
 function hasEncodingIssues(t){return/Ã|â€|Â©|Ã©|Ã£|Ã§/.test(t);}
+let parsedBal=null;
 function finishParse(text,filename){
   const ext=filename.toLowerCase();
+  parsedBal=null;
   parsedRows=ext.endsWith('.ofx')||ext.endsWith('.qfx')?parseOFX(text):parseCSV(text);
   renderImportPreview(filename);
 }
 function parseOFX(text){
+  // Saldo final oficial do extrato (tag LEDGERBAL) — usado para conciliação automática
+  const balM=/<LEDGERBAL>[\s\S]*?<BALAMT>([-\d.,]+)/i.exec(text);
+  if(balM){
+    const amt=parseFloat(balM[1].replace(',','.'));
+    const dtM=/<LEDGERBAL>[\s\S]*?<DTASOF>(\d{8})/i.exec(text);
+    const bd=dtM?dtM[1].substring(0,4)+'-'+dtM[1].substring(4,6)+'-'+dtM[1].substring(6,8):new Date().toISOString().split('T')[0];
+    if(!isNaN(amt))parsedBal={amt:amt,date:bd};
+  }
   const rows=[];
   const re=/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi;
   let m;
@@ -1646,7 +1656,7 @@ function renderImportPreview(filename){
   }
   prev.innerHTML=
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;margin-top:10px;flex-wrap:wrap;gap:8px">'+
-    '<div style="font-weight:700;font-size:14px">📄 '+filename+' — <span style="color:var(--gold)">'+parsedRows.length+' transação(ões)</span></div>'+
+    '<div style="font-weight:700;font-size:14px">📄 '+filename+' — <span style="color:var(--gold)">'+parsedRows.length+' transação(ões)</span>'+(parsedBal?' · 💰 Saldo final do extrato: <span style="color:var(--gold)">'+fmtCur(parsedBal.amt)+'</span>':'')+'</div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
     '<button class="btn btn-secondary btn-sm" onclick="toggleAllImport(true)">Selecionar tudo</button>'+
     '<button class="btn btn-secondary btn-sm" onclick="toggleAllImport(false)">Desmarcar tudo</button>'+
@@ -1679,8 +1689,22 @@ function confirmImport(){
     S.transactions.push({id:newId(),...t});added++;
   });
   persist();updateDashboard();populateMonthFilter();
-  document.getElementById('import-preview').innerHTML='<div style="background:var(--greenl);color:var(--green);padding:14px;border-radius:10px;font-weight:600">✅ '+added+' transação(ões) importada(s)!'+(dup?' ('+dup+' duplicata(s) ignorada(s))':'')+'</div>';
-  parsedRows=[];
+  // Conciliação automática com o saldo final do extrato (LEDGERBAL)
+  let balMsg='';
+  if(parsedBal){
+    const diff=+(parsedBal.amt-appBalance()).toFixed(2);
+    if(Math.abs(diff)<0.01){
+      balMsg='<br>💰 Saldo conferido: bate com o extrato ('+fmtCur(parsedBal.amt)+') ✔';
+    }else if(confirm('O extrato informa saldo final de '+fmtCur(parsedBal.amt)+'.\nO app calculou '+fmtCur(appBalance())+'.\n\nCriar ajuste automático de '+fmtCur(Math.abs(diff))+' para conciliar?')){
+      S.transactions.push({id:newId(),type:diff>0?'income':'expense',description:'Ajuste de conciliação (saldo do extrato)',amount:Math.abs(diff),date:parsedBal.date,category:'Outros'});
+      persist();updateDashboard();populateMonthFilter();
+      balMsg='<br>⚖️ Saldo conciliado automaticamente com o extrato ('+fmtCur(parsedBal.amt)+') ✔';
+    }else{
+      balMsg='<br>⚠️ Saldo do app difere do extrato em '+fmtCur(Math.abs(diff))+' — use ⚖️ Conciliar Saldo se quiser ajustar.';
+    }
+  }
+  document.getElementById('import-preview').innerHTML='<div style="background:var(--greenl);color:var(--green);padding:14px;border-radius:10px;font-weight:600">✅ '+added+' transação(ões) importada(s)!'+(dup?' ('+dup+' duplicata(s) ignorada(s))':'')+balMsg+'</div>';
+  parsedRows=[];parsedBal=null;
 }
 
 // ═══ BANK GUIDE ═══
