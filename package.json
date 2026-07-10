@@ -1,0 +1,36 @@
+{
+  "name": "barssottini-financas",
+  "productName": "Barssottini & Finanças",
+  "version": "1.0.0",
+  "description": "Controle financeiro pessoal — 100% local",
+  "main": "electron/main.js",
+  "author": "Pedro Barssottini Gianchetta",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.barssottini.financas",
+    "productName": "Barssottini & Finanças",
+    "files": [
+      "electron/**/*",
+      "logo.ico"
+    ],
+    "win": {
+      "icon": "logo.ico",
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "Barssottini-Financas-Setup-${version}.${ext}",
+      "shortcutName": "Barssottini & Finanças"
+    }
+  }
+}

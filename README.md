@@ -2,7 +2,18 @@
 
 Controle financeiro pessoal — 100% local, sem nuvem. Um único `index.html` com tudo dentro.
 
-## Instalador & Atualizador
+## App nativo para Windows (recomendado)
+
+**`Barssottini-Financas-Setup-X.Y.Z.exe`** (na aba [Releases](https://github.com/Barssottini/controle-financeiro/releases)) — app Electron de verdade:
+
+- Janela nativa própria, ícone B&F garantido na barra de tarefas e Menu Iniciar
+- Carrega sempre a **versão mais recente** direto do GitHub Pages — atualização automática, sem reinstalar
+- Funciona **offline** após o primeiro acesso (service worker faz cache)
+- Dados 100% locais (perfil do Electron nesta máquina)
+
+Build: `npm install && npm run dist` (fonte em [electron/main.js](electron/main.js))
+
+## Instalador & Atualizador (alternativa leve)
 
 **`Barssottini & Finanças.exe`** — instala e atualiza o app em qualquer Windows:
 

@@ -6,3 +6,7 @@ backup*.json
 
 # Configuração local do Claude Code
 .claude/
+
+# Node / Electron
+node_modules/
+dist/
