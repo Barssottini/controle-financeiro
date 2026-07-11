@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell } = require('electron');
+const { app, BrowserWindow, Menu, shell, session } = require('electron');
 const path = require('path');
 
 const SITE = 'https://barssottini.github.io/controle-financeiro/';
@@ -43,5 +43,13 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  // Remove service workers herdados de sessões antigas — o CacheStorage do
+  // Electron 33 tem um bug que derruba o renderer (bad Mojo message).
+  // localStorage (dados do usuário) NÃO é afetado por esta limpeza.
+  try {
+    await session.defaultSession.clearStorageData({ storages: ['serviceworkers', 'cachestorage'] });
+  } catch (e) {}
+  createWindow();
+});
 app.on('window-all-closed', () => app.quit());

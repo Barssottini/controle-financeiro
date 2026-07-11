@@ -759,7 +759,10 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 
 <script>
 // ═══ PWA ═══
-if('serviceWorker' in navigator && location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+// Service worker só fora do Electron (bug no CacheStorage do Electron 33 derruba o renderer)
+const IS_ELECTRON=/Electron/i.test(navigator.userAgent);
+if('serviceWorker' in navigator && location.protocol==='https:' && !IS_ELECTRON)navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator && IS_ELECTRON)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
 
 // ═══ AUTH ═══
 async function sha256(str){
