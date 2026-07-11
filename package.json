@@ -7,7 +7,8 @@
   "author": "Pedro Barssottini Gianchetta",
   "license": "MIT",
   "scripts": {
-    "start": "electron .",
+    "start": "node server.js",
+    "electron": "electron .",
     "dist": "electron-builder --win nsis"
   },
   "devDependencies": {
