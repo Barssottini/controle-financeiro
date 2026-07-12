@@ -42,6 +42,9 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 .lerr{background:#fef2f2;color:#b91c1c;border:1.5px solid #fca5a5;border-radius:var(--r);padding:12px 16px;font-size:13px;font-weight:600;margin-bottom:14px;display:none;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(185,28,28,.12)}
 .lerr.show{display:flex;animation:shake .4s ease}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.otp-digit{width:50px;height:60px;text-align:center;font-size:26px;font-weight:800;font-family:var(--ff);border:1.5px solid var(--paper3);border-radius:12px;background:var(--paper2);color:var(--ink);transition:border-color .2s,box-shadow .2s,transform .1s}
+.otp-digit:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,144,58,.18);transform:scale(1.04)}
+.otp-digit.filled{border-color:var(--gold);background:var(--goldl)}
 
 /* APP SHELL */
 #app{display:none;min-height:100vh}
@@ -218,6 +221,29 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
     <button class="lbtn" id="setup-btn" onclick="doSetup()">Criar conta</button>
     <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--ink3)">
       Já tem conta? <a href="#" onclick="location.reload();return false" style="color:var(--gold);font-weight:700">Entrar</a>
+    </p>
+  </div>
+</div>
+
+<!-- CONFIRMAÇÃO POR CÓDIGO (OTP) -->
+<div id="otp-screen" style="position:fixed;inset:0;z-index:10001;background:#0d0d0d;display:none;align-items:center;justify-content:center">
+  <div class="login-box">
+    <div class="login-brand">Barssottini <span>&amp;</span> Finanças</div>
+    <p class="login-sub" style="margin-bottom:26px">Enviamos um código de 6 dígitos para<br><strong id="otp-email" style="color:var(--ink)"></strong></p>
+    <div class="lerr" id="otp-err"><span style="font-size:16px">🔴</span><span id="otp-err-msg">Código inválido.</span></div>
+    <div style="display:flex;gap:9px;justify-content:center;margin-bottom:26px" id="otp-boxes">
+      <input class="otp-digit" maxlength="1" inputmode="numeric" autocomplete="one-time-code">
+      <input class="otp-digit" maxlength="1" inputmode="numeric">
+      <input class="otp-digit" maxlength="1" inputmode="numeric">
+      <input class="otp-digit" maxlength="1" inputmode="numeric">
+      <input class="otp-digit" maxlength="1" inputmode="numeric">
+      <input class="otp-digit" maxlength="1" inputmode="numeric">
+    </div>
+    <button class="lbtn" id="otp-btn" onclick="doVerifyOtp()">Confirmar conta</button>
+    <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--ink3)">
+      Não chegou? <a href="#" onclick="resendOtp();return false" style="color:var(--gold);font-weight:700">Reenviar código</a>
+      &nbsp;·&nbsp;
+      <a href="#" onclick="location.reload();return false" style="color:var(--gold);font-weight:700">Voltar</a>
     </p>
   </div>
 </div>
@@ -850,9 +876,13 @@ async function doLogin(){
   if(!email||!pass){msg.textContent='Preencha e-mail e senha.';err.classList.add('show');return;}
   const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
   if(error){
-    msg.textContent=/confirm/i.test(error.message)
-      ?'Confirme seu e-mail antes de entrar (veja sua caixa de entrada).'
-      :'E-mail ou senha incorretos. Tente novamente.';
+    if(/confirm/i.test(error.message)){
+      // conta existe mas não foi confirmada — reenvia o código e abre a tela de OTP
+      try{await sb.auth.resend({type:'signup',email});}catch(e){}
+      showOtpScreen(email);
+      return;
+    }
+    msg.textContent='E-mail ou senha incorretos. Tente novamente.';
     void err.offsetWidth;
     err.classList.add('show');
     passInput.value='';
@@ -890,8 +920,74 @@ async function doSetup(){
     return;
   }
   if(data.session){onSignedIn(data.session);return;}
-  alert('✅ Conta criada! Enviamos um link de confirmação para '+email+'.\n\nConfirme o e-mail e depois faça login.');
-  location.reload();
+  showOtpScreen(email);
+}
+
+let pendingEmail='';
+function showOtpScreen(email){
+  pendingEmail=email;
+  document.getElementById('otp-email').textContent=email;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('otp-err').classList.remove('show');
+  const boxes=document.querySelectorAll('.otp-digit');
+  boxes.forEach(b=>{b.value='';b.classList.remove('filled');});
+  document.getElementById('otp-screen').style.display='flex';
+  boxes[0].focus();
+}
+function wireOtpInputs(){
+  const boxes=[...document.querySelectorAll('.otp-digit')];
+  boxes.forEach((box,i)=>{
+    box.addEventListener('input',()=>{
+      box.value=box.value.replace(/\D/g,'').substring(0,1);
+      box.classList.toggle('filled',!!box.value);
+      if(box.value&&i<5)boxes[i+1].focus();
+      if(boxes.every(b=>b.value))doVerifyOtp();
+    });
+    box.addEventListener('keydown',e=>{
+      if(e.key==='Backspace'&&!box.value&&i>0){boxes[i-1].value='';boxes[i-1].classList.remove('filled');boxes[i-1].focus();}
+      if(e.key==='Enter')doVerifyOtp();
+    });
+    box.addEventListener('paste',e=>{
+      e.preventDefault();
+      const digits=(e.clipboardData.getData('text')||'').replace(/\D/g,'').substring(0,6);
+      digits.split('').forEach((d,j)=>{if(boxes[j]){boxes[j].value=d;boxes[j].classList.add('filled');}});
+      if(digits.length===6)doVerifyOtp();else if(boxes[digits.length])boxes[digits.length].focus();
+    });
+  });
+}
+async function doVerifyOtp(){
+  const boxes=[...document.querySelectorAll('.otp-digit')];
+  const token=boxes.map(b=>b.value).join('');
+  const err=document.getElementById('otp-err');
+  const msg=document.getElementById('otp-err-msg');
+  err.classList.remove('show');
+  if(token.length!==6)return;
+  const btn=document.getElementById('otp-btn');
+  btn.disabled=true;btn.textContent='Verificando...';
+  const {data,error}=await sb.auth.verifyOtp({email:pendingEmail,token,type:'signup'});
+  btn.disabled=false;btn.textContent='Confirmar conta';
+  if(error){
+    // tenta como confirmação de e-mail genérica (conta já existente não confirmada)
+    const r2=await sb.auth.verifyOtp({email:pendingEmail,token,type:'email'});
+    if(r2.error){
+      msg.textContent=/expired/i.test(error.message)?'Código expirado — clique em "Reenviar código".':'Código inválido. Confere os 6 dígitos do e-mail.';
+      void err.offsetWidth;err.classList.add('show');
+      boxes.forEach(b=>{b.value='';b.classList.remove('filled');});
+      boxes[0].focus();
+      return;
+    }
+    document.getElementById('otp-screen').style.display='none';
+    onSignedIn(r2.data.session);
+    return;
+  }
+  document.getElementById('otp-screen').style.display='none';
+  onSignedIn(data.session);
+}
+async function resendOtp(){
+  if(!pendingEmail)return;
+  const {error}=await sb.auth.resend({type:'signup',email:pendingEmail});
+  alert(error?'Erro ao reenviar: '+error.message:'📧 Novo código enviado para '+pendingEmail);
 }
 
 async function doForgot(){
@@ -933,6 +1029,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   const gCdi=document.getElementById('g-cdi');
   const gCdiInfo=document.getElementById('g-cdi-info');
   if(gCdi&&gCdiInfo)gCdi.addEventListener('change',()=>{gCdiInfo.style.display=gCdi.value!=='0'?'block':'none';});
+  wireOtpInputs();
   // Link de recuperação de senha (chega por e-mail)
   sb.auth.onAuthStateChange((event)=>{if(event==='PASSWORD_RECOVERY')showRecoveryScreen();});
   // Sessão existente → entra direto
