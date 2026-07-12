@@ -480,6 +480,15 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       </div>
 
       <div class="panel">
+        <div class="panel-head"><span class="panel-title">🔐 Alterar Senha</span></div>
+        <div class="frow" style="max-width:560px">
+          <div class="fgrp"><label class="flbl">Nova senha</label><input class="field" type="password" id="set-pass1" placeholder="Mínimo 6 caracteres"></div>
+          <div class="fgrp"><label class="flbl">Confirmar nova senha</label><input class="field" type="password" id="set-pass2" placeholder="Repita a senha"></div>
+        </div>
+        <button class="btn btn-primary" onclick="changePassword()">🔐 Alterar senha</button>
+      </div>
+
+      <div class="panel">
         <div class="panel-head"><span class="panel-title">📤 Exportar &amp; Backup</span></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
           <button class="btn btn-secondary" onclick="exportJSON()">⬇️ Backup completo (JSON)</button>
@@ -928,6 +937,18 @@ async function resendConfirm(){
   if(!pendingEmail)return;
   const {error}=await sb.auth.resend({type:'signup',email:pendingEmail});
   alert(error?'Erro ao reenviar: '+error.message:'📧 E-mail reenviado para '+pendingEmail);
+}
+
+async function changePassword(){
+  const p1=document.getElementById('set-pass1').value;
+  const p2=document.getElementById('set-pass2').value;
+  if(p1.length<6){alert('Senha muito curta (mínimo 6 caracteres).');return;}
+  if(p1!==p2){alert('As senhas não conferem.');return;}
+  const {error}=await sb.auth.updateUser({password:p1});
+  if(error){alert('Erro: '+error.message);return;}
+  document.getElementById('set-pass1').value='';
+  document.getElementById('set-pass2').value='';
+  alert('✅ Senha alterada com sucesso!');
 }
 
 async function doForgot(){
