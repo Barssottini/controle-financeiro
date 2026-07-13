@@ -175,6 +175,11 @@ app.whenReady().then(async () => {
   try {
     await session.defaultSession.clearStorageData({ storages: ['serviceworkers', 'cachestorage'] });
   } catch (e) {}
+  // Limpa o cache HTTP para SEMPRE carregar a versão mais recente do código
+  // (evita login/tela travados numa versão antiga em cache). Dados ficam no localStorage.
+  try {
+    await session.defaultSession.clearCache();
+  } catch (e) {}
 
   const win = createWindow();
   currentUpdateInfo = await checkUpdate();

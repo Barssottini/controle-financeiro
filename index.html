@@ -877,19 +877,28 @@ async function doLogin(){
   const passInput=document.getElementById('lpass');
   err.classList.remove('show');
   if(!email||!pass){msg.textContent='Preencha e-mail e senha.';err.classList.add('show');return;}
-  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  let data,error;
+  try{
+    const r=await sb.auth.signInWithPassword({email,password:pass});
+    data=r.data;error=r.error;
+  }catch(ex){
+    error={message:'FETCH_FAIL: '+(ex&&ex.message?ex.message:String(ex))};
+  }
   if(error){
-    if(/confirm/i.test(error.message)){
+    const emsg=(error&&error.message)?String(error.message):'';
+    if(/confirm/i.test(emsg)){
       // conta existe mas não foi confirmada — reenvia o link e mostra a tela premium
       try{await sb.auth.resend({type:'signup',email});}catch(e){}
       showConfirmScreen(email);
       return;
     }
-    msg.textContent=/invalid login credentials/i.test(error.message)
+    msg.textContent=/invalid login credentials/i.test(emsg)
       ?'E-mail ou senha incorretos. Tente novamente.'
-      :/rate limit/i.test(error.message)
+      :/rate limit/i.test(emsg)
         ?'Muitas tentativas — aguarde alguns minutos e tente de novo.'
-        :'Erro: '+error.message;
+        :/fetch|network|failed to fetch|load failed|FETCH_FAIL/i.test(emsg)
+          ?'Sem conexão com o servidor. Verifique a internet e tente de novo.'
+          :('Erro: '+(emsg||'desconhecido'));
     void err.offsetWidth;
     err.classList.add('show');
     passInput.value='';
