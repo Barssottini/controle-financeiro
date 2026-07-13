@@ -982,7 +982,6 @@ function showRecoveryScreen(){
 
 window.addEventListener('DOMContentLoaded',async()=>{
   buildBankGuide();
-  renderBanksList();
   ['lemail','lpass'].forEach(id=>{
     const el=document.getElementById(id);
     if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
