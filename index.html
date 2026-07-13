@@ -226,6 +226,33 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
   </div>
 </div>
 
+<!-- RECUPERAR SENHA -->
+<div id="forgot-screen" style="position:fixed;inset:0;z-index:10001;background:#0d0d0d;display:none;align-items:center;justify-content:center">
+  <div class="login-box">
+    <div style="width:86px;height:86px;margin:0 auto 22px;background:linear-gradient(135deg,var(--goldl),#fff);border:1.5px solid var(--gold);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:38px;box-shadow:0 10px 30px rgba(200,144,58,.25)">🔑</div>
+    <div class="login-brand">Recuperar senha</div>
+    <p class="login-sub">Enviaremos um link de redefinição para o seu e-mail</p>
+    <div class="lerr" id="forgot-err"><span style="font-size:16px">🔴</span><span id="forgot-err-msg">E-mail inválido.</span></div>
+    <div id="forgot-form">
+      <label class="lbl">E-mail cadastrado</label>
+      <input class="linput" type="email" id="forgot-email" placeholder="seu@email.com" autocomplete="email">
+      <button class="lbtn" id="forgot-btn" onclick="doSendReset()">Enviar link de redefinição</button>
+    </div>
+    <div id="forgot-done" style="display:none">
+      <div style="background:var(--paper2);border:1px solid var(--paper3);border-radius:12px;padding:16px 18px;font-size:12.5px;color:var(--ink2);text-align:left;line-height:1.9;margin-bottom:22px">
+        📧 Enviamos o link para <strong id="forgot-sent-email" style="color:var(--gold)"></strong><br>
+        <strong>1.</strong> Abra o e-mail <span style="color:var(--ink3)">(vale conferir o spam)</span><br>
+        <strong>2.</strong> Clique no link de redefinição<br>
+        <strong>3.</strong> Defina sua nova senha e pronto
+      </div>
+      <button class="lbtn" onclick="closeForgot()">Voltar ao login</button>
+    </div>
+    <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--ink3)">
+      Lembrou a senha? <a href="#" onclick="closeForgot();return false" style="color:var(--gold);font-weight:700">Entrar</a>
+    </p>
+  </div>
+</div>
+
 <!-- CONFIRMAÇÃO DE E-MAIL -->
 <div id="confirm-screen" style="position:fixed;inset:0;z-index:10001;background:#0d0d0d;display:none;align-items:center;justify-content:center">
   <div class="login-box" style="text-align:center">
@@ -1127,14 +1154,38 @@ async function changePassword(){
   alert('✅ Senha alterada com sucesso!');
 }
 
-async function doForgot(){
+function doForgot(){
   const pre=document.getElementById('lemail').value.trim().toLowerCase();
-  const input=prompt('Digite o e-mail cadastrado na sua conta para receber o link de redefinição de senha:',pre);
-  if(input===null)return;
-  const email=input.trim().toLowerCase();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){alert('E-mail inválido. Confira e tente de novo (ex: nome@gmail.com).');return;}
+  document.getElementById('forgot-email').value=pre;
+  document.getElementById('forgot-err').style.display='none';
+  document.getElementById('forgot-form').style.display='';
+  document.getElementById('forgot-done').style.display='none';
+  const b=document.getElementById('forgot-btn');b.disabled=false;b.textContent='Enviar link de redefinição';
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('forgot-screen').style.display='flex';
+  setTimeout(()=>document.getElementById('forgot-email').focus(),60);
+}
+
+function closeForgot(){
+  document.getElementById('forgot-screen').style.display='none';
+  document.getElementById('login-screen').style.display='';
+}
+
+function forgotErr(msg){
+  document.getElementById('forgot-err-msg').textContent=msg;
+  document.getElementById('forgot-err').style.display='flex';
+}
+
+async function doSendReset(){
+  const email=document.getElementById('forgot-email').value.trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){forgotErr('E-mail inválido. Confira e tente de novo (ex: nome@gmail.com).');return;}
+  document.getElementById('forgot-err').style.display='none';
+  const b=document.getElementById('forgot-btn');b.disabled=true;b.textContent='Enviando...';
   const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://app.northfinances.com.br/'});
-  alert(error?'Erro: '+error.message:'📧 Enviamos um link de redefinição de senha para '+email+'.\n\nConfira sua caixa de entrada (e o spam na primeira vez).');
+  if(error){forgotErr('Erro: '+error.message);b.disabled=false;b.textContent='Enviar link de redefinição';return;}
+  document.getElementById('forgot-sent-email').textContent=email;
+  document.getElementById('forgot-form').style.display='none';
+  document.getElementById('forgot-done').style.display='';
 }
 
 async function doLogout(){
@@ -1165,6 +1216,8 @@ window.addEventListener('DOMContentLoaded',async()=>{
     const el=document.getElementById(id);
     if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')doSetup();});
   });
+  const fe=document.getElementById('forgot-email');
+  if(fe)fe.addEventListener('keydown',e=>{if(e.key==='Enter')doSendReset();});
   const gCdi=document.getElementById('g-cdi');
   const gCdiInfo=document.getElementById('g-cdi-info');
   if(gCdi&&gCdiInfo)gCdi.addEventListener('change',()=>{gCdiInfo.style.display=gCdi.value!=='0'?'block':'none';});
