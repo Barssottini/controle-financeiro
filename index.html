@@ -884,7 +884,11 @@ async function doLogin(){
       showConfirmScreen(email);
       return;
     }
-    msg.textContent='E-mail ou senha incorretos. Tente novamente.';
+    msg.textContent=/invalid login credentials/i.test(error.message)
+      ?'E-mail ou senha incorretos. Tente novamente.'
+      :/rate limit/i.test(error.message)
+        ?'Muitas tentativas — aguarde alguns minutos e tente de novo.'
+        :'Erro: '+error.message;
     void err.offsetWidth;
     err.classList.add('show');
     passInput.value='';
