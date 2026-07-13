@@ -1088,7 +1088,7 @@ async function doSetup(){
   }
   const email=document.getElementById('setup-email').value.trim().toLowerCase();
   if(!email){showErr('Preencha o e-mail.');return;}
-  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:'https://barssottini.github.io/controle-financeiro/'}});
+  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:'https://app.northfinances.com.br/'}});
   if(error){
     // Proteção contra enumeração: não revelamos se o e-mail já existe.
     // ("User already registered" só ocorre se a proteção estiver desligada.)
@@ -1133,7 +1133,7 @@ async function doForgot(){
   if(input===null)return;
   const email=input.trim().toLowerCase();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){alert('E-mail inválido. Confira e tente de novo (ex: nome@gmail.com).');return;}
-  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://barssottini.github.io/controle-financeiro/'});
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://app.northfinances.com.br/'});
   alert(error?'Erro: '+error.message:'📧 Enviamos um link de redefinição de senha para '+email+'.\n\nConfira sua caixa de entrada (e o spam na primeira vez).');
 }
 

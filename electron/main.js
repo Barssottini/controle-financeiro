@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const { spawn } = require('child_process');
 
-const SITE = 'https://barssottini.github.io/controle-financeiro/';
+const SITE = 'https://app.northfinances.com.br/';
 const REPO = 'Barssottini/controle-financeiro';
 
 // User-Agent LIMPO (sem acentos). O padrão do Electron injeta o productName com acento,
