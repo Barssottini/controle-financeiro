@@ -832,23 +832,32 @@ async function cloudSaveNow(){
     setSync('ok');
   }catch(e){setSync('offline');}
 }
+function dataCount(d){
+  if(!d)return 0;
+  return (d.transactions||[]).length+(d.investments||[]).length+(d.goals||[]).length
+    +(d.ccItems||[]).length+(d.budgets||[]).length+(d.recurring||[]).length;
+}
+function applyCloud(d){
+  S.transactions=d.transactions||[];S.ccItems=d.ccItems||[];S.investments=d.investments||[];
+  S.goals=d.goals||[];S.budgets=d.budgets||[];S.recurring=d.recurring||[];
+  S.settings={...S.settings,...(d.settings||{})};
+  persistAllLocal();
+}
 async function loadCloud(uid){
   try{
     const {data,error}=await sb.from('user_data').select('data').eq('user_id',uid).maybeSingle();
     if(error)throw error;
-    if(data&&data.data&&(data.data.transactions||data.data.investments)){
-      const d=data.data;
-      S.transactions=d.transactions||[];S.ccItems=d.ccItems||[];S.investments=d.investments||[];
-      S.goals=d.goals||[];S.budgets=d.budgets||[];S.recurring=d.recurring||[];
-      S.settings={...S.settings,...(d.settings||{})};
-      persistAllLocal();
-      setSync('ok');
-    }else{
-      // Conta nova na nuvem: se este dispositivo tem dados locais antigos, sobe para a nuvem
-      loadData();
-      await cloudSaveNow();
-      setSync('ok');
+    const cloud=(data&&data.data)?data.data:null;
+    const cloudN=dataCount(cloud);
+    loadData(); // carrega o que há neste dispositivo (localStorage)
+    const localN=dataCount(S);
+    // Regra segura: o lado com MAIS dados vence. Vazio nunca sobrescreve cheio.
+    if(cloudN>0 && cloudN>=localN){
+      applyCloud(cloud);            // nuvem é mais rica (ou igual) → usa nuvem
+    }else if(localN>0){
+      await cloudSaveNow();         // este dispositivo é mais rico → sobe para a nuvem
     }
+    setSync('ok');
   }catch(e){setSync('offline');}
 }
 
@@ -892,13 +901,14 @@ async function doLogin(){
       showConfirmScreen(email);
       return;
     }
+    const est=(error&&(error.status||error.code))||'';
     msg.textContent=/invalid login credentials/i.test(emsg)
       ?'E-mail ou senha incorretos. Tente novamente.'
-      :/rate limit/i.test(emsg)
-        ?'Muitas tentativas — aguarde alguns minutos e tente de novo.'
+      :(/rate limit/i.test(emsg)||est===429)
+        ?'Muitas tentativas — aguarde ~1 hora e tente de novo (limite de segurança).'
         :/fetch|network|failed to fetch|load failed|FETCH_FAIL/i.test(emsg)
           ?'Sem conexão com o servidor. Verifique a internet e tente de novo.'
-          :('Erro: '+(emsg||'desconhecido'));
+          :('Erro ['+(est||'?')+']: '+(emsg||'sem detalhe'));
     void err.offsetWidth;
     err.classList.add('show');
     passInput.value='';
