@@ -7,6 +7,10 @@ const { spawn } = require('child_process');
 const SITE = 'https://barssottini.github.io/controle-financeiro/';
 const REPO = 'Barssottini/controle-financeiro';
 
+// User-Agent LIMPO (sem acentos). O padrão do Electron injeta "Barssottini & Finanças",
+// e o "ç" em Latin-1 quebra o Postgres do Supabase ao criar a sessão (erro 500).
+app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) BarssottiniFinancas Chrome/130.0.0.0 Safari/537.36';
+
 const OFFLINE_HTML = 'data:text/html;charset=utf-8,' + encodeURIComponent(`
 <body style="background:#0d0d0d;color:#faf9f7;font-family:Segoe UI,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
   <div style="text-align:center">
@@ -179,6 +183,11 @@ app.whenReady().then(async () => {
   // (evita login/tela travados numa versão antiga em cache). Dados ficam no localStorage.
   try {
     await session.defaultSession.clearCache();
+  } catch (e) {}
+
+  // Reforço: define o User-Agent limpo também na sessão (sem "ç" que quebra o Postgres)
+  try {
+    session.defaultSession.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) BarssottiniFinancas Chrome/130.0.0.0 Safari/537.36');
   } catch (e) {}
 
   const win = createWindow();
