@@ -232,7 +232,8 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
     <div style="background:var(--paper2);border:1px solid var(--paper3);border-radius:12px;padding:16px 18px;font-size:12.5px;color:var(--ink2);text-align:left;line-height:1.9;margin-bottom:26px">
       <strong>1.</strong> Abra o e-mail <span style="color:var(--ink3)">(vale conferir o spam)</span><br>
       <strong>2.</strong> Clique no link de confirmação<br>
-      <strong>3.</strong> Volte aqui e entre com sua senha
+      <strong>3.</strong> Volte aqui e entre com sua senha<br>
+      <span style="color:var(--ink3)">Já tem conta com este e-mail? É só clicar em Entrar.</span>
     </div>
     <button class="lbtn" onclick="location.reload()">Já confirmei — Entrar</button>
     <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--ink3)">
@@ -922,16 +923,14 @@ async function doSetup(){
   if(!email){showErr('Preencha o e-mail.');return;}
   const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:'https://barssottini.github.io/controle-financeiro/'}});
   if(error){
-    showErr(/already|registered|exists/i.test(error.message)?'Este e-mail já tem conta. Clique em "Entrar" ou use "Esqueci a senha".':'Erro: '+error.message);
-    return;
-  }
-  // Proteção anti-enumeração do Supabase: e-mail já existente volta "sucesso"
-  // com um usuário sem identidades. Detectamos isso para avisar o usuário.
-  if(data.user && Array.isArray(data.user.identities) && data.user.identities.length===0){
-    showErr('Este e-mail já tem conta. Clique em "Entrar" ou use "Esqueci a senha".');
+    // Proteção contra enumeração: não revelamos se o e-mail já existe.
+    // ("User already registered" só ocorre se a proteção estiver desligada.)
+    if(/already|registered|exists/i.test(error.message)){showConfirmScreen(email);return;}
+    showErr('Erro: '+error.message);
     return;
   }
   if(data.session){onSignedIn(data.session);return;}
+  // E-mail novo OU já existente caem na MESMA tela — indistinguível de fora.
   showConfirmScreen(email);
 }
 
