@@ -1,7 +1,7 @@
 {
-  "name": "barssottini-financas",
-  "productName": "Barssottini & Finanças",
-  "version": "1.1.2",
+  "name": "north",
+  "productName": "North Finances",
+  "version": "1.2.0",
   "description": "Controle financeiro pessoal — 100% local",
   "main": "electron/main.js",
   "author": "Pedro Barssottini Gianchetta",
@@ -16,8 +16,8 @@
     "electron-builder": "^25.0.0"
   },
   "build": {
-    "appId": "com.barssottini.financas",
-    "productName": "Barssottini & Finanças",
+    "appId": "com.northfinances.app",
+    "productName": "North Finances",
     "files": [
       "electron/**/*",
       "logo.ico"
@@ -39,9 +39,9 @@
       "installerSidebar": "build/installerSidebar.bmp",
       "uninstallerSidebar": "build/installerSidebar.bmp",
       "installerHeader": "build/installerHeader.bmp",
-      "artifactName": "Barssottini-Financas-Setup-${version}.${ext}",
-      "shortcutName": "Barssottini & Finanças",
-      "uninstallDisplayName": "Barssottini & Finanças"
+      "artifactName": "North-Setup-${version}.${ext}",
+      "shortcutName": "North Finances",
+      "uninstallDisplayName": "North Finances"
     }
   }
 }

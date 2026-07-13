@@ -1,12 +1,12 @@
-# Barssottini & Finanças
+# North Finances
 
-Controle financeiro pessoal — 100% local, sem nuvem. Um único `index.html` com tudo dentro.
+Controle financeiro pessoal — site + app de desktop, com conta na nuvem (Supabase). Um único `index.html` com tudo dentro. *Encontre seu norte financeiro.*
 
 ## App nativo para Windows (recomendado)
 
-**`Barssottini-Financas-Setup-X.Y.Z.exe`** (na aba [Releases](https://github.com/Barssottini/controle-financeiro/releases)) — app Electron de verdade:
+**`North-Setup-X.Y.Z.exe`** (na aba [Releases](https://github.com/Barssottini/controle-financeiro/releases)) — app Electron de verdade:
 
-- Janela nativa própria, ícone B&F garantido na barra de tarefas e Menu Iniciar
+- Janela nativa própria, ícone da North garantido na barra de tarefas e Menu Iniciar
 - Carrega sempre a **versão mais recente** direto do GitHub Pages — atualização automática, sem reinstalar
 - Funciona **offline** após o primeiro acesso (service worker faz cache)
 - Dados 100% locais (perfil do Electron nesta máquina)
@@ -15,9 +15,9 @@ Build: `npm install && npm run dist` (fonte em [electron/main.js](electron/main.
 
 ## Instalador & Atualizador (alternativa leve)
 
-**`Barssottini & Finanças.exe`** — instala e atualiza o app em qualquer Windows:
+**`North.exe`** — instala e atualiza o app em qualquer Windows:
 
-- **Primeira vez**: baixa a versão mais recente do GitHub para `%LOCALAPPDATA%\Barssottini Financas`, cria atalhos na Área de Trabalho e no Menu Iniciar
+- **Primeira vez**: baixa a versão mais recente do GitHub para `%LOCALAPPDATA%\North`, cria atalhos na Área de Trabalho e no Menu Iniciar
 - **Rodando de novo**: verifica se há versão nova no GitHub e atualiza com um clique (os dados não são tocados — ficam no navegador, não no arquivo)
 - Fonte do instalador: [instalador/instalador.ps1](instalador/instalador.ps1) — compilado com ps2exe
 
@@ -27,7 +27,7 @@ Build: `npm install && npm run dist` (fonte em [electron/main.js](electron/main.
 
 O app roda em janela própria (sem barra de navegador) usando o modo aplicativo do Edge:
 
-- **Atalho pronto:** `Barssottini & Finanças` na Área de Trabalho
+- **Atalho pronto:** `North` na Área de Trabalho
 - **Ou manualmente:**
   ```
   msedge.exe --app="file:///C:/caminho/para/index.html"

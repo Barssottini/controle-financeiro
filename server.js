@@ -27,4 +27,4 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream' });
     res.end(data);
   });
-}).listen(PORT, () => console.log('Barssottini & Financas servindo na porta ' + PORT));
+}).listen(PORT, () => console.log('North Finances servindo na porta ' + PORT));

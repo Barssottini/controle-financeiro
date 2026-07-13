@@ -1,4 +1,4 @@
-// Service Worker — Barssottini & Finanças
+// Service Worker — North Finances
 // Estratégia: rede primeiro (pega atualizações), cache como reserva (funciona offline)
 const CACHE = 'bf-v2';
 

@@ -1,5 +1,5 @@
 # ============================================================
-#  Barssottini & Finanças — Instalador & Atualizador
+#  North Finances — Instalador & Atualizador
 #  Baixa a versão mais recente do GitHub e cria os atalhos.
 # ============================================================
 Add-Type -AssemblyName System.Windows.Forms
@@ -8,7 +8,7 @@ Add-Type -AssemblyName System.Drawing
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $RepoRaw    = 'https://raw.githubusercontent.com/Barssottini/controle-financeiro/main'
-$InstallDir = Join-Path $env:LOCALAPPDATA 'Barssottini Financas'
+$InstallDir = Join-Path $env:LOCALAPPDATA 'North'
 $IndexPath  = Join-Path $InstallDir 'index.html'
 $IcoPath    = Join-Path $InstallDir 'logo.ico'
 
@@ -47,7 +47,7 @@ function New-AppShortcut($lnkPath, $edge) {
     $l.Arguments  = "--app=$url --start-maximized"
     $l.IconLocation = "$IcoPath,0"
     $l.WorkingDirectory = $InstallDir
-    $l.Description = 'Barssottini & Financas - controle financeiro pessoal (100% local)'
+    $l.Description = 'North - controle financeiro pessoal'
     $l.Save()
 }
 
@@ -66,7 +66,7 @@ $paper = [System.Drawing.Color]::FromArgb(250, 249, 247)
 $muted = [System.Drawing.Color]::FromArgb(181, 175, 169)
 
 $form = New-Object System.Windows.Forms.Form
-$form.Text            = 'Barssottini & Financas'
+$form.Text            = 'North Finances'
 $form.Size            = New-Object System.Drawing.Size(460, 560)
 $form.StartPosition   = 'CenterScreen'
 $form.BackColor       = $ink
@@ -87,7 +87,7 @@ try { if ($selfIcon) { $pic.Image = $selfIcon.ToBitmap() } } catch {}
 $form.Controls.Add($pic)
 
 $title = New-Object System.Windows.Forms.Label
-$title.Text      = 'Barssottini & Financas'
+$title.Text      = 'North Finances'
 $title.Font      = New-Object System.Drawing.Font('Segoe UI', 17, [System.Drawing.FontStyle]::Bold)
 $title.ForeColor = $paper
 $title.TextAlign = 'MiddleCenter'
@@ -182,8 +182,8 @@ $btn.Add_Click({
         }
         $status.Text = 'Criando atalhos...'
         $form.Refresh()
-        New-AppShortcut (Join-Path ([Environment]::GetFolderPath('Desktop'))  'Barssottini & Financas.lnk') $edge
-        New-AppShortcut (Join-Path ([Environment]::GetFolderPath('Programs')) 'Barssottini & Financas.lnk') $edge
+        New-AppShortcut (Join-Path ([Environment]::GetFolderPath('Desktop'))  'North.lnk') $edge
+        New-AppShortcut (Join-Path ([Environment]::GetFolderPath('Programs')) 'North.lnk') $edge
 
         $status.Text = 'Tudo pronto! Atalhos criados na Area de Trabalho e no Menu Iniciar.'
         $script:mode = 'open'

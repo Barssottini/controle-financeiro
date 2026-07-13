@@ -7,14 +7,14 @@ const { spawn } = require('child_process');
 const SITE = 'https://barssottini.github.io/controle-financeiro/';
 const REPO = 'Barssottini/controle-financeiro';
 
-// User-Agent LIMPO (sem acentos). O padrão do Electron injeta "Barssottini & Finanças",
-// e o "ç" em Latin-1 quebra o Postgres do Supabase ao criar a sessão (erro 500).
-app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) BarssottiniFinancas Chrome/130.0.0.0 Safari/537.36';
+// User-Agent LIMPO (sem acentos). O padrão do Electron injeta o productName com acento,
+// e um "ç"/acento em Latin-1 quebra o Postgres do Supabase ao criar a sessão (erro 500).
+app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) NorthApp Chrome/130.0.0.0 Safari/537.36';
 
 const OFFLINE_HTML = 'data:text/html;charset=utf-8,' + encodeURIComponent(`
 <body style="background:#0d0d0d;color:#faf9f7;font-family:Segoe UI,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
   <div style="text-align:center">
-    <div style="font-size:22px;font-weight:800">Barssottini <span style="color:#c8903a">&</span> Finan&ccedil;as</div>
+    <div style="font-size:22px;font-weight:800">North <span style="color:#c8903a">Finances</span></div>
     <p style="color:#b5afa9;margin-top:14px;line-height:1.6">Sem conex&atilde;o com a internet.<br>
     O primeiro acesso precisa de internet — depois disso o app funciona offline.</p>
     <button onclick="location.href='${SITE}'" style="margin-top:18px;padding:12px 28px;background:#c8903a;color:#0d0d0d;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer">Tentar novamente</button>
@@ -41,9 +41,9 @@ h1{font-size:21px;color:#0d0d0d;margin:0 0 6px;letter-spacing:-.5px;font-weight:
 .ghost{background:none;color:#79736d;font-weight:600;font-size:13px}
 .ghost:hover{background:#f2ede8;color:#0d0d0d}
 </style></head><body><div class="card">
-<div class="badge">B&amp;F</div>
+<div class="badge">N</div>
 <h1>Nova versão disponível</h1>
-<p class="sub">Barssottini &amp; Finanças — Atualizador</p>
+<p class="sub">North — Atualizador</p>
 <div class="ver">v${info.current} &nbsp;→&nbsp; v${info.version}</div>
 <div class="bar" id="bar"><div class="fill" id="fill"></div></div>
 <div id="st"></div>
@@ -68,7 +68,7 @@ function checkUpdate() {
     setTimeout(() => done(null), 8000);
     try {
       const req = net.request('https://api.github.com/repos/' + REPO + '/releases/latest');
-      req.setHeader('User-Agent', 'BarssottiniFinancas');
+      req.setHeader('User-Agent', 'NorthApp');
       req.setHeader('Accept', 'application/vnd.github+json');
       let body = '';
       req.on('response', res => {
@@ -96,7 +96,7 @@ function loadSite(win) {
 }
 
 function downloadAndInstall(win, info) {
-  const file = path.join(os.tmpdir(), 'BarssottiniSetup.exe');
+  const file = path.join(os.tmpdir(), 'NorthSetup.exe');
   const set = (t, p) => {
     win.webContents.executeJavaScript(
       'document.getElementById("st").textContent=' + JSON.stringify(t) + ';' +
@@ -106,7 +106,7 @@ function downloadAndInstall(win, info) {
   set('Baixando atualização...', 0);
   try {
     const req = net.request(info.url);
-    req.setHeader('User-Agent', 'BarssottiniFinancas');
+    req.setHeader('User-Agent', 'NorthApp');
     req.on('response', res => {
       const total = parseInt(res.headers['content-length'] || '0', 10);
       let got = 0;
@@ -187,7 +187,7 @@ app.whenReady().then(async () => {
 
   // Reforço: define o User-Agent limpo também na sessão (sem "ç" que quebra o Postgres)
   try {
-    session.defaultSession.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) BarssottiniFinancas Chrome/130.0.0.0 Safari/537.36');
+    session.defaultSession.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) NorthApp Chrome/130.0.0.0 Safari/537.36');
   } catch (e) {}
 
   const win = createWindow();
