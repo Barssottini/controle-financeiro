@@ -945,6 +945,8 @@ function esc(s){
 
 async function onSignedIn(session){
   document.getElementById('setup-screen').style.display='none';
+  document.getElementById('confirm-screen').style.display='none';
+  document.getElementById('forgot-screen').style.display='none';
   document.getElementById('login-screen').classList.add('hidden');
   const sub=await getSubscription(session.user.id);
   const acc=subAccess(sub);
