@@ -1128,10 +1128,13 @@ async function changePassword(){
 }
 
 async function doForgot(){
-  const email=document.getElementById('lemail').value.trim().toLowerCase();
-  if(!email){alert('Digite seu e-mail no campo acima e clique de novo em "Esqueci a senha".');return;}
+  const pre=document.getElementById('lemail').value.trim().toLowerCase();
+  const input=prompt('Digite o e-mail cadastrado na sua conta para receber o link de redefinição de senha:',pre);
+  if(input===null)return;
+  const email=input.trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){alert('E-mail inválido. Confira e tente de novo (ex: nome@gmail.com).');return;}
   const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://barssottini.github.io/controle-financeiro/'});
-  alert(error?'Erro: '+error.message:'📧 Enviamos um link de redefinição de senha para '+email+'.');
+  alert(error?'Erro: '+error.message:'📧 Enviamos um link de redefinição de senha para '+email+'.\n\nConfira sua caixa de entrada (e o spam na primeira vez).');
 }
 
 async function doLogout(){
