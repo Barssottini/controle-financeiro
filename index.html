@@ -968,7 +968,10 @@ async function startSubscription(btn){
     if(!session)throw new Error('Sessão expirada. Entre novamente.');
     const r=await fetch(FN_BASE+'/create-subscription',{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'}});
     const j=await r.json().catch(()=>({}));
-    if(!r.ok||!j.init_point)throw new Error(j.error||('Erro '+r.status));
+    if(!r.ok||!j.init_point){
+      const d=j.detail&&(j.detail.message||j.detail.error)?(' — '+(j.detail.message||j.detail.error)):'';
+      throw new Error((j.error||('Erro '+r.status))+d);
+    }
     location.href=j.init_point;   // vai para o checkout do Mercado Pago
   }catch(e){
     alert('Não foi possível abrir o checkout:\n'+(e.message||e));
@@ -996,14 +999,14 @@ function renderTrialBanner(acc){
     el.innerHTML='<div style="background:linear-gradient(135deg,rgba(200,144,58,.16),rgba(200,144,58,.05));border:1px solid rgba(200,144,58,.35);border-radius:12px;padding:12px 14px;margin-top:14px">'
       +'<div style="font-size:12px;font-weight:800;color:var(--gold)">🎁 Teste grátis</div>'
       +'<div style="font-size:11.5px;color:var(--ink4);margin:4px 0 8px">'+(d>0?('Faltam <strong>'+d+'</strong> dia'+(d===1?'':'s')):'Último dia')+' · depois R$ 9,90/mês</div>'
-      +'<button onclick="startSubscription(this)" style="width:100%;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;padding:8px;font-weight:800;font-size:12px;cursor:pointer">Assinar agora</button>'
+      +'<button onclick="startSubscription(this)" style="width:100%;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;padding:9px;font-family:var(--ff);font-weight:800;font-size:12px;letter-spacing:-.1px;cursor:pointer">Assinar agora</button>'
       +'</div>';
   }else if(acc.reason==='grace'){
     el.style.display='block';
     el.innerHTML='<div style="background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.35);border-radius:12px;padding:12px 14px;margin-top:14px">'
       +'<div style="font-size:12px;font-weight:800;color:#f87171">Assinatura cancelada</div>'
       +'<div style="font-size:11.5px;color:var(--ink4);margin:4px 0 8px">Acesso até '+fmtDate(acc.end)+'</div>'
-      +'<button onclick="startSubscription(this)" style="width:100%;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;padding:8px;font-weight:800;font-size:12px;cursor:pointer">Reativar</button>'
+      +'<button onclick="startSubscription(this)" style="width:100%;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;padding:9px;font-family:var(--ff);font-weight:800;font-size:12px;letter-spacing:-.1px;cursor:pointer">Reativar</button>'
       +'</div>';
   }else{el.style.display='none';}
 }
