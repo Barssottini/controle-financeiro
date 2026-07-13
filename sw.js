@@ -1,6 +1,6 @@
 // Service Worker — Barssottini & Finanças
 // Estratégia: rede primeiro (pega atualizações), cache como reserva (funciona offline)
-const CACHE = 'bf-v1';
+const CACHE = 'bf-v2';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./index.html', './manifest.json', './logo-192.png', './logo-512.png'])));
@@ -8,7 +8,12 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(self.clients.claim());
+  e.waitUntil((async () => {
+    // Remove caches de versões antigas
+    const names = await caches.keys();
+    await Promise.all(names.filter(n => n !== CACHE).map(n => caches.delete(n)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('fetch', e => {
