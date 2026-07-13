@@ -246,6 +246,26 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
   </div>
 </div>
 
+<!-- PAYWALL / ASSINATURA -->
+<div id="paywall-screen" style="position:fixed;inset:0;z-index:10002;background:#0d0d0d;display:none;align-items:center;justify-content:center;overflow:auto;padding:24px">
+  <div class="login-box" style="text-align:center;max-width:440px">
+    <div style="width:86px;height:86px;margin:0 auto 22px;background:linear-gradient(135deg,var(--goldl),#fff);border:1.5px solid var(--gold);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:0 10px 30px rgba(200,144,58,.25)">⭐</div>
+    <div class="login-brand" style="margin-bottom:6px">North<span> Finances</span></div>
+    <p class="login-sub" id="pw-sub" style="margin-bottom:20px">Continue organizando sua vida financeira</p>
+    <div style="background:var(--paper2);border:1px solid var(--paper3);border-radius:16px;padding:22px 20px;margin-bottom:22px">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">🚀 Oferta de lançamento</div>
+      <div style="text-decoration:line-through;color:var(--ink3);font-size:14px;margin-bottom:2px">De R$ 119,90</div>
+      <div style="font-size:38px;font-weight:900;color:var(--ink);line-height:1">R$ 9,90<span style="font-size:15px;font-weight:700;color:var(--ink3)">/mês</span></div>
+      <div style="font-size:12.5px;color:var(--ink2);margin-top:8px">Cancele quando quiser</div>
+    </div>
+    <button class="lbtn" id="pw-btn" onclick="startSubscription(this)">Assinar agora</button>
+    <p style="text-align:center;margin-top:16px;font-size:11.5px;color:var(--ink3);line-height:1.6">Pagamento processado com segurança pelo Mercado Pago.</p>
+    <p style="text-align:center;margin-top:18px;font-size:12px">
+      <a href="#" onclick="doLogout();return false" style="color:var(--ink3);font-weight:700">Sair da conta</a>
+    </p>
+  </div>
+</div>
+
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
@@ -277,6 +297,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       <div class="sb-brand">North<span> Finances</span></div>
       <div class="sb-user">Logado como<strong id="udisp"></strong></div>
       <div id="sync-status" style="font-size:10px;margin-top:6px;color:var(--ink4)"></div>
+      <div id="trial-banner" style="display:none"></div>
     </div>
     <nav class="sb-nav">
       <div class="sb-section">Principal</div>
@@ -505,6 +526,12 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
           <button class="btn btn-secondary" onclick="importBackup()">⬆️ Restaurar backup (JSON)</button>
         </div>
         <p style="font-size:12px;color:var(--ink3)">O JSON inclui tudo: transações, cartão, investimentos, metas, orçamentos e recorrentes. Use para backup ou migrar para outro dispositivo.</p>
+      </div>
+
+      <div class="panel" id="sub-panel">
+        <div class="panel-head"><span class="panel-title">⭐ Assinatura</span></div>
+        <div id="sub-info" style="font-size:13px;color:var(--ink2);line-height:1.8">—</div>
+        <div id="sub-actions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"></div>
       </div>
 
       <div class="panel">
@@ -885,11 +912,115 @@ function esc(s){
 async function onSignedIn(session){
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('login-screen').classList.add('hidden');
+  const sub=await getSubscription(session.user.id);
+  const acc=subAccess(sub);
+  if(!acc.ok){ showPaywall(acc); return; }
+  document.getElementById('paywall-screen').style.display='none';
   document.getElementById('app').classList.add('visible');
   document.getElementById('udisp').textContent=session.user.email;
+  renderTrialBanner(acc);
+  renderSubPanel(sub,acc);
   await loadCloud(session.user.id);
   cloudReady=true;
   initApp();
+}
+
+// ═══ ASSINATURA / PAYWALL ═══
+const FN_BASE=SUPA_URL+'/functions/v1';
+function fmtDate(d){try{return new Date(d).toLocaleDateString('pt-BR');}catch(e){return '';}}
+function daysLeft(d){return Math.max(0,Math.ceil((new Date(d).getTime()-Date.now())/86400000));}
+
+async function getSubscription(uid){
+  try{
+    const {data,error}=await sb.from('subscriptions').select('status,trial_ends_at,current_period_end').eq('user_id',uid).maybeSingle();
+    if(error)throw error;
+    return data||null;
+  }catch(e){return null;}   // falha de rede → não trava o acesso
+}
+function subAccess(sub){
+  if(!sub)return{ok:true,reason:'unknown'};   // sem registro → libera (fail-open seguro)
+  const now=Date.now();
+  const t=sub.trial_ends_at?new Date(sub.trial_ends_at).getTime():0;
+  const p=sub.current_period_end?new Date(sub.current_period_end).getTime():0;
+  if(sub.status==='active')return{ok:true,reason:'active',end:p};
+  if(sub.status==='trialing'&&now<t)return{ok:true,reason:'trialing',end:t};
+  if(sub.status==='canceled'&&now<p)return{ok:true,reason:'grace',end:p};
+  if(sub.status==='trialing')return{ok:false,reason:'trial_expired'};
+  return{ok:false,reason:sub.status};
+}
+
+function showPaywall(acc){
+  document.getElementById('app').classList.remove('visible');
+  const msg={
+    trial_expired:'Seu teste grátis de 31 dias terminou. Assine para continuar.',
+    past_due:'Não conseguimos processar seu pagamento. Renove para continuar usando.',
+    canceled:'Sua assinatura terminou. Assine novamente para voltar a usar.'
+  };
+  document.getElementById('pw-sub').textContent=msg[acc.reason]||'Assine para continuar usando o North Finances.';
+  document.getElementById('paywall-screen').style.display='flex';
+}
+
+async function startSubscription(btn){
+  const orig=btn?btn.textContent:'';
+  try{
+    if(btn){btn.disabled=true;btn.textContent='Abrindo checkout…';}
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session)throw new Error('Sessão expirada. Entre novamente.');
+    const r=await fetch(FN_BASE+'/create-subscription',{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'}});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||!j.init_point)throw new Error(j.error||('Erro '+r.status));
+    location.href=j.init_point;   // vai para o checkout do Mercado Pago
+  }catch(e){
+    alert('Não foi possível abrir o checkout:\n'+(e.message||e));
+    if(btn){btn.disabled=false;btn.textContent=orig||'Assinar agora';}
+  }
+}
+
+async function cancelSubscription(){
+  if(!confirm('Cancelar sua assinatura? Você continua com acesso até o fim do período já pago e não será cobrado novamente.'))return;
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    const r=await fetch(FN_BASE+'/cancel-subscription',{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'}});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.error||('Erro '+r.status));
+    alert('✅ Assinatura cancelada. Seu acesso continua até o fim do período atual.');
+    location.reload();
+  }catch(e){alert('Erro ao cancelar: '+(e.message||e));}
+}
+
+function renderTrialBanner(acc){
+  const el=document.getElementById('trial-banner');if(!el)return;
+  if(acc.reason==='trialing'){
+    const d=daysLeft(acc.end);
+    el.style.display='block';
+    el.innerHTML='<div style="background:linear-gradient(135deg,rgba(200,144,58,.16),rgba(200,144,58,.05));border:1px solid rgba(200,144,58,.35);border-radius:12px;padding:12px 14px;margin-top:14px">'
+      +'<div style="font-size:12px;font-weight:800;color:var(--gold)">🎁 Teste grátis</div>'
+      +'<div style="font-size:11.5px;color:var(--ink4);margin:4px 0 8px">'+(d>0?('Faltam <strong>'+d+'</strong> dia'+(d===1?'':'s')):'Último dia')+' · depois R$ 9,90/mês</div>'
+      +'<button onclick="startSubscription(this)" style="width:100%;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;padding:8px;font-weight:800;font-size:12px;cursor:pointer">Assinar agora</button>'
+      +'</div>';
+  }else if(acc.reason==='grace'){
+    el.style.display='block';
+    el.innerHTML='<div style="background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.35);border-radius:12px;padding:12px 14px;margin-top:14px">'
+      +'<div style="font-size:12px;font-weight:800;color:#f87171">Assinatura cancelada</div>'
+      +'<div style="font-size:11.5px;color:var(--ink4);margin:4px 0 8px">Acesso até '+fmtDate(acc.end)+'</div>'
+      +'<button onclick="startSubscription(this)" style="width:100%;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;padding:8px;font-weight:800;font-size:12px;cursor:pointer">Reativar</button>'
+      +'</div>';
+  }else{el.style.display='none';}
+}
+
+function renderSubPanel(sub,acc){
+  const info=document.getElementById('sub-info');const act=document.getElementById('sub-actions');
+  if(!info||!act)return;
+  let html='';
+  if(acc.reason==='trialing'){html='<strong>Plano:</strong> Teste grátis de 31 dias<br><strong>Termina em:</strong> '+fmtDate(acc.end)+' ('+daysLeft(acc.end)+' dias)<br>Depois: <strong>R$ 9,90/mês</strong>';}
+  else if(acc.reason==='active'){html='<strong>Plano:</strong> North Finances — R$ 9,90/mês<br><strong>Status:</strong> Ativa'+(acc.end?'<br><strong>Próxima cobrança:</strong> '+fmtDate(acc.end):'');}
+  else if(acc.reason==='grace'){html='<strong>Status:</strong> Cancelada<br>Seu acesso continua até <strong>'+fmtDate(acc.end)+'</strong>.';}
+  else{html='Assine o North Finances por <strong>R$ 9,90/mês</strong>.';}
+  info.innerHTML=html;
+  let btns='';
+  if(acc.reason==='trialing'||acc.reason==='grace'||acc.reason==='unknown'){btns+='<button class="btn btn-primary" onclick="startSubscription(this)">⭐ Assinar agora</button>';}
+  if(acc.reason==='active'){btns+='<button class="btn btn-secondary" onclick="cancelSubscription()">Cancelar assinatura</button>';}
+  act.innerHTML=btns;
 }
 
 async function doLogin(){
