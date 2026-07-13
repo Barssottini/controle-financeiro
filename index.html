@@ -535,6 +535,12 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       </div>
 
       <div class="panel">
+        <div class="panel-head"><span class="panel-title">🔄 Atualizações</span></div>
+        <p style="font-size:13px;color:var(--ink2);margin-bottom:12px">O app se atualiza sozinho toda vez que abre. Versão instalada: <span id="app-version" style="font-weight:700;color:var(--ink1)">—</span></p>
+        <button class="btn btn-secondary" onclick="checkForUpdates(this)">🔄 Verificar atualizações</button>
+      </div>
+
+      <div class="panel">
         <div class="panel-head"><span class="panel-title">📄 Legal</span></div>
         <p style="font-size:13px;color:var(--ink2);margin-bottom:12px">Transparência sobre como seus dados são tratados, seus direitos (LGPD) e as regras de uso.</p>
         <a class="btn btn-secondary" href="termos.html" target="_blank" rel="noopener" style="text-decoration:none">📄 Termos de Uso e Política de Privacidade</a>
@@ -841,6 +847,39 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 const IS_ELECTRON=/Electron/i.test(navigator.userAgent);
 if('serviceWorker' in navigator && location.protocol==='https:' && !IS_ELECTRON)navigator.serviceWorker.register('sw.js').catch(()=>{});
 if('serviceWorker' in navigator && IS_ELECTRON)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
+
+// ═══ AUTO-ATUALIZAÇÃO ═══
+// O app instalado (file://) busca a versão mais nova no GitHub ao abrir e se atualiza sozinho.
+// Na web (https) não roda — lá já é sempre a última versão.
+const APP_VERSION='2026.07.13';
+const RAW_BASE='https://raw.githubusercontent.com/Barssottini/controle-financeiro/main';
+async function fetchRemoteApp(){
+  const res=await fetch(RAW_BASE+'/index.html?ts='+Date.now(),{cache:'no-store'});
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  return await res.text();
+}
+function remoteVersion(html){const m=html.match(/APP_VERSION\s*=\s*'([^']+)'/);return m?m[1]:null;}
+function applyUpdate(html){sessionStorage.setItem('nf_updated','1');document.open();document.write(html);document.close();}
+async function autoUpdate(){
+  if(location.protocol==='https:')return;        // só no app instalado
+  if(sessionStorage.getItem('nf_updated'))return; // já trocou nesta sessão
+  try{
+    const html=await fetchRemoteApp();
+    const rv=remoteVersion(html);
+    if(rv&&rv!==APP_VERSION)applyUpdate(html);
+  }catch(e){/* offline: segue com a versão local */}
+}
+autoUpdate();
+{const _av=document.getElementById('app-version');if(_av)_av.textContent=APP_VERSION;}
+async function checkForUpdates(btn){
+  const old=btn.textContent;btn.disabled=true;btn.textContent='Verificando...';
+  try{
+    const html=await fetchRemoteApp();
+    const rv=remoteVersion(html);
+    if(rv&&rv!==APP_VERSION){btn.textContent='Atualizando...';applyUpdate(html);}
+    else{btn.textContent='✓ Você já está na versão mais recente';setTimeout(()=>{btn.textContent=old;btn.disabled=false;},2800);}
+  }catch(e){alert('Não foi possível verificar atualizações agora. Confira sua conexão e tente de novo.');btn.textContent=old;btn.disabled=false;}
+}
 
 // ═══ NUVEM (Supabase) ═══
 const SUPA_URL='https://uipywjbcjzhqueyrfwef.supabase.co';
