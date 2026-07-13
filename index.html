@@ -922,7 +922,13 @@ async function doSetup(){
   if(!email){showErr('Preencha o e-mail.');return;}
   const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:'https://barssottini.github.io/controle-financeiro/'}});
   if(error){
-    showErr(/already|registered/i.test(error.message)?'Este e-mail já tem conta — clique em Entrar.':'Erro: '+error.message);
+    showErr(/already|registered|exists/i.test(error.message)?'Este e-mail já tem conta. Clique em "Entrar" ou use "Esqueci a senha".':'Erro: '+error.message);
+    return;
+  }
+  // Proteção anti-enumeração do Supabase: e-mail já existente volta "sucesso"
+  // com um usuário sem identidades. Detectamos isso para avisar o usuário.
+  if(data.user && Array.isArray(data.user.identities) && data.user.identities.length===0){
+    showErr('Este e-mail já tem conta. Clique em "Entrar" ou use "Esqueci a senha".');
     return;
   }
   if(data.session){onSignedIn(data.session);return;}
