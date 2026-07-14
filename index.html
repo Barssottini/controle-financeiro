@@ -43,6 +43,9 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 .linput{width:100%;padding:12px 15px;border:1.5px solid var(--paper3);border-radius:var(--r);font-family:var(--ff);font-size:14px;background:var(--paper2);color:var(--ink);transition:border-color .2s,box-shadow .2s;margin-bottom:18px}
 .linput:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,144,58,.15)}
 .lbtn{width:100%;padding:13px;background:var(--ink);color:var(--paper);border:none;border-radius:var(--r);font-family:var(--ff);font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:4px;letter-spacing:-.2px}
+.captcha-box{margin:0 0 6px}
+.captcha-box:empty{margin:0}
+.captcha-box iframe{max-width:100%}
 .lbtn:hover{background:var(--gold)}
 .lerr{background:#fef2f2;color:#b91c1c;border:1.5px solid #fca5a5;border-radius:var(--r);padding:12px 16px;font-size:13px;font-weight:600;margin-bottom:14px;display:none;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(185,28,28,.12)}
 .lerr.show{display:flex;animation:shake .4s ease}
@@ -244,6 +247,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
     <input class="linput" type="password" id="setup-pass" placeholder="Mínimo 6 caracteres">
     <label class="lbl">Confirmar senha</label>
     <input class="linput" type="password" id="setup-pass2" placeholder="Repita a senha">
+    <div class="captcha-box" id="captcha-setup"></div>
     <button class="lbtn" id="setup-btn" onclick="doSetup()">Criar conta</button>
     <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--ink3)">
       Já tem conta? <a href="#" onclick="location.reload();return false" style="color:var(--gold);font-weight:700">Entrar</a>
@@ -265,6 +269,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
     <div id="forgot-form">
       <label class="lbl">E-mail cadastrado</label>
       <input class="linput" type="email" id="forgot-email" placeholder="seu@email.com" autocomplete="email">
+      <div class="captcha-box" id="captcha-forgot"></div>
       <button class="lbtn" id="forgot-btn" onclick="doSendReset()">Enviar código</button>
     </div>
     <div id="forgot-done" style="display:none">
@@ -296,6 +301,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
     <div class="lerr" id="confirm-err"><span style="font-size:16px">🔴</span><span id="confirm-err-msg">Código inválido.</span></div>
     <label class="lbl" style="text-align:left">Código de confirmação</label>
     <input class="linput" id="confirm-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" style="text-align:center;font-size:26px;letter-spacing:12px;font-weight:800;padding-left:12px">
+    <div class="captcha-box" id="captcha-confirm"></div>
     <button class="lbtn" id="confirm-btn" onclick="doVerifyCode()">Confirmar e entrar</button>
     <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--ink3)">
       Não chegou? <a href="#" onclick="resendConfirm();return false" style="color:var(--gold);font-weight:700">Reenviar código</a>
@@ -335,6 +341,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
     <input class="linput" type="email" id="lemail" placeholder="seu@email.com" autocomplete="email">
     <label class="lbl">Senha</label>
     <input class="linput" type="password" id="lpass" placeholder="••••••••" autocomplete="current-password">
+    <div class="captcha-box" id="captcha-login"></div>
     <button class="lbtn" onclick="doLogin()">Entrar</button>
     <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--ink3)">
       <a href="#" onclick="showSetupScreen();return false" style="color:var(--gold);font-weight:700">Criar conta</a>
@@ -1094,6 +1101,46 @@ function renderSubPanel(sub,acc){
   act.innerHTML=btns;
 }
 
+// ═══ CAPTCHA (Cloudflare Turnstile) ═══
+// Cole aqui a Site Key (pública) do widget Turnstile. Vazia = captcha desligado.
+// ORDEM DE ATIVAÇÃO: 1º publicar este arquivo com a chave preenchida,
+// só DEPOIS ligar o CAPTCHA no Supabase (Auth → Attack Protection) — o inverso trava todos os logins.
+const TURNSTILE_SITE_KEY='';
+const captchaWidgets={};
+const CAPTCHA_WAIT_MSG='Verificação de segurança não concluída. Aguarde alguns segundos e tente de novo.';
+function captchaOn(){return !!TURNSTILE_SITE_KEY;}
+function ensureCaptcha(id){
+  if(!captchaOn()||typeof turnstile==='undefined')return;
+  if(captchaWidgets[id]!==undefined)return;
+  const el=document.getElementById(id);
+  if(!el)return;
+  captchaWidgets[id]=turnstile.render(el,{sitekey:TURNSTILE_SITE_KEY,theme:'light',size:'flexible',appearance:'interaction-only','refresh-expired':'auto'});
+}
+async function getCaptcha(id){
+  if(!captchaOn())return undefined;
+  ensureCaptcha(id);
+  for(let i=0;i<32;i++){ // até ~8s pro desafio invisível terminar
+    if(typeof turnstile!=='undefined'&&captchaWidgets[id]!==undefined){
+      const t=turnstile.getResponse(captchaWidgets[id]);
+      if(t)return t;
+    }
+    await new Promise(r=>setTimeout(r,250));
+  }
+  return null;
+}
+function resetCaptcha(id){
+  // Tokens do Turnstile são de uso único — resetar após cada tentativa gera um novo.
+  if(!captchaOn()||typeof turnstile==='undefined')return;
+  if(captchaWidgets[id]!==undefined){try{turnstile.reset(captchaWidgets[id]);}catch(e){}}
+}
+window.tsReady=function(){ensureCaptcha('captcha-login');};
+if(TURNSTILE_SITE_KEY){
+  const ts=document.createElement('script');
+  ts.src='https://challenges.cloudflare.com/turnstile/v0/api.js?onload=tsReady&render=explicit';
+  ts.async=true;
+  document.head.appendChild(ts);
+}
+
 async function doLogin(){
   const email=document.getElementById('lemail').value.trim().toLowerCase();
   const pass=document.getElementById('lpass').value;
@@ -1102,19 +1149,26 @@ async function doLogin(){
   const passInput=document.getElementById('lpass');
   err.classList.remove('show');
   if(!email||!pass){msg.textContent='Preencha e-mail e senha.';err.classList.add('show');return;}
+  const ct=await getCaptcha('captcha-login');
+  if(captchaOn()&&!ct){msg.textContent=CAPTCHA_WAIT_MSG;err.classList.add('show');return;}
   let data,error;
   try{
-    const r=await sb.auth.signInWithPassword({email,password:pass});
+    const r=await sb.auth.signInWithPassword({email,password:pass,options:{captchaToken:ct}});
     data=r.data;error=r.error;
   }catch(ex){
     error={message:'FETCH_FAIL: '+(ex&&ex.message?ex.message:String(ex))};
   }
+  resetCaptcha('captcha-login');
   if(error){
     const emsg=(error&&error.message)?String(error.message):'';
     if(/confirm/i.test(emsg)){
-      // conta existe mas não foi confirmada — reenvia o link e mostra a tela premium
-      try{await sb.auth.resend({type:'signup',email});}catch(e){}
+      // conta existe mas não foi confirmada — mostra a tela do código e reenvia
       showConfirmScreen(email);
+      try{
+        const rct=await getCaptcha('captcha-confirm');
+        await sb.auth.resend({type:'signup',email,options:{captchaToken:rct}});
+        resetCaptcha('captcha-confirm');
+      }catch(e){}
       return;
     }
     const est=(error&&(error.status||error.code))||'';
@@ -1156,7 +1210,10 @@ async function doSetup(){
   }
   const email=document.getElementById('setup-email').value.trim().toLowerCase();
   if(!email){showErr('Preencha o e-mail.');return;}
-  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:'https://app.northfinances.com.br/'}});
+  const ct=await getCaptcha('captcha-setup');
+  if(captchaOn()&&!ct){showErr(CAPTCHA_WAIT_MSG);return;}
+  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:'https://app.northfinances.com.br/',captchaToken:ct}});
+  resetCaptcha('captcha-setup');
   if(error){
     // Proteção contra enumeração: não revelamos se o e-mail já existe.
     // ("User already registered" só ocorre se a proteção estiver desligada.)
@@ -1179,6 +1236,7 @@ function showConfirmScreen(email){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('confirm-screen').style.display='flex';
+  ensureCaptcha('captcha-confirm');
   setTimeout(()=>c.focus(),60);
 }
 function confirmErr(msg){
@@ -1200,7 +1258,10 @@ async function doVerifyCode(){
 }
 async function resendConfirm(){
   if(!pendingEmail)return;
-  const {error}=await sb.auth.resend({type:'signup',email:pendingEmail});
+  const ct=await getCaptcha('captcha-confirm');
+  if(captchaOn()&&!ct){alert(CAPTCHA_WAIT_MSG);return;}
+  const {error}=await sb.auth.resend({type:'signup',email:pendingEmail,options:{captchaToken:ct}});
+  resetCaptcha('captcha-confirm');
   alert(error?'Erro ao reenviar: '+error.message:'📧 Código reenviado para '+pendingEmail);
 }
 
@@ -1225,6 +1286,7 @@ function doForgot(){
   const b=document.getElementById('forgot-btn');b.disabled=false;b.textContent='Enviar código';
   document.getElementById('login-screen').style.display='none';
   document.getElementById('forgot-screen').style.display='flex';
+  ensureCaptcha('captcha-forgot');
   setTimeout(()=>document.getElementById('forgot-email').focus(),60);
 }
 
@@ -1243,7 +1305,10 @@ async function doSendReset(){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){forgotErr('E-mail inválido. Confira e tente de novo (ex: nome@gmail.com).');return;}
   document.getElementById('forgot-err').style.display='none';
   const b=document.getElementById('forgot-btn');b.disabled=true;b.textContent='Enviando...';
-  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://app.northfinances.com.br/'});
+  const ct=await getCaptcha('captcha-forgot');
+  if(captchaOn()&&!ct){b.disabled=false;b.textContent='Enviar código';forgotErr(CAPTCHA_WAIT_MSG);return;}
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://app.northfinances.com.br/',captchaToken:ct});
+  resetCaptcha('captcha-forgot');
   b.disabled=false;b.textContent='Enviar código';
   if(error){forgotErr('Erro: '+error.message);return;}
   document.getElementById('forgot-sent-email').textContent=email;
@@ -1282,6 +1347,7 @@ async function doLogout(){
 function showSetupScreen(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('setup-screen').style.display='flex';
+  ensureCaptcha('captcha-setup');
 }
 
 function showRecoveryScreen(){
