@@ -69,7 +69,7 @@ a:hover{border-bottom-color:var(--gold-d)}
   <img src="logo-192.png" alt="North Finances" class="badge">
   <div class="brand">North<span> Finances</span></div>
   <div class="doc-title">Termos de Uso &amp; Privacidade</div>
-  <div class="doc-date">Última atualização: 13 de julho de 2026</div>
+  <div class="doc-date">Última atualização: 14 de julho de 2026</div>
 </div>
 
 <div class="wrap">
@@ -79,6 +79,7 @@ a:hover{border-bottom-color:var(--gold-d)}
 
   <h2><span class="num">1</span> Sobre o serviço</h2>
   <p>O <strong>North</strong> ("aplicativo", "serviço", "nós") é uma ferramenta pessoal de <strong>organização e acompanhamento financeiro</strong>. Ele permite registrar receitas, despesas, investimentos, metas e importar extratos bancários para consolidar suas finanças em um só lugar.</p>
+  <p>O serviço é oferecido por <strong>assinatura</strong>, com período de teste gratuito. Os valores e condições vigentes são apresentados no momento da contratação e o pagamento é processado pelo <strong>Mercado Pago</strong>. Você pode cancelar a assinatura a qualquer momento nas Configurações, mantendo o acesso até o fim do período já pago.</p>
   <div class="highlight">⚠️ <strong>O aplicativo é uma ferramenta de organização, não uma consultoria financeira.</strong> As informações, cálculos, cotações e projeções exibidos têm caráter meramente informativo e não constituem recomendação de compra, venda ou manutenção de qualquer ativo. Toda decisão de investimento é de sua exclusiva responsabilidade.</p>
 
   <h2><span class="num">2</span> Sua conta</h2>
@@ -97,7 +98,11 @@ a:hover{border-bottom-color:var(--gold-d)}
   </ul>
   <h3>Dados financeiros que você insere</h3>
   <ul>
-    <li>Transações, investimentos, metas, orçamentos e informações de extratos que <strong>você mesmo importa ou digita</strong>.</li>
+    <li>Transações, investimentos, metas e informações de extratos que <strong>você mesmo importa ou digita</strong>.</li>
+  </ul>
+  <h3>Dados técnicos de segurança</h3>
+  <ul>
+    <li>A cada <strong>novo login</strong> na sua conta, registramos data e hora, <strong>endereço IP aproximado</strong> e informações básicas do navegador/dispositivo. Esses dados são usados <strong>exclusivamente</strong> para enviar o alerta de segurança por e-mail e proteger sua conta contra acessos indevidos — nunca para publicidade ou rastreamento.</li>
   </ul>
   <div class="highlight">🔒 <strong>Não acessamos suas contas bancárias.</strong> O aplicativo não se conecta a bancos nem coleta dados automaticamente. Qualquer extrato entra no sistema porque <strong>você</strong> o exporta do seu banco e importa manualmente.</div>
 
@@ -109,7 +114,11 @@ a:hover{border-bottom-color:var(--gold-d)}
   <ul>
     <li><strong>Servidor no Brasil:</strong> seus dados são armazenados em banco de dados PostgreSQL gerenciado pela <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a>, em região de <strong>São Paulo</strong>.</li>
     <li><strong>Isolamento por usuário:</strong> regras de segurança no nível do banco de dados garantem que <strong>cada usuário só acessa os próprios dados</strong> — ninguém, além de você, enxerga suas informações.</li>
-    <li><strong>Senha criptografada</strong> e conexões protegidas por criptografia (HTTPS/TLS).</li>
+    <li><strong>Senha criptografada</strong> e conexões protegidas por criptografia (HTTPS/TLS). Exigimos <strong>senha forte</strong> e o sistema recusa a reutilização da senha anterior na troca.</li>
+    <li><strong>Verificação em duas etapas (2FA) opcional:</strong> você pode ativar nas Configurações um segundo código, gerado no seu celular, exigido a cada login — mesmo quem descobrir sua senha não entra sem ele.</li>
+    <li><strong>Alerta de novos logins:</strong> a cada acesso à sua conta enviamos um e-mail com data, IP aproximado e dispositivo. O e-mail traz um botão de emergência ("Não fui eu") que, com um clique, <strong>desconecta todos os dispositivos e invalida a senha</strong>, bloqueando o invasor até você redefinir a senha pelo seu e-mail.</li>
+    <li><strong>Proteção anti-robôs:</strong> as telas de login e cadastro usam verificação invisível (Cloudflare Turnstile) contra ataques automatizados.</li>
+    <li><strong>Sair de todos os dispositivos:</strong> botão nas Configurações que encerra todas as sessões ativas da sua conta.</li>
     <li><strong>Cópia local:</strong> uma cópia dos seus dados fica no seu próprio dispositivo, para o app funcionar rápido e mesmo sem internet.</li>
   </ul>
 
@@ -117,6 +126,9 @@ a:hover{border-bottom-color:var(--gold-d)}
   <p><strong>Nós não vendemos, alugamos ou compartilhamos seus dados pessoais.</strong> Utilizamos apenas fornecedores técnicos estritamente necessários para o funcionamento do app:</p>
   <ul>
     <li><strong>Supabase</strong> — infraestrutura de banco de dados e autenticação (onde seus dados ficam hospedados, com segurança).</li>
+    <li><strong>Mercado Pago</strong> — processa o pagamento da assinatura. Seus dados de cartão são tratados diretamente pelo Mercado Pago e <strong>não passam pelos nossos servidores</strong>.</li>
+    <li><strong>Resend</strong> — serviço de envio dos e-mails transacionais (códigos de confirmação e alertas de segurança); recebe apenas o seu e-mail e o conteúdo da mensagem.</li>
+    <li><strong>Cloudflare Turnstile</strong> — verificação anti-robô nas telas de login e cadastro; processa dados técnicos do navegador (como o IP) apenas para distinguir pessoas de robôs.</li>
     <li><strong>brapi.dev</strong> e <strong>CoinGecko</strong> — fornecem apenas <strong>cotações públicas</strong> de ativos e criptomoedas. Enviamos a eles somente o código do ativo (ex.: "BOVA11"); <strong>nenhum dado seu, saldo ou informação pessoal é compartilhado</strong>.</li>
     <li><strong>GitHub Pages</strong> — hospeda o código do aplicativo (não seus dados).</li>
   </ul>
@@ -126,12 +138,12 @@ a:hover{border-bottom-color:var(--gold-d)}
   <div class="rights">
     <div class="right-item"><b>Acesso</b><span>Ver todos os dados que temos sobre você.</span></div>
     <div class="right-item"><b>Correção</b><span>Corrigir dados incompletos ou desatualizados.</span></div>
-    <div class="right-item"><b>Portabilidade</b><span>Exportar seus dados em JSON, a qualquer hora, em Configurações.</span></div>
+    <div class="right-item"><b>Portabilidade</b><span>Receber uma cópia de todos os seus dados, mediante solicitação.</span></div>
     <div class="right-item"><b>Exclusão</b><span>Apagar sua conta e todos os seus dados.</span></div>
     <div class="right-item"><b>Revogação</b><span>Retirar o consentimento e encerrar o uso.</span></div>
     <div class="right-item"><b>Informação</b><span>Saber com quem e como seus dados são tratados.</span></div>
   </div>
-  <p>Você mesmo já controla a maior parte disso dentro do app: <strong>exportar</strong> (backup JSON) e <strong>alterar senha</strong> ficam em Configurações. Para <strong>excluir sua conta e todos os dados</strong>, ou qualquer outra solicitação, entre em contato pelo e-mail abaixo.</p>
+  <p>Você mesmo já controla parte disso dentro do app: <strong>alterar senha</strong>, <strong>ativar a verificação em duas etapas</strong> e <strong>sair de todos os dispositivos</strong> ficam em Configurações. Para <strong>receber uma cópia dos seus dados</strong>, <strong>excluir sua conta e todos os dados</strong>, ou qualquer outra solicitação, entre em contato pelo e-mail abaixo.</p>
 
   <h2><span class="num">8</span> Retenção e exclusão</h2>
   <p>Seus dados permanecem armazenados enquanto sua conta existir. Ao solicitar a exclusão da conta, seus dados pessoais e financeiros são <strong>removidos definitivamente</strong> dos nossos servidores, ressalvadas obrigações legais de guarda, se aplicáveis.</p>
