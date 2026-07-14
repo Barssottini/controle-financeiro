@@ -325,6 +325,26 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
   </div>
 </div>
 
+<!-- "NÃO FUI EU" — bloqueio de emergência (link do e-mail de alerta de login) -->
+<div id="panic-screen" style="position:fixed;inset:0;z-index:10003;background:#0d0d0d;display:none;align-items:center;justify-content:center">
+  <div class="login-box">
+    <div id="panic-main">
+      <div style="font-size:38px;text-align:center;margin-bottom:6px">🚨</div>
+      <p style="font-size:19px;font-weight:800;text-align:center;margin-bottom:6px;letter-spacing:-.3px">Proteger sua conta</p>
+      <p class="login-sub" style="text-align:center">Você indicou que um login não foi feito por você. Ao confirmar, vamos <b>desconectar todos os dispositivos</b> e <b>bloquear a senha atual</b>. Depois, você cria uma senha nova com o código de 6 dígitos que enviaremos ao seu e-mail.</p>
+      <div class="lerr" id="panic-err"><span style="font-size:16px">🔴</span><span id="panic-err-msg">Erro.</span></div>
+      <button class="lbtn" id="panic-btn" onclick="doPanic()" style="background:#8f2b25;color:#faf9f7">Bloquear conta agora</button>
+      <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--ink3)"><a href="#" onclick="cancelPanic();return false" style="color:var(--ink3)">Cancelar — foi um engano</a></p>
+    </div>
+    <div id="panic-done" style="display:none">
+      <div style="font-size:38px;text-align:center;margin-bottom:6px">✅</div>
+      <p style="font-size:19px;font-weight:800;text-align:center;margin-bottom:6px;letter-spacing:-.3px">Conta protegida</p>
+      <p class="login-sub" style="text-align:center">Todos os dispositivos foram desconectados e a senha antiga não funciona mais. Agora crie sua nova senha — enviaremos um código de 6 dígitos ao seu e-mail.</p>
+      <button class="lbtn" onclick="panicToReset()">Criar nova senha</button>
+    </div>
+  </div>
+</div>
+
 <div id="paywall-screen" style="position:fixed;inset:0;z-index:10002;background:#0d0d0d;display:none;align-items:center;justify-content:center;overflow:auto;padding:24px">
   <div class="login-box" style="text-align:center;max-width:440px">
     <div style="width:86px;height:86px;margin:0 auto 22px;background:linear-gradient(135deg,var(--goldl),#fff);border:1.5px solid var(--gold);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:0 10px 30px rgba(200,144,58,.25)">⭐</div>
@@ -1178,6 +1198,10 @@ function passwordIssue(p){
   if(!/[^A-Za-z0-9]/.test(p))return 'A senha precisa de pelo menos um caractere especial (ex: ! @ # $ %).';
   return null;
 }
+function pwErrMsg(error){
+  if(error.code==='same_password'||/different (from|than) the (old|one)/i.test(error.message))return 'A nova senha precisa ser diferente da senha atual.';
+  return 'Erro: '+error.message;
+}
 
 // ═══ ALERTA DE LOGIN POR E-MAIL ═══
 function sendLoginAlert(){
@@ -1360,7 +1384,7 @@ async function doSetup(){
   if(pass!==pass2){showErr('As senhas não conferem.');return;}
   if(recoveryMode){
     const {error}=await sb.auth.updateUser({password:pass});
-    if(error){showErr('Erro: '+error.message);return;}
+    if(error){showErr(pwErrMsg(error));return;}
     alert('✅ Senha redefinida com sucesso!');
     recoveryMode=false;
     const {data:{session}}=await sb.auth.getSession();
@@ -1430,7 +1454,7 @@ async function changePassword(){
   const pIss=passwordIssue(p1);if(pIss){alert(pIss);return;}
   if(p1!==p2){alert('As senhas não conferem.');return;}
   const {error}=await sb.auth.updateUser({password:p1});
-  if(error){alert('Erro: '+error.message);return;}
+  if(error){alert(pwErrMsg(error));return;}
   document.getElementById('set-pass1').value='';
   document.getElementById('set-pass2').value='';
   alert('✅ Senha alterada com sucesso!');
@@ -1492,7 +1516,7 @@ async function doResetWithCode(){
   const {error:vErr}=await sb.auth.verifyOtp({email,token:code,type:'recovery'});
   if(vErr){forgotErr(/expired|invalid/i.test(vErr.message)?'Código incorreto ou expirado. Toque em "Reenviar código".':'Erro: '+vErr.message);b.disabled=false;b.textContent='Redefinir senha';return;}
   const {error:uErr}=await sb.auth.updateUser({password:p1});
-  if(uErr){forgotErr('Erro ao salvar a senha: '+uErr.message);b.disabled=false;b.textContent='Redefinir senha';return;}
+  if(uErr){forgotErr(pwErrMsg(uErr));b.disabled=false;b.textContent='Redefinir senha';return;}
   const {data:{session}}=await sb.auth.getSession();
   document.getElementById('forgot-screen').style.display='none';
   if(session)finishSignIn(session,true);else location.reload();
@@ -1501,6 +1525,42 @@ async function doResetWithCode(){
 async function doLogout(){
   try{await sb.auth.signOut();}catch(e){}
   location.reload();
+}
+
+// ═══ "NÃO FUI EU" — bloqueio de emergência via link do e-mail de alerta ═══
+let panicToken='';
+function panicErr(m){
+  document.getElementById('panic-err-msg').textContent=m;
+  document.getElementById('panic-err').classList.add('show');
+}
+async function doPanic(){
+  const b=document.getElementById('panic-btn');
+  b.disabled=true;b.textContent='Protegendo...';
+  document.getElementById('panic-err').classList.remove('show');
+  let r=null;
+  try{
+    r=await fetch(SUPA_URL+'/functions/v1/panic-lockdown',{
+      method:'POST',
+      headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+      body:JSON.stringify({token:panicToken})
+    });
+  }catch(e){}
+  if(!r){panicErr('Sem conexão. Verifique a internet e tente de novo.');b.disabled=false;b.textContent='Bloquear conta agora';return;}
+  if(!r.ok){
+    let code='';try{code=(await r.json()).error;}catch(e){}
+    panicErr(code==='invalid_token'
+      ?'Este link já foi usado ou expirou. Se ainda suspeita de acesso indevido, use "Esqueci minha senha" no login para trocar a senha.'
+      :'Não foi possível proteger a conta agora. Tente de novo em instantes.');
+    b.disabled=false;b.textContent='Bloquear conta agora';return;
+  }
+  try{await sb.auth.signOut();}catch(e){}
+  document.getElementById('panic-main').style.display='none';
+  document.getElementById('panic-done').style.display='';
+}
+function cancelPanic(){panicToken='';location.reload();}
+function panicToReset(){
+  document.getElementById('panic-screen').style.display='none';
+  doForgot();
 }
 
 function showSetupScreen(){
@@ -1540,11 +1600,18 @@ window.addEventListener('DOMContentLoaded',async()=>{
   const gCdi=document.getElementById('g-cdi');
   const gCdiInfo=document.getElementById('g-cdi-info');
   if(gCdi&&gCdiInfo)gCdi.addEventListener('change',()=>{gCdiInfo.style.display=gCdi.value!=='0'?'block':'none';});
+  // Link "Não fui eu" do e-mail de alerta → tela de bloqueio de emergência
+  const pm=location.hash.match(/panic=([a-f0-9]{64})/);
+  if(pm){
+    panicToken=pm[1];
+    history.replaceState(null,'',location.pathname+location.search);
+    document.getElementById('panic-screen').style.display='flex';
+  }
   // Link de recuperação de senha (chega por e-mail)
   sb.auth.onAuthStateChange((event)=>{if(event==='PASSWORD_RECOVERY')showRecoveryScreen();});
   // Sessão existente → entra direto
   const {data:{session}}=await sb.auth.getSession();
-  if(session&&!/type=recovery/.test(location.hash))finishSignIn(session,false);
+  if(session&&!panicToken&&!/type=recovery/.test(location.hash))finishSignIn(session,false);
 });
 
     
