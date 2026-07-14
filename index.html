@@ -187,6 +187,30 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 .goal-pct{font-size:11px;color:var(--ink3);margin-top:5px;font-weight:600}
 .goal-actions{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
 
+/* GASTOS POR CATEGORIA */
+.insight-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.insight{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:7px 13px;border-radius:20px;background:var(--paper2);border:1px solid var(--paper3);color:var(--ink)}
+.insight b{font-weight:800}
+.insight.warn{background:var(--redl);border-color:transparent;color:var(--red)}
+.insight.good{background:var(--greenl);border-color:transparent;color:var(--green)}
+.insight.tip{background:var(--goldl);border-color:transparent;color:#8a5f1e;cursor:pointer}
+.insight.tip:hover{background:var(--gold);color:var(--paper)}
+.cat-row{display:flex;align-items:center;gap:13px;padding:11px 8px;border-radius:9px;cursor:pointer;transition:background .15s;border-bottom:1px solid var(--paper2)}
+.cat-row:last-child{border-bottom:none}
+.cat-row:hover{background:var(--paper2)}
+.cat-ico{width:38px;height:38px;border-radius:9px;background:var(--paper2);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.cat-info{flex:1;min-width:0}
+.cat-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
+.cat-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.2px}
+.cat-name small{color:var(--ink3);font-weight:600;margin-left:7px;letter-spacing:0}
+.cat-val{font-size:13.5px;font-weight:700;white-space:nowrap;letter-spacing:-.3px}
+.cat-val small{font-size:11px;color:var(--ink3);font-weight:600;margin-left:5px}
+.cat-bar-bg{height:7px;background:var(--paper3);border-radius:20px;overflow:hidden}
+.cat-bar{height:100%;border-radius:20px;background:var(--gold);transition:width .6s ease}
+.cat-delta{font-size:11px;font-weight:700;white-space:nowrap;min-width:92px;text-align:right;flex-shrink:0}
+.cat-delta.up{color:var(--red)}.cat-delta.down{color:var(--green)}.cat-delta.flat{color:var(--ink3)}
+@media(max-width:700px){.cat-delta{display:none}}
+
 /* SYNC */
 .sync-badge{display:inline-block;background:var(--greenl);color:var(--green);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
 
@@ -383,6 +407,14 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
         </div>
         <div class="chart-wrap"><canvas id="dash-chart"></canvas></div>
       </div>
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Pra onde foi seu dinheiro</span>
+          <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="cat-month" onchange="renderCatBreakdown()"></select>
+        </div>
+        <div class="insight-row" id="cat-insights" style="display:none"></div>
+        <div id="cat-breakdown"></div>
+      </div>
       <div class="panel" id="dash-goals-panel" style="display:none">
         <div class="panel-head">
           <span class="panel-title">🎯 Metas &amp; Reserva</span>
@@ -425,7 +457,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
             <option>Salário</option><option>Freelance</option><option>Investimentos</option>
             <option>Alimentação</option><option>Transporte</option><option>Moradia</option>
             <option>Lazer</option><option>Saúde</option><option>Educação</option>
-            <option>Rolê com o meu amor</option><option>Metas</option><option>Outros</option>
+            <option>Metas</option><option>Outros</option>
           </select>
           <select class="field" id="fmonth" onchange="renderTxList()">
             <option value="">Todos os meses</option>
@@ -606,7 +638,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
           <optgroup label="Despesas">
             <option>Alimentação</option><option>Transporte</option><option>Moradia</option>
             <option>Lazer</option><option>Saúde</option><option>Educação</option>
-            <option>Rolê com o meu amor</option><option>Metas</option>
+            <option>Metas</option>
           </optgroup>
           <optgroup label="Investimentos">
             <option>Aporte XP</option><option>Caixinha Nubank</option><option>Cripto</option>
@@ -638,7 +670,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
           <option value="">Selecione...</option>
           <option>Alimentação</option><option>Transporte</option><option>Moradia</option>
           <option>Lazer</option><option>Saúde</option><option>Educação</option>
-          <option>Rolê com o meu amor</option><option>Metas</option><option>Outros</option>
+          <option>Metas</option><option>Outros</option>
         </select>
       </div>
       <div class="fgrp">
@@ -811,7 +843,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
           <option value="">Selecione a categoria...</option>
           <option>Alimentação</option><option>Transporte</option><option>Moradia</option>
           <option>Lazer</option><option>Saúde</option><option>Educação</option>
-          <option>Rolê com o meu amor</option><option>Metas</option><option>Outros</option>
+          <option>Metas</option><option>Outros</option>
         </select>
       </div>
       <div class="fgrp">
@@ -853,7 +885,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
               <option>Salário</option><option>Freelance</option><option>Investimentos</option>
               <option>Alimentação</option><option>Transporte</option><option>Moradia</option>
               <option>Lazer</option><option>Saúde</option><option>Educação</option>
-              <option>Rolê com o meu amor</option><option>Metas</option><option>Outros</option>
+              <option>Metas</option><option>Outros</option>
             </select>
           </div>
           <div class="fgrp">
@@ -1856,6 +1888,107 @@ function updateDashboard(){
 
   const recent=[...S.transactions].sort(txCompare).slice(0,5);
   document.getElementById('recent-list').innerHTML=recent.length?recent.map(t=>txHTML(t)).join(''):emptyHTML('Nenhuma transação cadastrada');
+
+  populateCatMonths();
+  renderCatBreakdown();
+}
+
+// ═══ GASTOS POR CATEGORIA ═══
+const CAT_ICONS={'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Lazer':'🎬','Saúde':'💊','Educação':'📚','Metas':'🎯','Outros':'📦','Sem categoria':'🏷️'};
+function monthKeyOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function prevMonthOf(key){const[y,m]=key.split('-').map(Number);return monthKeyOf(new Date(y,m-2,1));}
+function monthLabel(key){const[y,m]=key.split('-');return new Date(y,parseInt(m)-1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});}
+function spentByCat(month){
+  const out={};
+  S.transactions.filter(t=>(t.date||'').startsWith(month)&&(t.type==='expense'||t.type==='cc'))
+    .forEach(t=>{const c=t.category||'Sem categoria';out[c]=(out[c]||0)+t.amount;});
+  S.ccItems.filter(c=>(c.date||'').startsWith(month))
+    .forEach(c=>{const k=c.category||'Sem categoria';out[k]=(out[k]||0)+c.amount;});
+  return out;
+}
+function populateCatMonths(){
+  const sel=document.getElementById('cat-month');if(!sel)return;
+  const cur=monthKeyOf(new Date());
+  const months=new Set([cur]);
+  S.transactions.filter(t=>t.type==='expense'||t.type==='cc').forEach(t=>{if(t.date)months.add(t.date.substring(0,7));});
+  S.ccItems.forEach(c=>{if(c.date)months.add(c.date.substring(0,7));});
+  const keep=sel.value;
+  sel.innerHTML='';
+  [...months].sort().reverse().slice(0,12).forEach(m=>{
+    const opt=document.createElement('option');opt.value=m;opt.textContent=monthLabel(m);sel.appendChild(opt);
+  });
+  sel.value=[...sel.options].some(o=>o.value===keep)?keep:cur;
+}
+function drillCategory(el){
+  const cat=el.dataset.cat,month=el.dataset.m;
+  showPage('transactions');
+  const ft=document.getElementById('ftype');if(ft)ft.value='';
+  const fc=document.getElementById('fcat');
+  if(fc){
+    if(![...fc.options].some(o=>(o.value||o.textContent)===cat)){const o=document.createElement('option');o.textContent=cat;fc.appendChild(o);}
+    fc.value=cat;
+  }
+  const fm=document.getElementById('fmonth');
+  if(fm)fm.value=[...fm.options].some(o=>o.value===month)?month:'';
+  renderTxList();
+}
+function renderCatBreakdown(){
+  const box=document.getElementById('cat-breakdown');if(!box)return;
+  const sel=document.getElementById('cat-month');
+  const month=(sel&&sel.value)||monthKeyOf(new Date());
+  const cur=spentByCat(month),prev=spentByCat(prevMonthOf(month));
+  const entries=Object.entries(cur).sort((a,b)=>b[1]-a[1]);
+  const insights=document.getElementById('cat-insights');
+  if(!entries.length){
+    box.innerHTML=emptyHTML('Nenhum gasto registrado em '+monthLabel(month));
+    if(insights){insights.style.display='none';insights.innerHTML='';}
+    return;
+  }
+  const total=entries.reduce((s,e)=>s+e[1],0);
+  const max=entries[0][1];
+  const budgetOn=!!S.settings.showBudget;
+
+  box.innerHTML=entries.map(([cat,v],i)=>{
+    const pct=Math.round(v/total*100);
+    const p=prev[cat]||0;
+    let delta;
+    if(!p)delta='<span class="cat-delta flat">—</span>';
+    else{
+      const diff=v-p;
+      if(Math.abs(diff)<1)delta='<span class="cat-delta flat">= mês anterior</span>';
+      else if(diff>0)delta='<span class="cat-delta up" title="vs. mês anterior">▲ '+fmtCur(diff)+'</span>';
+      else delta='<span class="cat-delta down" title="vs. mês anterior">▼ '+fmtCur(-diff)+'</span>';
+    }
+    const b=budgetOn?S.budgets.find(x=>x.category===cat):null;
+    const over=b&&v>b.limit;
+    const bLbl=b?(over?' <small style="color:var(--red)">⚠️ limite de '+fmtCur(b.limit)+' estourado</small>':' <small>'+Math.round(v/b.limit*100)+'% do limite</small>'):'';
+    const barColor=over?'var(--red)':(i===0?'var(--gold)':'#cbbfa9');
+    return '<div class="cat-row" data-cat="'+esc(cat)+'" data-m="'+month+'" onclick="drillCategory(this)" title="Ver transações de '+esc(cat)+'">'+
+      '<div class="cat-ico">'+(CAT_ICONS[cat]||'🏷️')+'</div>'+
+      '<div class="cat-info">'+
+        '<div class="cat-top"><span class="cat-name">'+esc(cat)+bLbl+'</span>'+
+        '<span class="cat-val">'+fmtCur(v)+'<small>'+pct+'%</small></span></div>'+
+        '<div class="cat-bar-bg"><div class="cat-bar" style="width:'+Math.max(3,Math.round(v/max*100))+'%;background:'+barColor+'"></div></div>'+
+      '</div>'+delta+'</div>';
+  }).join('');
+
+  // insights automáticos
+  const chips=[];
+  const[topCat,topVal]=entries[0];
+  chips.push('<span class="insight">🥇 Maior gasto: <b>'+esc(topCat)+'</b> ('+Math.round(topVal/total*100)+'% do mês)</span>');
+  let riseCat=null,rise=0,risePct=0;
+  entries.forEach(([c,v])=>{const p=prev[c]||0;if(p>0&&v-p>rise){rise=v-p;riseCat=c;risePct=Math.round((v-p)/p*100);}});
+  if(riseCat&&rise>=20&&risePct>=15)chips.push('<span class="insight warn">📈 <b>'+esc(riseCat)+'</b> subiu '+risePct+'% vs. mês anterior (+'+fmtCur(rise)+')</span>');
+  let dropCat=null,drop=0,dropPct=0;
+  entries.forEach(([c,v])=>{const p=prev[c]||0;if(p>0&&p-v>drop){drop=p-v;dropCat=c;dropPct=Math.round((p-v)/p*100);}});
+  if(dropCat&&drop>=20&&dropPct>=15)chips.push('<span class="insight good">👏 <b>'+esc(dropCat)+'</b> caiu '+dropPct+'% vs. mês anterior (−'+fmtCur(drop)+')</span>');
+  if(budgetOn){
+    const overs=S.budgets.filter(b=>(cur[b.category]||0)>b.limit);
+    if(overs.length>1)chips.push('<span class="insight warn">⚠️ '+overs.length+' orçamentos estourados este mês</span>');
+    if(!S.budgets.length)chips.push('<span class="insight tip" onclick="showPage(\'budget\')">💡 Defina um limite pra <b>'+esc(topCat)+'</b> no Orçamento →</span>');
+  }
+  const insightsEl=document.getElementById('cat-insights');
+  if(insightsEl){insightsEl.innerHTML=chips.slice(0,3).join('');insightsEl.style.display='flex';}
 }
 
 function txCompare(a,b){
