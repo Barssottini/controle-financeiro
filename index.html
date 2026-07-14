@@ -469,7 +469,6 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
           <span class="panel-title">Pra onde foi seu dinheiro</span>
           <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="cat-month" onchange="renderCatBreakdown()"></select>
         </div>
-        <div class="insight-row" id="cat-insights" style="display:none"></div>
         <div id="cat-breakdown"></div>
       </div>
       <div class="panel" id="dash-goals-panel" style="display:none">
@@ -595,39 +594,10 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       </div>
 
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">📊 Taxa CDI</span></div>
-        <div style="max-width:280px;margin-bottom:6px">
-          <label class="flbl">CDI atual (% a.a.)</label>
-          <input class="field" type="number" id="set-cdi" placeholder="10.65" step="0.01" min="0.01">
-        </div>
-        <p style="font-size:12px;color:var(--ink3)">Consulte em <a href="https://www.bcb.gov.br" target="_blank" style="color:var(--gold)">bcb.gov.br</a> e atualize quando o Banco Central mudar a taxa.</p>
-        <button class="btn btn-primary" style="margin-top:14px" onclick="saveSettings()">💾 Salvar</button>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head"><span class="panel-title">🔄 Cotações Automáticas</span></div>
-        <div style="max-width:380px;margin-bottom:6px">
-          <label class="flbl">Token brapi.dev (para ativos da B3 — gratuito)</label>
-          <input class="field" type="text" id="set-brapi" placeholder="Cole seu token aqui">
-        </div>
-        <p style="font-size:12px;color:var(--ink3)">Cripto (BTC, USDC...) atualiza sem token via CoinGecko. Para BOVA11, MXRF11 e outros ativos da B3, crie uma conta gratuita em <a href="https://brapi.dev" target="_blank" style="color:var(--gold)">brapi.dev</a> e cole o token acima.</p>
-        <button class="btn btn-primary" style="margin-top:14px" onclick="saveSettings()">💾 Salvar</button>
-      </div>
-
-      <div class="panel">
         <div class="panel-head"><span class="panel-title">🧩 Módulos</span></div>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="set-show-cc" class="chk"> Exibir módulo Cartão de Crédito</label>
         <p style="font-size:12px;color:var(--ink3);margin-top:10px">Desative se você não usa cartão de crédito, para deixar o app mais limpo. Os dados não são apagados — só ficam ocultos.</p>
         <button class="btn btn-primary" style="margin-top:14px" onclick="saveSettings()">💾 Salvar</button>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head"><span class="panel-title">🔐 Alterar Senha</span></div>
-        <div class="frow" style="max-width:560px">
-          <div class="fgrp"><label class="flbl">Nova senha</label><input class="field" type="password" id="set-pass1" placeholder="Mín. 8 caracteres, com maiúscula e símbolo"></div>
-          <div class="fgrp"><label class="flbl">Confirmar nova senha</label><input class="field" type="password" id="set-pass2" placeholder="Repita a senha"></div>
-        </div>
-        <button class="btn btn-primary" onclick="changePassword()">🔐 Alterar senha</button>
       </div>
 
       <div class="panel">
@@ -1421,18 +1391,6 @@ async function resendConfirm(){
   alert(error?'Erro ao reenviar: '+error.message:'📧 Código reenviado para '+pendingEmail);
 }
 
-async function changePassword(){
-  const p1=document.getElementById('set-pass1').value;
-  const p2=document.getElementById('set-pass2').value;
-  const pIss=passwordIssue(p1);if(pIss){alert(pIss);return;}
-  if(p1!==p2){alert('As senhas não conferem.');return;}
-  const {error}=await sb.auth.updateUser({password:p1});
-  if(error){alert(pwErrMsg(error));return;}
-  document.getElementById('set-pass1').value='';
-  document.getElementById('set-pass2').value='';
-  alert('✅ Senha alterada com sucesso!');
-}
-
 function doForgot(){
   const pre=document.getElementById('lemail').value.trim().toLowerCase();
   document.getElementById('forgot-email').value=pre;
@@ -1622,6 +1580,7 @@ function initApp(){
   checkRecurring();
   applyModules();
   showPage('dashboard');
+  updateCDI().then(ch=>{if(ch)updateDashboard();});
 }
 
 // ═══ MÓDULOS OPCIONAIS ═══
@@ -1649,6 +1608,7 @@ function showPage(id){
   if(id==='credit-card')renderCCPage();
   if(id==='investments'){
     renderInvPage();quotesInfo();
+    updateCDI().then(ch=>{if(ch){renderInvPage();updateDashboard();}});
     const last=S.settings.lastQuotes?new Date(S.settings.lastQuotes):null;
     if(!last||Date.now()-last.getTime()>30*60*1000)updateQuotes(true);
   }
@@ -1665,7 +1625,7 @@ function openModal(id){
     document.getElementById('inv-date').valueAsDate=new Date();
     const cdiNow=S.settings.cdi||10.65;
     document.getElementById('inv-cdi-box').innerHTML=
-      '📌 <strong>CDI atual: '+cdiNow.toFixed(2).replace('.',',')+'% a.a.</strong> (ajustável em Configurações)<br>'+
+      '📌 <strong>CDI atual: '+cdiNow.toFixed(2).replace('.',',')+'% a.a.</strong> (atualizado automaticamente do Banco Central)<br>'+
       '100% CDI ≈ '+cdiNow.toFixed(2).replace('.',',')+'% a.a. &nbsp;·&nbsp; 115% CDI ≈ '+(cdiNow*1.15).toFixed(2).replace('.',',')+'% a.a.<br>'+
       '<span style="color:var(--ink3)">Rendimento calculado por dias úteis (252/ano).</span>';
   }
@@ -1833,6 +1793,20 @@ function calcYield(inv){
   return{current,yieldAmt:current-inv.principal,days};
 }
 // ═══ COTAÇÕES AUTOMÁTICAS ═══
+// CDI automático — série 4389 do Banco Central (CDI anualizado base 252, % a.a.), API pública sem token
+async function updateCDI(){
+  const last=S.settings.cdiUpdated?new Date(S.settings.cdiUpdated):null;
+  if(last&&Date.now()-last.getTime()<12*60*60*1000)return false;
+  try{
+    const r=await fetch('https://api.bcb.gov.br/dados/serie/bcdata.sgs.4389/dados/ultimos/1?formato=json');
+    const d=await r.json();
+    const v=parseFloat(((d&&d[0])||{}).valor);
+    if(isNaN(v)||v<=0||v>=100)return false;
+    const changed=v!==S.settings.cdi;
+    S.settings.cdi=v;S.settings.cdiUpdated=new Date().toISOString();persistSettings();
+    return changed;
+  }catch(e){return false;}
+}
 const CRYPTO_IDS={BTC:'bitcoin',ETH:'ethereum',USDC:'usd-coin',USDT:'tether',SOL:'solana',DOT:'polkadot',ADA:'cardano',XRP:'ripple'};
 async function updateQuotes(silent){
   const assets=S.investments.filter(i=>i.kind==='asset'&&i.ticker);
@@ -1853,19 +1827,18 @@ async function updateQuotes(silent){
       }catch(e){cryptos.forEach(a=>fail.push(a.ticker));}
     }
     if(b3.length){
-      // Plano gratuito da brapi permite 1 ativo por requisição — busca um a um
-      const tk=S.settings.brapiToken?'?token='+encodeURIComponent(S.settings.brapiToken):'';
+      // B3 via edge function b3-quotes (Yahoo Finance no servidor) — funciona para todos, sem token
       const tickers=[...new Set(b3.map(a=>a.ticker))];
-      for(const t of tickers){
-        try{
-          const r=await fetch('https://brapi.dev/api/quote/'+t+tk);
-          const d=await r.json();
-          const q=(d.results||[])[0];
-          if(q&&q.regularMarketPrice){
-            b3.filter(a=>a.ticker===t).forEach(a=>{a.price=q.regularMarketPrice;ok++;});
-          }else fail.push(t);
-        }catch(e){fail.push(t);}
-      }
+      let d={};
+      try{
+        const res=await sb.functions.invoke('b3-quotes',{body:{tickers}});
+        if(!res.error&&res.data)d=res.data;
+      }catch(e){}
+      tickers.forEach(t=>{
+        const p=d[String(t).toUpperCase().replace(/[^A-Z0-9]/g,'')];
+        if(p){b3.filter(a=>a.ticker===t).forEach(a=>{a.price=p;ok++;});}
+        else fail.push(t);
+      });
     }
     if(ok){
       S.settings.lastQuotes=new Date().toISOString();
@@ -1873,7 +1846,7 @@ async function updateQuotes(silent){
     }
     if(!silent){
       let msg='✅ '+ok+' cotação(ões) atualizada(s).';
-      if(fail.length)msg+='\n⚠️ Falhou: '+fail.join(', ')+(fail.some(t=>!CRYPTO_IDS[t])?'\n\nDica: para ativos da B3, cadastre um token gratuito em brapi.dev e cole em Configurações → Cotações.':'');
+      if(fail.length)msg+='\n⚠️ Falhou: '+fail.join(', ')+' — confira se o ticker existe na B3 (ex: BOVA11) e tente de novo em instantes.';
       alert(msg);
     }
   }finally{
@@ -2190,54 +2163,40 @@ function drillCategory(el){
   if(fm)fm.value=[...fm.options].some(o=>o.value===month)?month:'';
   renderTxList();
 }
+const PIE_COLORS=['#c8903a','#e0bc7d','#8a6b28','#8a8378','#c2b193','#5f5a50','#d9cfbc','#a3701f','#b5afa9','#42403b'];
 function renderCatBreakdown(){
   const box=document.getElementById('cat-breakdown');if(!box)return;
   const sel=document.getElementById('cat-month');
   const month=(sel&&sel.value)||monthKeyOf(new Date());
-  const cur=spentByCat(month),prev=spentByCat(prevMonthOf(month));
+  const cur=spentByCat(month);
   const entries=Object.entries(cur).sort((a,b)=>b[1]-a[1]);
-  const insights=document.getElementById('cat-insights');
-  if(!entries.length){
-    box.innerHTML=emptyHTML('Nenhum gasto registrado em '+monthLabel(month));
-    if(insights){insights.style.display='none';insights.innerHTML='';}
-    return;
-  }
+  if(!entries.length){box.innerHTML=emptyHTML('Nenhum gasto registrado em '+monthLabel(month));return;}
   const total=entries.reduce((s,e)=>s+e[1],0);
-  const max=entries[0][1];
-
-  box.innerHTML=entries.map(([cat,v],i)=>{
-    const pct=Math.round(v/total*100);
-    const p=prev[cat]||0;
-    let delta;
-    if(!p)delta='<span class="cat-delta flat">—</span>';
-    else{
-      const diff=v-p;
-      if(Math.abs(diff)<1)delta='<span class="cat-delta flat">= mês anterior</span>';
-      else if(diff>0)delta='<span class="cat-delta up" title="vs. mês anterior">▲ '+fmtCur(diff)+'</span>';
-      else delta='<span class="cat-delta down" title="vs. mês anterior">▼ '+fmtCur(-diff)+'</span>';
-    }
-    const barColor=i===0?'var(--gold)':'#cbbfa9';
-    return '<div class="cat-row" data-cat="'+esc(cat)+'" data-m="'+month+'" onclick="drillCategory(this)" title="Ver transações de '+esc(cat)+'">'+
-      '<div class="cat-ico">'+(CAT_ICONS[cat]||'🏷️')+'</div>'+
-      '<div class="cat-info">'+
-        '<div class="cat-top"><span class="cat-name">'+esc(cat)+'</span>'+
-        '<span class="cat-val">'+fmtCur(v)+'<small>'+pct+'%</small></span></div>'+
-        '<div class="cat-bar-bg"><div class="cat-bar" style="width:'+Math.max(3,Math.round(v/max*100))+'%;background:'+barColor+'"></div></div>'+
-      '</div>'+delta+'</div>';
-  }).join('');
-
-  // insights automáticos
-  const chips=[];
-  const[topCat,topVal]=entries[0];
-  chips.push('<span class="insight">🥇 Maior gasto: <b>'+esc(topCat)+'</b> ('+Math.round(topVal/total*100)+'% do mês)</span>');
-  let riseCat=null,rise=0,risePct=0;
-  entries.forEach(([c,v])=>{const p=prev[c]||0;if(p>0&&v-p>rise){rise=v-p;riseCat=c;risePct=Math.round((v-p)/p*100);}});
-  if(riseCat&&rise>=20&&risePct>=15)chips.push('<span class="insight warn">📈 <b>'+esc(riseCat)+'</b> subiu '+risePct+'% vs. mês anterior (+'+fmtCur(rise)+')</span>');
-  let dropCat=null,drop=0,dropPct=0;
-  entries.forEach(([c,v])=>{const p=prev[c]||0;if(p>0&&p-v>drop){drop=p-v;dropCat=c;dropPct=Math.round((p-v)/p*100);}});
-  if(dropCat&&drop>=20&&dropPct>=15)chips.push('<span class="insight good">👏 <b>'+esc(dropCat)+'</b> caiu '+dropPct+'% vs. mês anterior (−'+fmtCur(drop)+')</span>');
-  const insightsEl=document.getElementById('cat-insights');
-  if(insightsEl){insightsEl.innerHTML=chips.slice(0,3).join('');insightsEl.style.display='flex';}
+  // rosca via conic-gradient, furo central com o total do mês
+  let acc=0;
+  const segs=entries.map(([cat,v],i)=>{
+    const from=acc/total*360;acc+=v;const to=acc/total*360;
+    return PIE_COLORS[i%PIE_COLORS.length]+' '+from.toFixed(2)+'deg '+to.toFixed(2)+'deg';
+  }).join(',');
+  box.innerHTML=
+    '<div style="display:flex;align-items:center;justify-content:center;gap:38px;flex-wrap:wrap;padding:14px 0 6px">'+
+      '<div style="position:relative;width:212px;height:212px;flex:none">'+
+        '<div style="width:100%;height:100%;border-radius:50%;background:conic-gradient('+segs+')"></div>'+
+        '<div style="position:absolute;inset:34px;background:var(--paper);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px">'+
+          '<div style="font-size:21px;font-weight:800;letter-spacing:-.5px">'+fmtCur(total)+'</div>'+
+          '<div style="font-size:10px;color:var(--ink3);letter-spacing:1.5px;font-weight:600;margin-top:3px">GASTOS NO MÊS</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px 24px;flex:1;min-width:230px;max-width:400px">'+
+        entries.map(([cat,v],i)=>{
+          const pct=Math.round(v/total*100);
+          return '<div data-cat="'+esc(cat)+'" data-m="'+month+'" onclick="drillCategory(this)" title="'+esc(cat)+': '+fmtCur(v)+' — clique para ver as transações" style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">'+
+            '<span style="width:10px;height:10px;border-radius:50%;background:'+PIE_COLORS[i%PIE_COLORS.length]+';flex:none"></span>'+
+            '<span style="color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(cat)+' <b style="color:var(--ink)">'+pct+'%</b></span>'+
+          '</div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
 }
 
 function txCompare(a,b){
@@ -2603,16 +2562,11 @@ function migrateData(){
 
 // ═══ SETTINGS ═══
 function renderSettings(){
-  document.getElementById('set-cdi').value=S.settings.cdi||10.65;
   const cc=document.getElementById('set-show-cc');if(cc)cc.checked=!!S.settings.showCC;
-  const bt=document.getElementById('set-brapi');if(bt)bt.value=S.settings.brapiToken||'';
 }
 
 function saveSettings(){
-  const cdi=parseFloat(document.getElementById('set-cdi').value);
-  if(!isNaN(cdi)&&cdi>0&&cdi<100)S.settings.cdi=cdi;
   const cc=document.getElementById('set-show-cc');if(cc)S.settings.showCC=cc.checked;
-  const bt=document.getElementById('set-brapi');if(bt)S.settings.brapiToken=bt.value.trim();
   persistSettings();
   applyModules();
   alert('✅ Configurações salvas!');
