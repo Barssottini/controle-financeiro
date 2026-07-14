@@ -2378,6 +2378,7 @@ function parseOFX(text){
     if(!isNaN(amt))parsedBal={amt:amt,date:bd};
   }
   const rows=[];
+  const known=knownCats();
   const re=/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi;
   let m;
   while((m=re.exec(text))!==null){
@@ -2390,9 +2391,11 @@ function parseOFX(text){
     const date=dt.substring(0,4)+'-'+dt.substring(4,6)+'-'+dt.substring(6,8);
     const digits=dt.replace(/[^0-9].*$/,'');
     const time=digits.length>=14?digits.substring(8,10)+':'+digits.substring(10,12)+':'+digits.substring(12,14):'';
-    const cat=guessCategory(memo);
+    const dc=cleanDesc(memo);
+    // Pix recebido sempre Outros; senão reaproveita categoria já usada pelo usuário; senão adivinha
+    const cat=PIX_IN_RE.test(memo.toLowerCase())?'Outros':(known[dc]||guessCategory(memo));
     const type=amt>=0?'income':'expense';
-    rows.push({type,description:cleanDesc(memo),amount:Math.abs(amt),date,time,category:cat});
+    rows.push({type,description:dc,amount:Math.abs(amt),date,time,category:cat});
   }
   return rows;
 }
@@ -2400,6 +2403,7 @@ function parseCSV(text){
   const lines=text.split(/\r?\n/).filter(l=>l.trim());
   if(lines.length<2)return[];
   const rows=[];
+  const known=knownCats();
   for(let i=1;i<lines.length;i++){
     const cols=splitCSV(lines[i]);if(cols.length<3)continue;
     const dateRaw=cols[0]?.trim()||'';
@@ -2407,9 +2411,10 @@ function parseCSV(text){
     const rawAmt=(cols[cols.length-1]||'').trim().replace(/[^\d,.-]/g,'').replace(',','.');
     const amt=parseFloat(rawAmt);if(isNaN(amt))continue;
     const date=normalizeDate(dateRaw);if(!date)continue;
-    const cat=guessCategory(desc);
+    const dc=cleanDesc(desc);
+    const cat=PIX_IN_RE.test(desc.toLowerCase())?'Outros':(known[dc]||guessCategory(desc));
     const type=amt>=0?'income':'expense';
-    rows.push({type,description:cleanDesc(desc),amount:Math.abs(amt),date,category:cat});
+    rows.push({type,description:dc,amount:Math.abs(amt),date,category:cat});
   }
   return rows;
 }
@@ -2440,20 +2445,33 @@ function cleanDesc(s){
     .trim()
     .substring(0,90);
 }
+// Pix/transferência recebida entra sempre como Outros (dinheiro recebido sem classificação própria)
+const PIX_IN_RE=/transfer[eê]ncia recebida|pix recebido|recebimento (de )?pix|recebido pelo pix/;
 function guessCategory(desc){
-  const d=desc.toLowerCase();
-  // Fatura de cartão SEMPRE primeiro (ex: "Pagamento de fatura", "Pagto cartao credito")
+  let d=desc.toLowerCase();
+  // CPF/CNPJ/nº de conta e nomes de processadores de pagamento são só ruído — não indicam a categoria da compra
+  d=d.replace(/[\d.\/-]{8,}/g,' ')
+     .replace(/mercado ?pago|mercado ?livre|mercadolivre|nu pagamentos|pagseguro|pagbank|picpay|stone pagamentos|stone instituicao|cielo|getnet|asaas|iugu|\bip ltda\b/g,' ');
+  if(PIX_IN_RE.test(d))return'Outros';
+  // Fatura de cartão sempre antes das demais (ex: "Pagamento de fatura", "Pagto cartao credito")
   if(/fatura|pagamento.{0,10}cart|pagto.{0,10}cart|pgto.{0,10}cart|cart[aã]o de cr[eé]d/.test(d))return'Cartão de Crédito';
   if(/salario|salário|salary|folha de pag|proventos|remunera[cç]|holerite|vencimentos|pro.?labore|pró.?labore|cr[eé]d(ito)?\.? ?salar/.test(d))return'Salário';
-  if(/xp invest|bova|mxrf|tesouro|b3 |corretora|bitcoin|btc|usdc|cripto|crypto|investimento|rendimento|dividendo|juros s\/|cdb|lci|lca|cdi|caixinha|aplica[cç][aã]o|resgate/.test(d))return'Investimentos';
-  if(/mercado|superm|padaria|restaurante|food|ifood|rappi|lanche|aliment|cafe|café|a[cç]ougue|hortifruti|atacad/.test(d))return'Alimentação';
-  if(/uber|99|taxi|táxi|onibus|ônibus|metro|metrô|combustiv|gasolina|\bposto\b|estacionament|pedagio|pedágio/.test(d))return'Transporte';
+  if(/xp invest|bova|mxrf|tesouro|b3 |corretora|bitcoin|btc|usdc|cripto|crypto|binance|investimento|rendimento|dividendo|juros s\/|cdb|lci|lca|cdi|caixinha|aplica[cç][aã]o|resgate|poupan[cç]a|saldo remunerado/.test(d))return'Investimentos';
+  if(/\bmercado\b|superm|padaria|restaurante|food|ifood|rappi|lanche|aliment|refei[cç]|cafe|café|a[cç]ougue|hortifruti|atacad|sacol[aã]o|pizza|sushi|churrasc|hamburg|burg[eu]er|mc ?donald|subway|starbucks|outback|habibs|acai|açaí|\bdelivery\b/.test(d))return'Alimentação';
+  if(/uber|\b99\b|99 ?(pop|app|tecnologia)|taxi|táxi|onibus|ônibus|metro|metrô|combustiv|gasolina|\bposto\b|shell|ipiranga|petrobras|estacionament|estapar|pedagio|pedágio|sem parar|veloe|conectcar|\blocaliza\b|\bmovida\b/.test(d))return'Transporte';
   if(/\bagua\b|água|sabesp|sanepar|copasa|embasa|\bluz\b|energia|enel|cpfl|cemig|copel|celesc|coelba|equatorial|\bgas\b|gás|comgas|ultragaz|internet|banda larga|telefon|celular|\bvivo\b|\bclaro\b|\btim\b|oi fibra|fibra|net serv/.test(d))return'Contas';
   if(/aluguel|condomin|iptu|imobiliaria|imobiliária/.test(d))return'Moradia';
-  if(/netflix|spotify|cinema|show|lazer|steam|game|disney|hbo|prime video|playstation|xbox/.test(d))return'Lazer';
-  if(/farmácia|farmacia|médico|medico|plano de saude|plano de saúde|unimed|amil|hapvida|saude|saúde|hospital|drog|dentista|consulta|exame|laborat/.test(d))return'Saúde';
+  if(/netflix|spotify|youtube|globoplay|deezer|crunchyroll|paramount|cinema|ingresso|teatro|show|lazer|steam|\bgames?\b|disney|hbo|prime video|playstation|xbox|sympla|eventim|\bbar\b|boteco|cervej|\bpub\b/.test(d))return'Lazer';
+  if(/farmácia|farmacia|médico|medico|plano de saude|plano de saúde|unimed|amil|hapvida|saude|saúde|hospital|drog|\braia\b|panvel|pague menos|dentista|odonto|consulta|exame|laborat|academia|smart ?fit/.test(d))return'Saúde';
   return'Outros';
 }
+// Reaproveita a categoria que o usuário já usou para a mesma descrição (aprende com correções manuais)
+function knownCats(){
+  const m={};
+  S.transactions.forEach(t=>{if(t.description&&t.category)m[t.description]=t.category;});
+  return m;
+}
+const CATS=['Salário','Investimentos','Alimentação','Transporte','Moradia','Contas','Cartão de Crédito','Lazer','Saúde','Outros'];
 function renderImportPreview(filename){
   const prev=document.getElementById('import-preview');
   if(!parsedRows.length){
@@ -2478,7 +2496,7 @@ function renderImportPreview(filename){
       '<span class="badge '+(t.type==='income'?'badge-in':'badge-out')+'">'+(t.type==='income'?'Receita':'Despesa')+'</span>'+
       '<span style="flex:1;font-weight:500;min-width:120px">'+esc(t.description)+'</span>'+
       flag+
-      '<span style="color:var(--ink3);font-size:12px">'+esc(t.category)+'</span>'+
+      '<select class="imp-cat" data-i="'+i+'" onchange="parsedRows[this.dataset.i].category=this.value" style="font-size:12px;padding:4px 6px;border-radius:8px;border:1px solid var(--paper3);background:var(--paper);color:var(--ink3)">'+CATS.map(c=>'<option'+(c===t.category?' selected':'')+'>'+c+'</option>').join('')+'</select>'+
       '<span style="color:var(--ink3);font-size:12px">'+fmtDate(t.date)+'</span>'+
       '<span style="font-weight:700;color:'+(t.type==='income'?'var(--green)':'var(--red)')+'">'+fmtCur(t.amount)+'</span>'+
       '</div>';
@@ -2569,6 +2587,14 @@ function migrateData(){
     if(map[t.category]){t.category=map[t.category];ch=true;}
     if(t.type==='cc'){t.type='expense';ch=true;}
     else if(t.type==='investment'){t.type='expense';t.category='Investimentos';ch=true;}
+    // Reclassifica erros antigos do importador: "game" pegava "PAGAMENTOS" (→Lazer),
+    // "mercado" pegava "MERCADO PAGO" (→Alimentação), faturas fora de Cartão de Crédito
+    const dl=(t.description||'').toLowerCase();
+    if(/fatura/.test(dl)&&t.category!=='Cartão de Crédito'){t.category='Cartão de Crédito';ch=true;}
+    else if((t.category==='Lazer'||t.category==='Alimentação')&&/transfer[eê]ncia|\bpix\b|nu pagamentos|mercado ?pago|pagseguro|picpay/.test(dl)){
+      const g=guessCategory(t.description);
+      if(g!==t.category){t.category=g;ch=true;}
+    }
   });
   S.ccItems.forEach(c=>{if(map[c.category]){c.category=map[c.category];ch=true;}});
   S.recurring.forEach(r=>{if(map[r.category]){r.category=map[r.category];ch=true;}});
