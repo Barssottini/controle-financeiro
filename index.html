@@ -240,6 +240,8 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
   .filters{grid-template-columns:1fr}
   .frow{grid-template-columns:1fr}
 }
+.mp-field{height:44px;padding:0 12px}
+.mp-field iframe{width:100%;height:100%;border:0}
 </style>
 </head>
 <body>
@@ -413,6 +415,8 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       <div class="sb-section">Principal</div>
       <div class="navi active" onclick="showPage('dashboard')">Dashboard</div>
       <div class="navi" onclick="showPage('transactions')">Transações</div>
+      <div class="navi" onclick="showPage('bills')">Contas a Pagar</div>
+      <div class="navi" onclick="showPage('budget')">Orçamento</div>
       <div class="navi" id="nav-cc" onclick="showPage('credit-card')">Cartão de Crédito</div>
       <div class="sb-section">Patrimônio</div>
       <div class="navi" onclick="showPage('investments')">Investimentos</div>
@@ -441,6 +445,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
         </div>
         <button class="rdismiss" onclick="dismissReminder(event)" title="Dispensar hoje">✕</button>
       </div>
+      <div id="bills-alert"></div>
       <div class="cards-row" id="dash-cards">
         <div class="sum-card income"><div class="sc-label">Receitas</div><div class="sc-val" id="total-income">R$ 0,00</div><div class="sc-sub">total geral</div></div>
         <div class="sum-card expense"><div class="sc-label">Despesas</div><div class="sc-val" id="total-expense">R$ 0,00</div><div class="sc-sub">total geral</div></div>
@@ -572,6 +577,39 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
     </div>
 
     <!-- BUDGET -->
+    <div class="page" id="budget">
+      <div class="ph">
+        <div><h1 class="pt">Orçamento</h1><p class="ps">Limite de gasto mensal por categoria</p></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="budget-month" onchange="renderBudgetPage()"></select>
+          <button class="btn btn-primary" onclick="openBudgetModal()">+ Definir limite</button>
+        </div>
+      </div>
+      <div id="budget-summary"></div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Limites por categoria</span></div>
+        <div id="budget-list"></div>
+      </div>
+    </div>
+
+    <!-- CONTAS A PAGAR -->
+    <div class="page" id="bills">
+      <div class="ph">
+        <div><h1 class="pt">Contas a Pagar</h1><p class="ps">Vencimentos do mês, com lembrete por e-mail</p></div>
+        <button class="btn btn-primary" onclick="openBillModal()">+ Nova Conta</button>
+      </div>
+      <div class="cards-row" style="grid-template-columns:repeat(3,1fr)">
+        <div class="sum-card balance"><div class="sc-label">Total do Mês</div><div class="sc-val" id="bills-total">R$ 0,00</div><div class="sc-sub">todas as contas</div></div>
+        <div class="sum-card income"><div class="sc-label">Pagas</div><div class="sc-val" id="bills-paid">R$ 0,00</div><div class="sc-sub">neste mês</div></div>
+        <div class="sum-card expense"><div class="sc-label">Em Aberto</div><div class="sc-val" id="bills-open">R$ 0,00</div><div class="sc-sub">ainda por pagar</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Contas do mês</span></div>
+        <div id="bills-list"></div>
+        <p style="font-size:12px;color:var(--ink3);margin-top:14px">Contas em aberto geram um lembrete por e-mail até 3 dias antes do vencimento. Ao marcar como paga, a despesa é lançada automaticamente nas suas transações.</p>
+      </div>
+    </div>
+
     <!-- SETTINGS -->
     <div class="page" id="settings">
       <div class="ph">
@@ -935,6 +973,95 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
   </div>
 </div>
 
+<!-- MODAL: ORÇAMENTO -->
+<div class="overlay" id="budget-modal">
+  <div class="modal">
+    <div class="mhead"><h3 id="budget-modal-title">Definir Limite</h3><button class="xbtn" onclick="closeModal('budget-modal')">✕</button></div>
+    <div class="mbody">
+      <div class="fgrp">
+        <label class="flbl">Categoria</label>
+        <select class="field" id="b-cat">
+          <option value="">Selecione...</option>
+          <option>Alimentação</option>
+          <option>Transporte</option>
+          <option>Moradia</option>
+          <option>Contas</option>
+          <option>Cartão de Crédito</option>
+          <option>Lazer</option>
+          <option>Saúde</option>
+          <option>Outros</option>
+        </select>
+      </div>
+      <div class="fgrp"><label class="flbl">Limite mensal (R$)</label><input class="field" type="number" id="b-limit" placeholder="0,00" step="0.01" min="0.01"></div>
+      <div style="background:var(--goldl);border-radius:var(--r);padding:12px;font-size:12px;color:var(--ink2);line-height:1.6;margin-bottom:18px">
+        O gasto do mês soma as despesas da categoria e os lançamentos no cartão de crédito. A barra muda de cor conforme você se aproxima do limite.
+      </div>
+      <div class="factions">
+        <button class="btn btn-secondary" onclick="closeModal('budget-modal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveBudget()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CONTA A PAGAR -->
+<div class="overlay" id="bill-modal">
+  <div class="modal">
+    <div class="mhead"><h3 id="bill-modal-title">Nova Conta</h3><button class="xbtn" onclick="closeModal('bill-modal')">✕</button></div>
+    <div class="mbody">
+      <div class="fgrp"><label class="flbl">Nome da conta</label><input class="field" type="text" id="bl-name" placeholder="Ex: Aluguel, Luz, Internet..."></div>
+      <div class="frow">
+        <div class="fgrp"><label class="flbl">Valor (R$)</label><input class="field" type="number" id="bl-amt" placeholder="0,00" step="0.01" min="0.01"></div>
+        <div class="fgrp"><label class="flbl">Dia do vencimento (1–31)</label><input class="field" type="number" id="bl-day" placeholder="Ex: 10" min="1" max="31"></div>
+      </div>
+      <div class="fgrp">
+        <label class="flbl">Categoria</label>
+        <select class="field" id="bl-cat">
+          <option>Contas</option>
+          <option>Moradia</option>
+          <option>Transporte</option>
+          <option>Alimentação</option>
+          <option>Cartão de Crédito</option>
+          <option>Lazer</option>
+          <option>Saúde</option>
+          <option>Outros</option>
+        </select>
+      </div>
+      <div style="background:var(--goldl);border-radius:var(--r);padding:12px;font-size:12px;color:var(--ink2);line-height:1.6;margin-bottom:18px">
+        A conta se repete todo mês. Você recebe um lembrete por e-mail até 3 dias antes do vencimento enquanto ela estiver em aberto.
+      </div>
+      <div class="factions">
+        <button class="btn btn-secondary" onclick="closeModal('bill-modal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveBill()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PAGAMENTO (checkout transparente Mercado Pago) — z-index acima do paywall (10002) -->
+<div class="overlay" id="pay-modal" style="z-index:10005">
+  <div class="modal">
+    <div class="mhead"><h3>Assinar North Finances</h3><button class="xbtn" onclick="closeModal('pay-modal')">✕</button></div>
+    <div class="mbody">
+      <div style="background:var(--goldl);border-radius:var(--r);padding:12px;font-size:12px;color:var(--ink2);line-height:1.6;margin-bottom:18px">
+        <strong>R$ 9,90/mês no cartão de crédito.</strong> Sem fidelidade — cancele quando quiser. Os dados do cartão vão direto para o Mercado Pago e não passam pelos nossos servidores.
+      </div>
+      <div class="fgrp"><label class="flbl">Nome impresso no cartão</label><input class="field" type="text" id="pay-holder" placeholder="Como está no cartão" autocomplete="cc-name"></div>
+      <div class="fgrp"><label class="flbl">CPF do titular</label><input class="field" type="text" id="pay-doc" placeholder="Só números" inputmode="numeric" maxlength="14"></div>
+      <div class="fgrp"><label class="flbl">Número do cartão</label><div class="field mp-field" id="mp-card-number"></div></div>
+      <div class="frow">
+        <div class="fgrp"><label class="flbl">Validade</label><div class="field mp-field" id="mp-expiry"></div></div>
+        <div class="fgrp"><label class="flbl">CVV</label><div class="field mp-field" id="mp-cvv"></div></div>
+      </div>
+      <div id="pay-err" style="display:none;background:var(--redl);color:var(--red);border-radius:var(--r);padding:10px 12px;font-size:12.5px;margin-bottom:14px"></div>
+      <div class="factions" style="flex-direction:column;gap:10px">
+        <button class="btn btn-primary" id="pay-btn" style="width:100%" onclick="payWithCard(this)">Assinar por R$ 9,90/mês</button>
+        <a href="#" onclick="startSubscriptionRedirect(this);return false" style="font-size:12px;color:var(--ink3);text-align:center">Prefiro pagar pelo site do Mercado Pago</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══ PWA ═══
 // Service worker só fora do Electron (bug no CacheStorage do Electron 33 derruba o renderer)
@@ -955,7 +1082,7 @@ function setSync(state){
   el.style.color=state==='offline'?'#f87171':'var(--ink4)';
 }
 
-function persistAllLocal(){persist();persistCC();persistInv();persistGoals();persistSettings();persistBudgets();persistRecurring();}
+function persistAllLocal(){persist();persistCC();persistInv();persistGoals();persistSettings();persistBudgets();persistBills();persistRecurring();}
 
 function scheduleCloudSave(){
   if(!cloudReady)return;
@@ -967,7 +1094,7 @@ async function cloudSaveNow(){
   try{
     const {data:{session}}=await sb.auth.getSession();
     if(!session)return;
-    const payload={transactions:S.transactions,ccItems:S.ccItems,investments:S.investments,goals:S.goals,budgets:S.budgets,recurring:S.recurring,settings:S.settings};
+    const payload={transactions:S.transactions,ccItems:S.ccItems,investments:S.investments,goals:S.goals,budgets:S.budgets,bills:S.bills,recurring:S.recurring,settings:S.settings};
     const {error}=await sb.from('user_data').upsert({user_id:session.user.id,data:payload,updated_at:new Date().toISOString()});
     if(error)throw error;
     setSync('ok');
@@ -976,11 +1103,11 @@ async function cloudSaveNow(){
 function dataCount(d){
   if(!d)return 0;
   return (d.transactions||[]).length+(d.investments||[]).length+(d.goals||[]).length
-    +(d.ccItems||[]).length+(d.budgets||[]).length+(d.recurring||[]).length;
+    +(d.ccItems||[]).length+(d.budgets||[]).length+(d.bills||[]).length+(d.recurring||[]).length;
 }
 function applyCloud(d){
   S.transactions=d.transactions||[];S.ccItems=d.ccItems||[];S.investments=d.investments||[];
-  S.goals=d.goals||[];S.budgets=d.budgets||[];S.recurring=d.recurring||[];
+  S.goals=d.goals||[];S.budgets=d.budgets||[];S.bills=d.bills||[];S.recurring=d.recurring||[];
   S.settings={...S.settings,...(d.settings||{})};
   migrateData();
   persistAllLocal();
@@ -1064,10 +1191,77 @@ function showPaywall(acc){
   document.getElementById('paywall-screen').style.display='flex';
 }
 
+// ═══ CHECKOUT TRANSPARENTE (Mercado Pago Secure Fields) ═══
+const MP_PUBLIC_KEY='APP_USR-d1b9a81d-499b-44a8-a7d1-03da8583765c';
+let mpInstance=null,mpFieldsReady=false;
+function loadMPSdk(){
+  return new Promise((res,rej)=>{
+    if(window.MercadoPago)return res();
+    const s=document.createElement('script');
+    s.src='https://sdk.mercadopago.com/js/v2';
+    s.onload=res;s.onerror=()=>rej(new Error('Falha ao carregar o Mercado Pago.'));
+    document.head.appendChild(s);
+  });
+}
+async function initMPFields(){
+  if(mpFieldsReady)return;
+  await loadMPSdk();
+  mpInstance=new MercadoPago(MP_PUBLIC_KEY);
+  const style={fontSize:'14px',color:'#0d0d0d','::placeholder':{color:'#9a938a'}};
+  mpInstance.fields.create('cardNumber',{placeholder:'0000 0000 0000 0000',style}).mount('mp-card-number');
+  mpInstance.fields.create('expirationDate',{placeholder:'MM/AA',style}).mount('mp-expiry');
+  mpInstance.fields.create('securityCode',{placeholder:'CVV',style}).mount('mp-cvv');
+  mpFieldsReady=true;
+}
+function payErr(msg){
+  const el=document.getElementById('pay-err');if(!el)return;
+  if(!msg){el.style.display='none';return;}
+  el.textContent=msg;el.style.display='block';
+}
 async function startSubscription(btn){
+  payErr('');
+  openModal('pay-modal');
+  try{await initMPFields();}
+  catch(e){closeModal('pay-modal');startSubscriptionRedirect(btn);}
+}
+// mensagens pt-BR para os códigos de erro de tokenização do MP
+const MP_ERR_MSGS={'205':'Digite o número do cartão.','208':'Escolha um mês válido.','209':'Escolha um ano válido.','212':'Informe o CPF.','213':'Informe o CPF.','214':'CPF inválido.','221':'Digite o nome impresso no cartão.','224':'Digite o código de segurança.','E301':'Número de cartão inválido.','E302':'Código de segurança inválido.','316':'Nome do titular inválido.','325':'Validade inválida.','326':'Validade inválida.'};
+async function payWithCard(btn){
+  payErr('');
+  const holder=document.getElementById('pay-holder').value.trim();
+  const doc=document.getElementById('pay-doc').value.replace(/\D/g,'');
+  if(!holder){payErr('Digite o nome impresso no cartão.');return;}
+  if(doc.length!==11){payErr('Digite um CPF válido (11 números).');return;}
+  const orig=btn.textContent;
+  btn.disabled=true;btn.textContent='Processando…';
+  try{
+    const token=await mpInstance.fields.createCardToken({cardholderName:holder,identificationType:'CPF',identificationNumber:doc});
+    if(!token||!token.id)throw new Error('Não foi possível validar o cartão. Confira os dados.');
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session)throw new Error('Sessão expirada. Entre novamente.');
+    const r=await fetch(FN_BASE+'/create-subscription',{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'},body:JSON.stringify({card_token_id:token.id})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||!j.ok){
+      if(j.error==='mp_rejected'||j.error==='mp_not_authorized')throw new Error('O cartão foi recusado. Confira os dados ou tente outro cartão.');
+      const d=j.detail&&(j.detail.message||j.detail.error)?(' — '+(j.detail.message||j.detail.error)):'';
+      throw new Error((j.error||('Erro '+r.status))+d);
+    }
+    btn.textContent='Assinatura ativa!';
+    alert('Assinatura ativada com sucesso. Bem-vindo ao North Finances!');
+    location.reload();
+  }catch(e){
+    let msg=(e&&e.message)?e.message:'Não foi possível processar o pagamento.';
+    const causes=Array.isArray(e)?e:((e&&e.cause)||[]);
+    for(const c of causes){if(c&&MP_ERR_MSGS[c.code]){msg=MP_ERR_MSGS[c.code];break;}}
+    payErr(msg);
+    btn.disabled=false;btn.textContent=orig;
+  }
+}
+// fluxo antigo (fallback): redirect para o checkout hospedado do Mercado Pago
+async function startSubscriptionRedirect(btn){
   const orig=btn?btn.textContent:'';
   try{
-    if(btn){btn.disabled=true;btn.textContent='Abrindo checkout…';}
+    if(btn&&btn.tagName==='BUTTON'){btn.disabled=true;btn.textContent='Abrindo checkout…';}
     const {data:{session}}=await sb.auth.getSession();
     if(!session)throw new Error('Sessão expirada. Entre novamente.');
     const r=await fetch(FN_BASE+'/create-subscription',{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'}});
@@ -1079,7 +1273,7 @@ async function startSubscription(btn){
     location.href=j.init_point;   // vai para o checkout do Mercado Pago
   }catch(e){
     alert('Não foi possível abrir o checkout:\n'+(e.message||e));
-    if(btn){btn.disabled=false;btn.textContent=orig||'Assinar agora';}
+    if(btn&&btn.tagName==='BUTTON'){btn.disabled=false;btn.textContent=orig||'Assinar agora';}
   }
 }
 
@@ -1588,8 +1782,9 @@ const S={
   ccItems:[],
   investments:[],
   goals:[],
-  editId:null,invEditId:null,goalEditId:null,budgetEditId:null,
+  editId:null,invEditId:null,goalEditId:null,budgetEditId:null,billEditId:null,
   budgets:[],
+  bills:[],
   recurring:[],
   settings:{cdi:10.65}
 };
@@ -1603,7 +1798,7 @@ function bizDays(start,end){
   return weeks*5+(rem-extra);
 }
 function newId(){
-  const all=[...S.transactions,...S.ccItems,...S.investments,...S.goals,...S.budgets,...S.recurring];
+  const all=[...S.transactions,...S.ccItems,...S.investments,...S.goals,...S.budgets,...S.bills,...S.recurring];
   return all.reduce((m,x)=>Math.max(m,typeof x.id==='number'?x.id:0),0)+1;
 }
 
@@ -1649,6 +1844,8 @@ function showPage(id){
     if(!last||Date.now()-last.getTime()>30*60*1000)updateQuotes(true);
   }
   if(id==='goals')renderGoalsPage();
+  if(id==='budget')renderBudgetPage();
+  if(id==='bills')renderBillsPage();
   if(id==='settings')renderSettings();
 }
 
@@ -1685,6 +1882,8 @@ function closeModal(id){
     const gl=document.getElementById('g-link');if(gl)gl.value='';
     const gi=document.getElementById('g-cdi-info');if(gi)gi.style.display='none';
   }
+  if(id==='budget-modal'){S.budgetEditId=null;document.getElementById('budget-modal-title').textContent='Definir Limite';}
+  if(id==='bill-modal'){S.billEditId=null;document.getElementById('bill-modal-title').textContent='Nova Conta';}
 }
 document.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').forEach(o=>{if(e.target===o)closeModal(o.id);});});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>closeModal(o.id));});
@@ -2164,6 +2363,7 @@ function updateDashboard(){
 
   populateCatMonths();
   renderCatBreakdown();
+  renderBillsAlert();
 }
 
 // ═══ GASTOS POR CATEGORIA ═══
@@ -2557,6 +2757,7 @@ function persistInv(){localStorage.setItem('bf_inv',JSON.stringify(S.investments
 function persistGoals(){localStorage.setItem('bf_goals',JSON.stringify(S.goals));scheduleCloudSave();}
 function persistSettings(){localStorage.setItem('bf_settings',JSON.stringify(S.settings));scheduleCloudSave();}
 function persistBudgets(){localStorage.setItem('bf_budgets',JSON.stringify(S.budgets));scheduleCloudSave();}
+function persistBills(){localStorage.setItem('bf_bills',JSON.stringify(S.bills));scheduleCloudSave();}
 function persistRecurring(){localStorage.setItem('bf_recurring',JSON.stringify(S.recurring));scheduleCloudSave();}
 function loadData(){
   const parse=(key,fb)=>{try{const v=localStorage.getItem(key);return v?JSON.parse(v):fb;}catch(e){console.warn('Erro ao carregar '+key,e);return fb;}};
@@ -2565,10 +2766,11 @@ function loadData(){
   S.investments=parse('bf_inv',[]);
   S.goals=parse('bf_goals',[]);
   S.budgets=parse('bf_budgets',[]);
+  S.bills=parse('bf_bills',[]);
   S.recurring=parse('bf_recurring',[]);
   S.settings={...S.settings,...parse('bf_settings',{})};
   // Migração: corrige IDs duplicados (causavam edições cruzadas entre itens)
-  [S.investments,S.goals,S.transactions,S.ccItems,S.budgets,S.recurring].forEach(arr=>{
+  [S.investments,S.goals,S.transactions,S.ccItems,S.budgets,S.bills,S.recurring].forEach(arr=>{
     const seen=new Set();
     let fixed=false;
     arr.forEach(x=>{
@@ -2675,7 +2877,225 @@ function checkRecurring(){
   if(changed){persist();persistRecurring();}
 }
 
+// ═══ ORÇAMENTO POR CATEGORIA ═══
+function populateBudgetMonths(){
+  const sel=document.getElementById('budget-month');if(!sel)return;
+  const cur=monthKeyOf(new Date());
+  const months=new Set([cur]);
+  S.transactions.filter(t=>t.type==='expense').forEach(t=>{if(t.date)months.add(t.date.substring(0,7));});
+  S.ccItems.forEach(c=>{if(c.date)months.add(c.date.substring(0,7));});
+  const keep=sel.value;
+  sel.innerHTML='';
+  [...months].sort().reverse().slice(0,12).forEach(m=>{
+    const opt=document.createElement('option');opt.value=m;opt.textContent=monthLabel(m);sel.appendChild(opt);
+  });
+  sel.value=[...sel.options].some(o=>o.value===keep)?keep:cur;
+}
+function openBudgetModal(){
+  S.budgetEditId=null;
+  document.getElementById('budget-modal-title').textContent='Definir Limite';
+  document.getElementById('b-cat').value='';
+  document.getElementById('b-limit').value='';
+  openModal('budget-modal');
+}
+function editBudget(id){
+  const b=S.budgets.find(x=>x.id===id);if(!b)return;
+  S.budgetEditId=id;
+  document.getElementById('budget-modal-title').textContent='Editar Limite';
+  document.getElementById('b-cat').value=b.category;
+  document.getElementById('b-limit').value=b.limit;
+  openModal('budget-modal');
+}
+function saveBudget(){
+  const cat=document.getElementById('b-cat').value;
+  const limit=parseFloat(document.getElementById('b-limit').value);
+  if(!cat){alert('Escolha a categoria.');return;}
+  if(!limit||limit<=0){alert('Informe um limite maior que zero.');return;}
+  const dup=S.budgets.find(b=>b.category===cat&&b.id!==S.budgetEditId);
+  if(S.budgetEditId){
+    if(dup){alert('Já existe um limite para essa categoria.');return;}
+    const b=S.budgets.find(x=>x.id===S.budgetEditId);
+    if(b){b.category=cat;b.limit=limit;}
+  }else if(dup){
+    dup.limit=limit; // categoria já tinha limite: atualiza
+  }else{
+    S.budgets.push({id:newId(),category:cat,limit:limit});
+  }
+  S.budgetEditId=null;
+  persistBudgets();
+  closeModal('budget-modal');
+  renderBudgetPage();
+}
+function delBudget(id){
+  if(!confirm('Remover este limite?'))return;
+  S.budgets=S.budgets.filter(x=>x.id!==id);
+  persistBudgets();
+  renderBudgetPage();
+}
+function renderBudgetPage(){
+  populateBudgetMonths();
+  const list=document.getElementById('budget-list');if(!list)return;
+  const sel=document.getElementById('budget-month');
+  const month=(sel&&sel.value)||monthKeyOf(new Date());
+  const summary=document.getElementById('budget-summary');
+  if(!S.budgets.length){
+    summary.innerHTML='';
+    list.innerHTML=emptyHTML('Nenhum limite definido. Clique em "+ Definir limite" para acompanhar seus gastos por categoria.');
+    return;
+  }
+  const spent=spentByCat(month);
+  const totalLimit=S.budgets.reduce((s,b)=>s+b.limit,0);
+  const totalSpent=S.budgets.reduce((s,b)=>s+(spent[b.category]||0),0);
+  const over=totalSpent>totalLimit;
+  summary.innerHTML='<div class="cards-row" style="grid-template-columns:repeat(3,1fr)">'+
+    '<div class="sum-card balance"><div class="sc-label">Orçado</div><div class="sc-val">'+fmtCur(totalLimit)+'</div><div class="sc-sub">'+monthLabel(month)+'</div></div>'+
+    '<div class="sum-card expense"><div class="sc-label">Gasto</div><div class="sc-val">'+fmtCur(totalSpent)+'</div><div class="sc-sub">nas categorias com limite</div></div>'+
+    '<div class="sum-card '+(over?'expense':'income')+'"><div class="sc-label">'+(over?'Acima do orçamento':'Disponível')+'</div><div class="sc-val">'+fmtCur(Math.abs(totalLimit-totalSpent))+'</div><div class="sc-sub">'+(over?'reveja seus gastos':'até o fim do mês')+'</div></div>'+
+  '</div>';
+  list.innerHTML=[...S.budgets].sort((a,b)=>a.category.localeCompare(b.category)).map(b=>{
+    const v=spent[b.category]||0;
+    const pctReal=Math.round(v/b.limit*100);
+    const pctBar=Math.min(100,pctReal);
+    const stourou=v>b.limit;
+    const alerta=!stourou&&v>=b.limit*0.8;
+    const color=stourou?'var(--red)':(alerta?'var(--gold)':'var(--green)');
+    return '<div style="padding:14px 8px;border-bottom:1px solid var(--paper2)">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">'+
+        '<span style="font-size:17px">'+(CAT_ICONS[b.category]||CAT_ICONS['Outros'])+'</span>'+
+        '<span data-cat="'+esc(b.category)+'" data-m="'+month+'" onclick="drillCategory(this)" title="Clique para ver as transações do mês" style="font-weight:700;font-size:13.5px;flex:1;cursor:pointer">'+esc(b.category)+'</span>'+
+        '<span style="font-size:13px;color:var(--ink2)"><b style="color:'+color+'">'+fmtCur(v)+'</b> / '+fmtCur(b.limit)+'</span>'+
+        '<span style="display:flex;gap:6px"><button class="ibt" onclick="editBudget('+b.id+')">✏️</button><button class="ibt del" onclick="delBudget('+b.id+')">🗑️</button></span>'+
+      '</div>'+
+      '<div style="height:8px;background:var(--paper2);border-radius:20px;overflow:hidden"><div style="height:100%;width:'+pctBar+'%;background:'+color+';border-radius:20px;transition:width .3s"></div></div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink3);margin-top:5px">'+
+        '<span>'+pctReal+'% usado</span>'+
+        '<span>'+(stourou?'<b style="color:var(--red)">Estourou em '+fmtCur(v-b.limit)+'</b>':'Restam '+fmtCur(b.limit-v))+'</span>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
 
+// ═══ CONTAS A PAGAR ═══
+function billPaidThisMonth(b,month){return (b.paidMonths||[]).includes(month);}
+function billStatus(b){
+  const month=monthKeyOf(new Date());
+  if(billPaidThisMonth(b,month))return{k:'paid',label:'Paga',color:'var(--green)'};
+  const now=new Date();
+  const maxDay=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const due=new Date(now.getFullYear(),now.getMonth(),Math.min(b.day,maxDay));
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const diff=Math.round((due-today)/86400000);
+  if(diff<0)return{k:'late',label:'Venceu há '+(-diff)+(diff===-1?' dia':' dias'),color:'var(--red)'};
+  if(diff===0)return{k:'today',label:'Vence hoje',color:'var(--red)'};
+  if(diff<=3)return{k:'soon',label:'Vence em '+diff+(diff===1?' dia':' dias'),color:'var(--gold)'};
+  return{k:'open',label:'Vence dia '+b.day,color:'var(--ink3)'};
+}
+function openBillModal(){
+  S.billEditId=null;
+  document.getElementById('bill-modal-title').textContent='Nova Conta';
+  ['bl-name','bl-amt','bl-day'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('bl-cat').value='Contas';
+  openModal('bill-modal');
+}
+function editBill(id){
+  const b=S.bills.find(x=>x.id===id);if(!b)return;
+  S.billEditId=id;
+  document.getElementById('bill-modal-title').textContent='Editar Conta';
+  document.getElementById('bl-name').value=b.name;
+  document.getElementById('bl-amt').value=b.amount;
+  document.getElementById('bl-day').value=b.day;
+  document.getElementById('bl-cat').value=b.category;
+  openModal('bill-modal');
+}
+function saveBill(){
+  const name=document.getElementById('bl-name').value.trim();
+  const amt=parseFloat(document.getElementById('bl-amt').value);
+  const day=parseInt(document.getElementById('bl-day').value);
+  const cat=document.getElementById('bl-cat').value||'Contas';
+  if(!name){alert('Dê um nome para a conta.');return;}
+  if(!amt||amt<=0){alert('Informe o valor da conta.');return;}
+  if(!day||day<1||day>31){alert('O dia do vencimento deve ser entre 1 e 31.');return;}
+  if(S.billEditId){
+    const b=S.bills.find(x=>x.id===S.billEditId);
+    if(b){b.name=name;b.amount=amt;b.day=day;b.category=cat;}
+  }else{
+    S.bills.push({id:newId(),name:name,amount:amt,day:day,category:cat,paidMonths:[]});
+  }
+  S.billEditId=null;
+  persistBills();
+  closeModal('bill-modal');
+  renderBillsPage();
+  renderBillsAlert();
+}
+function delBill(id){
+  if(!confirm('Excluir esta conta? Os lembretes dela param de ser enviados.'))return;
+  S.bills=S.bills.filter(x=>x.id!==id);
+  persistBills();
+  renderBillsPage();
+  renderBillsAlert();
+}
+function markBillPaid(id){
+  const b=S.bills.find(x=>x.id===id);if(!b)return;
+  const month=monthKeyOf(new Date());
+  if(billPaidThisMonth(b,month))return;
+  b.paidMonths=[...(b.paidMonths||[]),month].sort().slice(-12); // guarda só o último ano
+  S.transactions.push({id:newId(),type:'expense',description:b.name+' (conta)',amount:b.amount,date:new Date().toISOString().split('T')[0],category:b.category});
+  persistBills();persist();
+  renderBillsPage();
+  populateMonthFilter();
+  updateDashboard();
+}
+function unmarkBillPaid(id){
+  const b=S.bills.find(x=>x.id===id);if(!b)return;
+  if(!confirm('Desfazer o pagamento deste mês? A despesa lançada nas transações não é apagada — remova lá se precisar.'))return;
+  const month=monthKeyOf(new Date());
+  b.paidMonths=(b.paidMonths||[]).filter(m=>m!==month);
+  persistBills();
+  renderBillsPage();
+  renderBillsAlert();
+}
+function renderBillsPage(){
+  const el=document.getElementById('bills-list');if(!el)return;
+  const month=monthKeyOf(new Date());
+  const total=S.bills.reduce((s,b)=>s+b.amount,0);
+  const paid=S.bills.filter(b=>billPaidThisMonth(b,month)).reduce((s,b)=>s+b.amount,0);
+  document.getElementById('bills-total').textContent=fmtCur(total);
+  document.getElementById('bills-paid').textContent=fmtCur(paid);
+  document.getElementById('bills-open').textContent=fmtCur(total-paid);
+  if(!S.bills.length){
+    el.innerHTML=emptyHTML('Nenhuma conta cadastrada. Clique em "+ Nova Conta" para receber lembretes de vencimento.');
+    return;
+  }
+  el.innerHTML=[...S.bills].sort((a,b)=>a.day-b.day).map(b=>{
+    const st=billStatus(b);
+    const isPaid=st.k==='paid';
+    return '<div class="tx-item"'+(isPaid?' style="opacity:.55"':'')+'>'+
+      '<div class="tx-icon expense">'+(CAT_ICONS[b.category]||CAT_ICONS['Contas'])+'</div>'+
+      '<div class="tx-info"><div class="tx-desc">'+esc(b.name)+'</div>'+
+      '<div class="tx-meta">'+esc(b.category)+' · Todo dia '+b.day+' · <span style="color:'+st.color+';font-weight:700">'+st.label+'</span></div></div>'+
+      '<div class="tx-amount expense">'+fmtCur(b.amount)+'</div>'+
+      '<div class="tx-actions" style="opacity:1;display:flex;gap:6px;align-items:center">'+
+        (isPaid
+          ?'<button class="btn btn-secondary btn-sm" onclick="unmarkBillPaid('+b.id+')">Desfazer</button>'
+          :'<button class="btn btn-green btn-sm" onclick="markBillPaid('+b.id+')">Marcar paga</button>')+
+        '<button class="ibt" onclick="editBill('+b.id+')">✏️</button>'+
+        '<button class="ibt del" onclick="delBill('+b.id+')">🗑️</button>'+
+      '</div></div>';
+  }).join('');
+}
+function renderBillsAlert(){
+  const el=document.getElementById('bills-alert');if(!el)return;
+  const urgent=S.bills.map(b=>({b:b,st:billStatus(b)})).filter(x=>x.st.k==='late'||x.st.k==='today'||x.st.k==='soon');
+  if(!urgent.length){el.innerHTML='';return;}
+  const late=urgent.filter(x=>x.st.k==='late').length;
+  const txt=late
+    ?late+(late===1?' conta vencida':' contas vencidas')
+    :urgent.length+(urgent.length===1?' conta vence':' contas vencem')+' nos próximos dias';
+  el.innerHTML='<div onclick="showPage(\'bills\')" style="background:var(--redl);border:1px solid var(--red);border-radius:12px;padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer">'+
+    '<div style="font-size:13px;color:var(--ink)"><strong style="color:var(--red)">'+txt+'</strong> — '+urgent.slice(0,3).map(x=>esc(x.b.name)).join(', ')+(urgent.length>3?'…':'')+'</div>'+
+    '<span class="btn btn-secondary btn-sm" style="flex:none">Ver contas</span>'+
+  '</div>';
+}
 
 </script>
 </body>
