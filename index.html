@@ -2521,13 +2521,18 @@ function renderChart(){
   const ctx=document.getElementById('dash-chart').getContext('2d');
   if(dashChart)dashChart.destroy();
   dashChart=new Chart(ctx,{
-    type:'bar',
+    type:'line',
     data:{labels,datasets:[
-      {label:'Receitas',data:incData,backgroundColor:'rgba(38,122,72,.7)',borderRadius:6,borderSkipped:false},
-      {label:'Despesas',data:expData,backgroundColor:'rgba(184,50,40,.65)',borderRadius:6,borderSkipped:false}
+      {label:'Receitas',data:incData,borderColor:'#267a48',backgroundColor:'rgba(38,122,72,.12)',
+        pointBackgroundColor:'#267a48',pointBorderColor:'#faf9f7',pointBorderWidth:2,pointRadius:4,pointHoverRadius:6,
+        borderWidth:2.5,tension:.35,fill:true},
+      {label:'Despesas',data:expData,borderColor:'#b83228',backgroundColor:'rgba(184,50,40,.1)',
+        pointBackgroundColor:'#b83228',pointBorderColor:'#faf9f7',pointBorderWidth:2,pointRadius:4,pointHoverRadius:6,
+        borderWidth:2.5,tension:.35,fill:true}
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,
+      interaction:{intersect:false,mode:'index'},
       plugins:{legend:{position:'top',labels:{font:{family:'Plus Jakarta Sans',size:12},color:'#383533'}},
         tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtCur(ctx.raw)}`}}},
       scales:{
