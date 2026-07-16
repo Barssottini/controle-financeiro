@@ -71,6 +71,8 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 .sb-footer{padding:14px 10px;border-top:1px solid rgba(255,255,255,.07)}
 .logout-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:8px;background:none;border:none;color:var(--ink4);font-family:var(--ff);font-size:13px;cursor:pointer;transition:all .2s}
 .logout-btn:hover{background:rgba(255,255,255,.06);color:#f87171}
+.sitelink-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:8px;background:none;border:none;color:var(--ink4);font-family:var(--ff);font-size:13px;cursor:pointer;transition:all .2s;text-decoration:none}
+.sitelink-btn:hover{background:rgba(255,255,255,.06);color:var(--gold)}
 
 /* MAIN */
 .main{margin-left:var(--sw);flex:1;padding:36px 34px;max-width:calc(100vw - var(--sw))}
@@ -426,6 +428,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       <div class="navi" onclick="showPage('settings')">Configurações</div>
     </nav>
     <div class="sb-footer">
+      <a class="sitelink-btn" href="https://northfinances.com.br" target="_blank" rel="noopener">Visitar o site ↗</a>
       <button class="logout-btn" onclick="doLogout()">Sair da conta</button>
     </div>
   </aside>
