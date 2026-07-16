@@ -1068,6 +1068,20 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
   </div>
 </div>
 
+<!-- MODAL: MENSAGENS (substitui alert/confirm/prompt nativos do navegador) -->
+<div class="overlay" id="msg-modal" style="z-index:10010">
+  <div class="modal" style="max-width:380px">
+    <div class="mhead"><h3 id="msg-title">Aviso</h3></div>
+    <div class="mbody">
+      <p id="msg-body" style="white-space:pre-line;font-size:14px;color:var(--ink2);line-height:1.6;margin-bottom:16px"></p>
+      <div class="fgrp" id="msg-input-wrap" style="display:none">
+        <input class="field" id="msg-input" type="text" inputmode="numeric" maxlength="6" placeholder="000000" style="text-align:center;letter-spacing:4px;font-size:18px">
+      </div>
+      <div class="factions" id="msg-actions"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══ PWA ═══
 // Service worker só fora do Electron (bug no CacheStorage do Electron 33 derruba o renderer)
@@ -1253,7 +1267,7 @@ async function payWithCard(btn){
       throw new Error((j.error||('Erro '+r.status))+d);
     }
     btn.textContent='Assinatura ativa!';
-    alert('Assinatura ativada com sucesso. Bem-vindo ao North Finances!');
+    showAlert('Assinatura ativada com sucesso. Bem-vindo ao North Finances!');
     location.reload();
   }catch(e){
     let msg=(e&&e.message)?e.message:'Não foi possível processar o pagamento.';
@@ -1278,21 +1292,21 @@ async function startSubscriptionRedirect(btn){
     }
     location.href=j.init_point;   // vai para o checkout do Mercado Pago
   }catch(e){
-    alert('Não foi possível abrir o checkout:\n'+(e.message||e));
+    showAlert('Não foi possível abrir o checkout:\n'+(e.message||e));
     if(btn&&btn.tagName==='BUTTON'){btn.disabled=false;btn.textContent=orig||'Assinar agora';}
   }
 }
 
 async function cancelSubscription(){
-  if(!confirm('Cancelar sua assinatura? Você continua com acesso até o fim do período já pago e não será cobrado novamente.'))return;
+  if(!(await showConfirm('Cancelar sua assinatura? Você continua com acesso até o fim do período já pago e não será cobrado novamente.',{title:'Cancelar assinatura',confirmLabel:'Cancelar assinatura',danger:true})))return;
   try{
     const {data:{session}}=await sb.auth.getSession();
     const r=await fetch(FN_BASE+'/cancel-subscription',{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'}});
     const j=await r.json().catch(()=>({}));
     if(!r.ok)throw new Error(j.error||('Erro '+r.status));
-    alert('Assinatura cancelada. Seu acesso continua até o fim do período atual.');
+    showAlert('Assinatura cancelada. Seu acesso continua até o fim do período atual.');
     location.reload();
-  }catch(e){alert('Erro ao cancelar: '+(e.message||e));}
+  }catch(e){showAlert('Erro ao cancelar: '+(e.message||e));}
 }
 
 function renderTrialBanner(acc){
@@ -1459,7 +1473,7 @@ async function startEnrollMFA(){
     for(const f of ((data&&data.all)||[]).filter(x=>x.status!=='verified')){try{await sb.auth.mfa.unenroll({factorId:f.id});}catch(e){}}
   }catch(e){}
   const {data,error}=await sb.auth.mfa.enroll({factorType:'totp',friendlyName:'North Finances'});
-  if(error){alert('Erro ao iniciar o 2FA: '+error.message);return;}
+  if(error){showAlert('Erro ao iniciar o 2FA: '+error.message);return;}
   mfaEnrollId=data.id;
   document.getElementById('mfa-qr').src=data.totp.qr_code;
   document.getElementById('mfa-secret').textContent=data.totp.secret;
@@ -1468,13 +1482,13 @@ async function startEnrollMFA(){
 }
 async function confirmEnrollMFA(){
   const code=(document.getElementById('mfa-enroll-code').value||'').replace(/\D/g,'');
-  if(code.length!==6){alert('Digite os 6 dígitos que aparecem no aplicativo autenticador.');return;}
+  if(code.length!==6){showAlert('Digite os 6 dígitos que aparecem no aplicativo autenticador.');return;}
   if(!mfaEnrollId)return;
   const {error}=await sb.auth.mfa.challengeAndVerify({factorId:mfaEnrollId,code});
-  if(error){alert(/invalid|expired/i.test(error.message)?'Código incorreto. Confira no aplicativo (o código muda a cada 30 segundos).':'Erro: '+error.message);return;}
+  if(error){showAlert(/invalid|expired/i.test(error.message)?'Código incorreto. Confira no aplicativo (o código muda a cada 30 segundos).':'Erro: '+error.message);return;}
   mfaEnrollId=null;
   document.getElementById('mfa-enroll').style.display='none';
-  alert('2FA ativado! A partir de agora o login pede o código do aplicativo.');
+  showAlert('2FA ativado! A partir de agora o login pede o código do aplicativo.');
   renderMFAStatus();
 }
 async function cancelEnrollMFA(){
@@ -1484,21 +1498,21 @@ async function cancelEnrollMFA(){
 async function disableMFA(){
   const f=await verifiedTotpFactor().catch(()=>null);
   if(!f){renderMFAStatus();return;}
-  const code=prompt('Para desativar o 2FA, digite o código de 6 dígitos do seu aplicativo autenticador:');
+  const code=await showPromptCode('Para desativar o 2FA, digite o código de 6 dígitos do seu aplicativo autenticador:','Desativar 2FA');
   if(code===null)return;
   const clean=String(code).replace(/\D/g,'');
-  if(clean.length!==6){alert('Código inválido.');return;}
+  if(clean.length!==6){showAlert('Código inválido.');return;}
   const {error:vErr}=await sb.auth.mfa.challengeAndVerify({factorId:f.id,code:clean});
-  if(vErr){alert('Código incorreto — o 2FA continua ativado.');return;}
+  if(vErr){showAlert('Código incorreto — o 2FA continua ativado.');return;}
   const {error}=await sb.auth.mfa.unenroll({factorId:f.id});
-  if(error){alert('Erro ao desativar: '+error.message);return;}
-  alert('2FA desativado.');
+  if(error){showAlert('Erro ao desativar: '+error.message);return;}
+  showAlert('2FA desativado.');
   renderMFAStatus();
 }
 
 // ═══ SESSÕES ═══
 async function logoutAllDevices(){
-  if(!confirm('Encerrar a sessão em TODOS os dispositivos (inclusive este)? Você vai precisar entrar de novo em cada um.'))return;
+  if(!(await showConfirm('Encerrar a sessão em TODOS os dispositivos (inclusive este)? Você vai precisar entrar de novo em cada um.',{title:'Sair de todos os dispositivos',confirmLabel:'Encerrar sessões',danger:true})))return;
   try{await sb.auth.signOut({scope:'global'});}catch(e){}
   location.reload();
 }
@@ -1564,7 +1578,7 @@ async function doSetup(){
   if(recoveryMode){
     const {error}=await sb.auth.updateUser({password:pass});
     if(error){showErr(pwErrMsg(error));return;}
-    alert('Senha redefinida com sucesso!');
+    showAlert('Senha redefinida com sucesso!');
     recoveryMode=false;
     const {data:{session}}=await sb.auth.getSession();
     if(session)finishSignIn(session,true);else location.reload();
@@ -1621,10 +1635,10 @@ async function doVerifyCode(){
 async function resendConfirm(){
   if(!pendingEmail)return;
   const ct=await getCaptcha('captcha-confirm');
-  if(captchaOn()&&!ct){alert(CAPTCHA_WAIT_MSG);return;}
+  if(captchaOn()&&!ct){showAlert(CAPTCHA_WAIT_MSG);return;}
   const {error}=await sb.auth.resend({type:'signup',email:pendingEmail,options:{captchaToken:ct}});
   resetCaptcha('captcha-confirm');
-  alert(error?'Erro ao reenviar: '+error.message:'Código reenviado para '+pendingEmail);
+  showAlert(error?'Erro ao reenviar: '+error.message:'Código reenviado para '+pendingEmail);
 }
 
 function doForgot(){
@@ -1871,6 +1885,7 @@ function openModal(id){
   if(id==='recurring-modal')renderRecurringList();
 }
 function closeModal(id){
+  if(id==='msg-modal'){closeMsgModal(false);return;}
   document.getElementById(id).classList.remove('open');
   if(id==='tx-modal')resetTxForm();
   if(id==='inv-modal'){
@@ -1894,15 +1909,59 @@ function closeModal(id){
 document.addEventListener('click',e=>{document.querySelectorAll('.overlay.open').forEach(o=>{if(e.target===o)closeModal(o.id);});});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>closeModal(o.id));});
 
+// ═══ TELAS CUSTOMIZADAS (substituem alert/confirm/prompt nativos do navegador) ═══
+let msgResolve=null;
+function closeMsgModal(result){
+  document.getElementById('msg-modal').classList.remove('open');
+  if(msgResolve){const r=msgResolve;msgResolve=null;r(result);}
+}
+function showAlert(msg,title){
+  return new Promise(resolve=>{
+    document.getElementById('msg-title').textContent=title||'Aviso';
+    document.getElementById('msg-body').textContent=msg;
+    document.getElementById('msg-input-wrap').style.display='none';
+    document.getElementById('msg-actions').innerHTML='<button class="btn btn-primary" onclick="closeMsgModal(true)">OK</button>';
+    msgResolve=resolve;
+    document.getElementById('msg-modal').classList.add('open');
+  });
+}
+function showConfirm(msg,opts){
+  opts=opts||{};
+  return new Promise(resolve=>{
+    document.getElementById('msg-title').textContent=opts.title||'Confirmar';
+    document.getElementById('msg-body').textContent=msg;
+    document.getElementById('msg-input-wrap').style.display='none';
+    document.getElementById('msg-actions').innerHTML=
+      '<button class="btn btn-secondary" onclick="closeMsgModal(false)">'+(opts.cancelLabel||'Cancelar')+'</button>'+
+      '<button class="btn '+(opts.danger?'btn-danger':'btn-primary')+'" onclick="closeMsgModal(true)">'+(opts.confirmLabel||'Confirmar')+'</button>';
+    msgResolve=resolve;
+    document.getElementById('msg-modal').classList.add('open');
+  });
+}
+function showPromptCode(msg,title){
+  return new Promise(resolve=>{
+    document.getElementById('msg-title').textContent=title||'Digite o código';
+    document.getElementById('msg-body').textContent=msg;
+    const wrap=document.getElementById('msg-input-wrap');wrap.style.display='block';
+    const inp=document.getElementById('msg-input');inp.value='';
+    document.getElementById('msg-actions').innerHTML=
+      '<button class="btn btn-secondary" onclick="closeMsgModal(null)">Cancelar</button>'+
+      '<button class="btn btn-primary" onclick="closeMsgModal(document.getElementById(\'msg-input\').value)">Confirmar</button>';
+    msgResolve=resolve;
+    document.getElementById('msg-modal').classList.add('open');
+    setTimeout(()=>inp.focus(),50);
+  });
+}
+
 // ═══ LIMPAR TRANSAÇÕES ═══
-function clearAllTx(){
+async function clearAllTx(){
   const n=S.transactions.length;
-  if(!n){alert('Não há transações para excluir.');return;}
-  if(!confirm('Excluir TODAS as '+n+' transações?\n\nInvestimentos, metas e configurações NÃO serão afetados.'))return;
-  if(!confirm('Tem certeza? Essa ação não pode ser desfeita.'))return;
+  if(!n){showAlert('Não há transações para excluir.');return;}
+  if(!(await showConfirm('Excluir TODAS as '+n+' transações?\n\nInvestimentos, metas e configurações NÃO serão afetados.',{title:'Limpar transações',confirmLabel:'Excluir tudo',danger:true})))return;
+  if(!(await showConfirm('Tem certeza? Essa ação não pode ser desfeita.',{title:'Confirmar exclusão',confirmLabel:'Sim, excluir',danger:true})))return;
   S.transactions=[];
   persist();updateDashboard();renderTxList();populateMonthFilter();
-  alert(n+' transação(ões) excluída(s). Pode importar o extrato do zero.');
+  showAlert(n+' transação(ões) excluída(s). Pode importar o extrato do zero.');
 }
 
 // ═══ CONCILIAÇÃO DE SALDO ═══
@@ -1918,9 +1977,9 @@ function openReconcile(){
 }
 function doReconcile(){
   const real=parseFloat(document.getElementById('rec-real-balance').value);
-  if(isNaN(real)){alert('Digite o saldo real da conta.');return;}
+  if(isNaN(real)){showAlert('Digite o saldo real da conta.');return;}
   const diff=+(real-appBalance()).toFixed(2);
-  if(Math.abs(diff)<0.01){alert('Já está batendo! Nenhum ajuste necessário.');closeModal('reconcile-modal');return;}
+  if(Math.abs(diff)<0.01){showAlert('Já está batendo! Nenhum ajuste necessário.');closeModal('reconcile-modal');return;}
   S.transactions.push({
     id:newId(),
     type:diff>0?'income':'expense',
@@ -1930,7 +1989,7 @@ function doReconcile(){
     category:'Outros'
   });
   persist();closeModal('reconcile-modal');updateDashboard();renderTxList();populateMonthFilter();
-  alert('Ajuste de '+fmtCur(Math.abs(diff))+' criado. O Saldo agora bate com o banco.');
+  showAlert('Ajuste de '+fmtCur(Math.abs(diff))+' criado. O Saldo agora bate com o banco.');
 }
 
 // ═══ REMINDER ═══
@@ -1950,7 +2009,7 @@ function saveTx(){
   const date=document.getElementById('tx-date').value;
   const cat=document.getElementById('tx-cat').value;
   const type=document.querySelector('input[name="txtype"]:checked').value;
-  if(!desc||!amt||!date||!cat){alert('Preencha todos os campos.');return;}
+  if(!desc||!amt||!date||!cat){showAlert('Preencha todos os campos.');return;}
   const tx={id:S.editId||Date.now(),type,description:desc,amount:amt,date,category:cat};
   if(S.editId){const i=S.transactions.findIndex(t=>t.id===S.editId);if(S.transactions[i]&&S.transactions[i].time)tx.time=S.transactions[i].time;S.transactions[i]=tx;}
   else S.transactions.push(tx);
@@ -1968,8 +2027,8 @@ function editTx(id){
   document.getElementById('tx-cat').value=t.category;
   openModal('tx-modal');
 }
-function delTx(id){
-  if(!confirm('Excluir esta transação?'))return;
+async function delTx(id){
+  if(!(await showConfirm('Excluir esta transação?',{title:'Excluir transação',confirmLabel:'Excluir',danger:true})))return;
   S.transactions=S.transactions.filter(t=>t.id!==id);
   persist();updateDashboard();renderTxList();
 }
@@ -1988,15 +2047,15 @@ function saveCC(){
   const date=document.getElementById('cc-date').value;
   const cat=document.getElementById('cc-cat').value;
   const status=document.getElementById('cc-status').value;
-  if(!desc||!amt||!date||!cat){alert('Preencha todos os campos.');return;}
+  if(!desc||!amt||!date||!cat){showAlert('Preencha todos os campos.');return;}
   S.ccItems.push({id:Date.now(),description:desc,amount:amt,date,category:cat,status});
   persistCC();closeModal('cc-modal');
   ['cc-desc','cc-amt','cc-cat'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('cc-status').value='open';
   renderCCPage();updateDashboard();
 }
-function delCC(id){
-  if(!confirm('Excluir lançamento?'))return;
+async function delCC(id){
+  if(!(await showConfirm('Excluir lançamento?',{title:'Excluir lançamento',confirmLabel:'Excluir',danger:true})))return;
   S.ccItems=S.ccItems.filter(c=>c.id!==id);
   persistCC();renderCCPage();updateDashboard();
 }
@@ -2052,8 +2111,8 @@ async function updateCDI(){
 const CRYPTO_IDS={BTC:'bitcoin',ETH:'ethereum',USDC:'usd-coin',USDT:'tether',SOL:'solana',DOT:'polkadot',ADA:'cardano',XRP:'ripple'};
 async function updateQuotes(silent){
   const assets=S.investments.filter(i=>i.kind==='asset'&&i.ticker);
-  if(!assets.length){if(!silent)alert('Nenhum ativo com ticker configurado.\n\nEdite o ativo (✏️) e preencha o campo "Ticker" — ex: BOVA11, MXRF11, BTC, USDC.');return;}
-  if(!navigator.onLine){if(!silent)alert('Sem conexão com a internet. As cotações serão atualizadas quando você estiver online.');return;}
+  if(!assets.length){if(!silent)showAlert('Nenhum ativo com ticker configurado.\n\nEdite o ativo (✏️) e preencha o campo "Ticker" — ex: BOVA11, MXRF11, BTC, USDC.');return;}
+  if(!navigator.onLine){if(!silent)showAlert('Sem conexão com a internet. As cotações serão atualizadas quando você estiver online.');return;}
   const btn=document.getElementById('quotes-btn');
   if(btn){btn.disabled=true;btn.textContent='Atualizando...';}
   let ok=0;const fail=[];
@@ -2089,7 +2148,7 @@ async function updateQuotes(silent){
     if(!silent){
       let msg=ok+' cotação(ões) atualizada(s).';
       if(fail.length)msg+='\nFalhou: '+fail.join(', ')+' — confira se o ticker existe na B3 (ex: BOVA11) e tente de novo em instantes.';
-      alert(msg);
+      showAlert(msg);
     }
   }finally{
     if(btn){btn.disabled=false;btn.textContent='Atualizar cotações';}
@@ -2149,8 +2208,8 @@ function saveInv(){
     const principal=parseFloat(document.getElementById('inv-principal').value);
     const date=document.getElementById('inv-date').value;
     const cdi=parseFloat(document.getElementById('inv-cdi').value);
-    if(!name||!principal||!date){alert('Preencha todos os campos.');return;}
-    if(isNaN(cdi)||cdi<=0||cdi>500){alert('Informe o rendimento em % do CDI (ex: 100 para Caixinha, 115 para Turbo).');return;}
+    if(!name||!principal||!date){showAlert('Preencha todos os campos.');return;}
+    if(isNaN(cdi)||cdi<=0||cdi>500){showAlert('Informe o rendimento em % do CDI (ex: 100 para Caixinha, 115 para Turbo).');return;}
     inv={id:S.invEditId||Date.now(),kind:'cdi',name,principal,date,cdi};
   }else{
     const qty=parseFloat(document.getElementById('inv-qty').value);
@@ -2161,8 +2220,8 @@ function saveInv(){
     const price=parseFloat(document.getElementById('inv-price').value);
     const assetCat=document.getElementById('inv-asset-cat').value;
     const ticker=getInvTicker();
-    if(!name||!qty||isNaN(pm)){alert('Preencha nome, quantidade e preço médio.');return;}
-    if(isNaN(price)&&!ticker){alert('Preencha o Preço Atual ou informe um Ticker para busca automática.');return;}
+    if(!name||!qty||isNaN(pm)){showAlert('Preencha nome, quantidade e preço médio.');return;}
+    if(isNaN(price)&&!ticker){showAlert('Preencha o Preço Atual ou informe um Ticker para busca automática.');return;}
     inv={id:S.invEditId||Date.now(),kind:'asset',name,qty,pm,price:isNaN(price)?pm:price,assetCat,ticker};
   }
   if(S.invEditId){const i=S.investments.findIndex(x=>x.id===S.invEditId);S.investments[i]=inv;}
@@ -2194,8 +2253,8 @@ function editInv(id){
   openModal('inv-modal');
   toggleInvKind();toggleTickerCustom();
 }
-function delInv(id){
-  if(!confirm('Excluir investimento?'))return;
+async function delInv(id){
+  if(!(await showConfirm('Excluir investimento?',{title:'Excluir investimento',confirmLabel:'Excluir',danger:true})))return;
   S.investments=S.investments.filter(x=>x.id!==id);
   persistInv();renderInvPage();updateDashboard();
 }
@@ -2234,7 +2293,7 @@ function saveGoal(){
   const type=document.querySelector('input[name="gtype"]:checked').value;
   const link=document.getElementById('g-link').value;
   const cdi=link?0:(parseInt(document.getElementById('g-cdi').value)||0);
-  if(!name||!target){alert('Preencha nome e valor.');return;}
+  if(!name||!target){showAlert('Preencha nome e valor.');return;}
   const existing=S.goalEditId?S.goals.find(x=>x.id===S.goalEditId):null;
   const unchanged=existing&&cdi>0&&existing.cdi===cdi&&existing.current===current;
   const cdiStartDate=unchanged?existing.cdiStartDate:(cdi>0?new Date().toISOString().split('T')[0]:null);
@@ -2261,8 +2320,8 @@ function editGoal(id){
   if(cdiInfo)cdiInfo.style.display=(g.cdi>0)?'block':'none';
   openModal('goal-modal');
 }
-function delGoal(id){
-  if(!confirm('Excluir esta meta?'))return;
+async function delGoal(id){
+  if(!(await showConfirm('Excluir esta meta?',{title:'Excluir meta',confirmLabel:'Excluir',danger:true})))return;
   S.goals=S.goals.filter(x=>x.id!==id);
   persistGoals();renderGoalsPage();updateDashboard();
 }
@@ -2714,9 +2773,9 @@ function renderImportPreview(filename){
     }).join('')+'</div>';
 }
 function toggleAllImport(state){document.querySelectorAll('.imp-chk').forEach(c=>c.checked=state);}
-function confirmImport(){
+async function confirmImport(){
   const sel=[...document.querySelectorAll('.imp-chk:checked')].map(c=>parseInt(c.dataset.i));
-  if(!sel.length){alert('Selecione ao menos uma.');return;}
+  if(!sel.length){showAlert('Selecione ao menos uma.');return;}
   let added=0,dup=0;
   sel.forEach(i=>{
     const t=parsedRows[i];
@@ -2730,7 +2789,7 @@ function confirmImport(){
     const diff=+(parsedBal.amt-appBalance()).toFixed(2);
     if(Math.abs(diff)<0.01){
       balMsg='<br>Saldo conferido: bate com o extrato ('+fmtCur(parsedBal.amt)+')';
-    }else if(confirm('O extrato informa saldo final de '+fmtCur(parsedBal.amt)+'.\nO app calculou '+fmtCur(appBalance())+'.\n\nCriar ajuste automático de '+fmtCur(Math.abs(diff))+' para conciliar?')){
+    }else if(await showConfirm('O extrato informa saldo final de '+fmtCur(parsedBal.amt)+'.\nO app calculou '+fmtCur(appBalance())+'.\n\nCriar ajuste automático de '+fmtCur(Math.abs(diff))+' para conciliar?',{title:'Conciliar saldo',confirmLabel:'Criar ajuste'})){
       S.transactions.push({id:newId(),type:diff>0?'income':'expense',description:'Ajuste de conciliação (saldo do extrato)',amount:Math.abs(diff),date:parsedBal.date,category:'Outros'});
       persist();updateDashboard();populateMonthFilter();
       balMsg='<br>Saldo conciliado automaticamente com o extrato ('+fmtCur(parsedBal.amt)+')';
@@ -2823,7 +2882,7 @@ function saveSettings(){
   const cc=document.getElementById('set-show-cc');if(cc)S.settings.showCC=cc.checked;
   persistSettings();
   applyModules();
-  alert('Configurações salvas!');
+  showAlert('Configurações salvas!');
 }
 
 // ═══ RECURRING ═══
@@ -2833,8 +2892,8 @@ function saveRecurring(){
   const amt=parseFloat(document.getElementById('r-amt').value);
   const cat=document.getElementById('r-cat').value;
   const day=parseInt(document.getElementById('r-day').value)||5;
-  if(!desc||!amt||!cat){alert('Preencha todos os campos.');return;}
-  if(day<1||day>28){alert('Dia deve ser entre 1 e 28.');return;}
+  if(!desc||!amt||!cat){showAlert('Preencha todos os campos.');return;}
+  if(day<1||day>28){showAlert('Dia deve ser entre 1 e 28.');return;}
   S.recurring.push({id:Date.now(),type,description:desc,amount:amt,category:cat,day,active:true,lastGenerated:''});
   persistRecurring();renderRecurringList();
   document.getElementById('r-desc').value='';
@@ -2843,8 +2902,8 @@ function saveRecurring(){
   document.getElementById('r-day').value='5';
   document.querySelector('input[name="rtype"][value="income"]').checked=true;
 }
-function delRecurring(id){
-  if(!confirm('Excluir recorrência?'))return;
+async function delRecurring(id){
+  if(!(await showConfirm('Excluir recorrência?',{title:'Excluir recorrência',confirmLabel:'Excluir',danger:true})))return;
   S.recurring=S.recurring.filter(x=>x.id!==id);
   persistRecurring();renderRecurringList();
 }
@@ -2920,11 +2979,11 @@ function editBudget(id){
 function saveBudget(){
   const cat=document.getElementById('b-cat').value;
   const limit=parseFloat(document.getElementById('b-limit').value);
-  if(!cat){alert('Escolha a categoria.');return;}
-  if(!limit||limit<=0){alert('Informe um limite maior que zero.');return;}
+  if(!cat){showAlert('Escolha a categoria.');return;}
+  if(!limit||limit<=0){showAlert('Informe um limite maior que zero.');return;}
   const dup=S.budgets.find(b=>b.category===cat&&b.id!==S.budgetEditId);
   if(S.budgetEditId){
-    if(dup){alert('Já existe um limite para essa categoria.');return;}
+    if(dup){showAlert('Já existe um limite para essa categoria.');return;}
     const b=S.budgets.find(x=>x.id===S.budgetEditId);
     if(b){b.category=cat;b.limit=limit;}
   }else if(dup){
@@ -2937,8 +2996,8 @@ function saveBudget(){
   closeModal('budget-modal');
   renderBudgetPage();
 }
-function delBudget(id){
-  if(!confirm('Remover este limite?'))return;
+async function delBudget(id){
+  if(!(await showConfirm('Remover este limite?',{title:'Remover limite',confirmLabel:'Remover',danger:true})))return;
   S.budgets=S.budgets.filter(x=>x.id!==id);
   persistBudgets();
   renderBudgetPage();
@@ -3023,9 +3082,9 @@ function saveBill(){
   const amt=parseFloat(document.getElementById('bl-amt').value);
   const day=parseInt(document.getElementById('bl-day').value);
   const cat=document.getElementById('bl-cat').value||'Contas';
-  if(!name){alert('Dê um nome para a conta.');return;}
-  if(!amt||amt<=0){alert('Informe o valor da conta.');return;}
-  if(!day||day<1||day>31){alert('O dia do vencimento deve ser entre 1 e 31.');return;}
+  if(!name){showAlert('Dê um nome para a conta.');return;}
+  if(!amt||amt<=0){showAlert('Informe o valor da conta.');return;}
+  if(!day||day<1||day>31){showAlert('O dia do vencimento deve ser entre 1 e 31.');return;}
   if(S.billEditId){
     const b=S.bills.find(x=>x.id===S.billEditId);
     if(b){b.name=name;b.amount=amt;b.day=day;b.category=cat;}
@@ -3038,8 +3097,8 @@ function saveBill(){
   renderBillsPage();
   renderBillsAlert();
 }
-function delBill(id){
-  if(!confirm('Excluir esta conta? Os lembretes dela param de ser enviados.'))return;
+async function delBill(id){
+  if(!(await showConfirm('Excluir esta conta? Os lembretes dela param de ser enviados.',{title:'Excluir conta',confirmLabel:'Excluir',danger:true})))return;
   S.bills=S.bills.filter(x=>x.id!==id);
   persistBills();
   renderBillsPage();
@@ -3056,9 +3115,9 @@ function markBillPaid(id){
   populateMonthFilter();
   updateDashboard();
 }
-function unmarkBillPaid(id){
+async function unmarkBillPaid(id){
   const b=S.bills.find(x=>x.id===id);if(!b)return;
-  if(!confirm('Desfazer o pagamento deste mês? A despesa lançada nas transações não é apagada — remova lá se precisar.'))return;
+  if(!(await showConfirm('Desfazer o pagamento deste mês? A despesa lançada nas transações não é apagada — remova lá se precisar.',{title:'Desfazer pagamento',confirmLabel:'Desfazer'})))return;
   const month=monthKeyOf(new Date());
   b.paidMonths=(b.paidMonths||[]).filter(m=>m!==month);
   persistBills();
