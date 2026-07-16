@@ -145,7 +145,7 @@ a:hover{border-bottom-color:var(--gold-d)}
   <p>A visão geral do mês assim que você entra no app.</p>
   <ul>
     <li>Cartões de <strong>receitas, despesas e saldo</strong> atualizados na hora.</li>
-    <li>Gráfico de receitas × despesas ao longo dos meses.</li>
+    <li>Gráfico de receitas × despesas ao longo dos meses — escolha entre <strong>linhas</strong> ou <strong>barras</strong> no seletor ao lado do período.</li>
     <li><strong>"Pra onde foi seu dinheiro"</strong> — ranking de gastos por categoria, comparado ao mês anterior.</li>
     <li>Aviso automático quando alguma <strong>conta a pagar</strong> está vencendo nos próximos dias.</li>
   </ul>
@@ -156,6 +156,10 @@ a:hover{border-bottom-color:var(--gold-d)}
         <div class="mcard"><span class="l">Receitas</span><span class="v" style="color:var(--green)">R$ 4.250,00</span></div>
         <div class="mcard"><span class="l">Despesas</span><span class="v" style="color:var(--red)">R$ 2.180,00</span></div>
         <div class="mcard"><span class="l">Saldo</span><span class="v">R$ 2.070,00</span></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:10px">
+        <span style="font-size:10.5px;color:var(--ink3);border:1px solid var(--paper3);border-radius:20px;padding:3px 10px">Gráfico de linhas ▾</span>
+        <span style="font-size:10.5px;color:var(--ink3);border:1px solid var(--paper3);border-radius:20px;padding:3px 10px">Últimos 6 meses ▾</span>
       </div>
       <svg viewBox="0 0 300 80" style="width:100%;height:70px;display:block;margin-bottom:16px">
         <polyline points="0,60 40,50 80,54 120,30 160,36 200,16 240,22 300,8" style="fill:none;stroke:var(--green);stroke-width:2.5"/>
