@@ -356,6 +356,16 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
   </div>
 </div>
 
+<div id="kicked-screen" style="position:fixed;inset:0;z-index:10004;background:#0d0d0d;display:none;align-items:center;justify-content:center;overflow:auto;padding:24px">
+  <div class="login-box" style="text-align:center;max-width:440px">
+    <div class="login-brand" style="margin-bottom:6px">North<span> Finances</span></div>
+    <p style="font-size:19px;font-weight:800;margin-bottom:6px;letter-spacing:-.3px">Sessão encerrada</p>
+    <p class="login-sub" style="text-align:center">Detectamos um novo acesso à sua conta em outro dispositivo ou navegador. Por segurança, esta sessão foi encerrada automaticamente.</p>
+    <button class="lbtn" onclick="backToLoginAfterKick()">Entrar novamente</button>
+    <p style="text-align:center;margin-top:16px;font-size:11.5px;color:var(--ink3)">Não foi você? Troque sua senha assim que entrar novamente.</p>
+  </div>
+</div>
+
 <div id="paywall-screen" style="position:fixed;inset:0;z-index:10002;background:#0d0d0d;display:none;align-items:center;justify-content:center;overflow:auto;padding:24px">
   <div class="login-box" style="text-align:center;max-width:440px">
     <div class="login-brand" style="margin-bottom:6px">North<span> Finances</span></div>
@@ -1183,11 +1193,12 @@ function esc(s){
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-async function onSignedIn(session){
+async function onSignedIn(session,fresh){
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('confirm-screen').style.display='none';
   document.getElementById('forgot-screen').style.display='none';
   document.getElementById('login-screen').classList.add('hidden');
+  claimSession(session.user.id,!!fresh);
   const sub=await getSubscription(session.user.id);
   const acc=subAccess(sub);
   if(!acc.ok){ showPaywall(acc); return; }
@@ -1436,7 +1447,7 @@ async function finishSignIn(session,fresh){
     if(aal&&aal.nextLevel==='aal2'&&aal.currentLevel!==aal.nextLevel){showMFAScreen(fresh);return;}
   }catch(e){}
   if(fresh)sendLoginAlert();
-  onSignedIn(session);
+  onSignedIn(session,fresh);
 }
 function showMFAScreen(fresh){
   mfaFresh=!!fresh;
@@ -1477,7 +1488,7 @@ async function doVerifyMFA(){
   const {data:{session}}=await sb.auth.getSession();
   if(!session){location.reload();return;}
   if(mfaFresh)sendLoginAlert();
-  onSignedIn(session);
+  onSignedIn(session,mfaFresh);
 }
 async function mfaLogout(){try{await sb.auth.signOut();}catch(e){}location.reload();}
 
@@ -1536,9 +1547,67 @@ async function disableMFA(){
   renderMFAStatus();
 }
 
+// ═══ SESSÃO ÚNICA POR DISPOSITIVO/NAVEGADOR ═══
+// Login "fresh" (senha digitada de novo) assume a sessão e derruba qualquer outra.
+// Restauração de sessão (aba/reload no mesmo navegador já logado) só adota a
+// sessão vigente, sem derrubar ninguém — evita abas do mesmo login se derrubarem entre si.
+let mySessionId=null,sessionCheckTimer=null;
+function deviceLabel(){
+  const ua=navigator.userAgent;
+  if(IS_ELECTRON)return'Aplicativo North Finances (desktop)';
+  if(/Android/i.test(ua))return'Navegador (Android)';
+  if(/iPhone|iPad/i.test(ua))return'Navegador (iPhone/iPad)';
+  if(/Windows/i.test(ua))return'Navegador (Windows)';
+  if(/Macintosh|Mac OS/i.test(ua))return'Navegador (Mac)';
+  if(/Linux/i.test(ua))return'Navegador (Linux)';
+  return'Dispositivo não identificado';
+}
+async function claimSession(uid,fresh){
+  try{
+    if(fresh){
+      mySessionId=crypto.randomUUID();
+      sessionStorage.setItem('nf_session_id',mySessionId);
+      await sb.from('active_sessions').upsert({user_id:uid,session_id:mySessionId,device_label:deviceLabel(),updated_at:new Date().toISOString()});
+    }else{
+      mySessionId=sessionStorage.getItem('nf_session_id');
+      if(!mySessionId){
+        const{data}=await sb.from('active_sessions').select('session_id').eq('user_id',uid).maybeSingle();
+        mySessionId=(data&&data.session_id)||crypto.randomUUID();
+        sessionStorage.setItem('nf_session_id',mySessionId);
+        if(!data)await sb.from('active_sessions').upsert({user_id:uid,session_id:mySessionId,device_label:deviceLabel(),updated_at:new Date().toISOString()});
+      }
+    }
+    startSessionWatch(uid);
+  }catch(e){/* falha de rede não deve travar o login */}
+}
+function startSessionWatch(uid){
+  clearInterval(sessionCheckTimer);
+  sessionCheckTimer=setInterval(async()=>{
+    try{
+      const{data,error}=await sb.from('active_sessions').select('session_id').eq('user_id',uid).maybeSingle();
+      if(error||!data)return;
+      if(data.session_id!==mySessionId)showKickedScreen();
+    }catch(e){}
+  },25000);
+}
+function showKickedScreen(){
+  clearInterval(sessionCheckTimer);
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('paywall-screen').style.display='none';
+  document.getElementById('kicked-screen').style.display='flex';
+}
+async function backToLoginAfterKick(){
+  try{await sb.auth.signOut();}catch(e){}
+  location.reload();
+}
+
 // ═══ SESSÕES ═══
 async function logoutAllDevices(){
   if(!(await showConfirm('Encerrar a sessão em TODOS os dispositivos (inclusive este)? Você vai precisar entrar de novo em cada um.',{title:'Sair de todos os dispositivos',confirmLabel:'Encerrar sessões',danger:true})))return;
+  try{
+    const{data:{user}}=await sb.auth.getUser();
+    if(user)await sb.from('active_sessions').delete().eq('user_id',user.id);
+  }catch(e){}
   try{await sb.auth.signOut({scope:'global'});}catch(e){}
   location.reload();
 }
@@ -1730,6 +1799,11 @@ async function doResetWithCode(){
 }
 
 async function doLogout(){
+  clearInterval(sessionCheckTimer);
+  try{
+    const{data:{user}}=await sb.auth.getUser();
+    if(user)await sb.from('active_sessions').delete().eq('user_id',user.id);
+  }catch(e){}
   try{await sb.auth.signOut();}catch(e){}
   location.reload();
 }
