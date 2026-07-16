@@ -1133,7 +1133,7 @@ let cloudReady=false,cloudTimer=null,recoveryMode=false;
 
 function setSync(state){
   const el=document.getElementById('sync-status');if(!el)return;
-  const m={ok:'Sincronizado',saving:'Salvando...',offline:'Offline — usando dados locais'};
+  const m={ok:'☁️ Sincronizado',saving:'☁️ Salvando...',offline:'Offline — usando dados locais'};
   el.textContent=m[state]||'';
   el.style.color=state==='offline'?'#f87171':'var(--ink4)';
 }
