@@ -657,7 +657,10 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Suporte</span></div>
         <p style="font-size:13px;color:var(--ink2);margin-bottom:12px">Precisa de ajuda ou tem alguma dúvida? Fale com a gente — respondemos por e-mail.</p>
-        <a class="btn btn-secondary" href="mailto:suporte@northfinances.com.br" style="text-decoration:none">Falar com o suporte</a>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn btn-secondary" href="mailto:suporte@northfinances.com.br" style="text-decoration:none">Falar com o suporte</a>
+          <a class="btn btn-secondary" href="manual.html" target="_blank" rel="noopener" style="text-decoration:none">Ver manual do usuário</a>
+        </div>
       </div>
 
       <div class="panel">
@@ -1068,6 +1071,20 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
   </div>
 </div>
 
+<!-- MODAL: BOAS-VINDAS (primeiro login) -->
+<div class="overlay" id="welcome-modal">
+  <div class="modal">
+    <div class="mhead"><h3>Bem-vindo ao North Finances!</h3></div>
+    <div class="mbody">
+      <p style="font-size:14px;color:var(--ink2);line-height:1.6;margin-bottom:20px">Preparamos um manual rápido mostrando o que cada menu faz — Dashboard, Orçamento, Contas a Pagar, Investimentos e mais. Leva menos de 5 minutos e você já sai sabendo tirar o máximo proveito do app.</p>
+      <div class="factions" style="flex-direction:column;gap:10px">
+        <a class="btn btn-primary" href="manual.html" target="_blank" rel="noopener" onclick="closeModal('welcome-modal')" style="text-decoration:none;text-align:center">Ver o manual completo</a>
+        <button class="btn btn-secondary" onclick="closeModal('welcome-modal')">Explorar sozinho</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: MENSAGENS (substitui alert/confirm/prompt nativos do navegador) -->
 <div class="overlay" id="msg-modal" style="z-index:10010">
   <div class="modal" style="max-width:380px">
@@ -1174,6 +1191,7 @@ async function onSignedIn(session){
   cloudReady=true;
   initApp();
   renderMFAStatus();
+  if(!S.settings.manualSeen)openModal('welcome-modal');
 }
 
 // ═══ ASSINATURA / PAYWALL ═══
@@ -1886,6 +1904,7 @@ function openModal(id){
 function closeModal(id){
   if(id==='msg-modal'){closeMsgModal(false);return;}
   document.getElementById(id).classList.remove('open');
+  if(id==='welcome-modal'){S.settings.manualSeen=true;persistSettings();}
   if(id==='tx-modal')resetTxForm();
   if(id==='inv-modal'){
     S.invEditId=null;
