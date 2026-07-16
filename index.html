@@ -2774,21 +2774,33 @@ function renderImportPreview(filename){
     prev.innerHTML='<div style="background:var(--redl);color:var(--red);padding:13px;border-radius:10px;margin-top:6px">Nenhuma transação encontrada em <strong>'+filename+'</strong>. Verifique se é OFX ou CSV válido.</div>';
     return;
   }
+  const rows=parsedRows.map((t,i)=>{
+    const exact=S.transactions.some(x=>x.description===t.description&&x.amount===t.amount&&x.date===t.date);
+    const maybe=!exact&&S.transactions.some(x=>x.amount===t.amount&&x.date===t.date);
+    return {t,i,exact,maybe};
+  });
+  const nExact=rows.filter(r=>r.exact).length;
+  const nMaybe=rows.filter(r=>r.maybe).length;
+  const nNew=rows.length-nExact-nMaybe;
+  const summary='<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;margin-bottom:12px">'+
+    '<span><b style="color:var(--green)">'+nNew+'</b> nova(s)</span>'+
+    (nMaybe?'<span><b style="color:#b45309">'+nMaybe+'</b> possível(is) duplicata(s) — revise antes de importar</span>':'')+
+    (nExact?'<span><b style="color:var(--ink3)">'+nExact+'</b> já importada(s)</span>':'')+
+    '</div>';
   prev.innerHTML=
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;margin-top:10px;flex-wrap:wrap;gap:8px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;margin-top:10px;flex-wrap:wrap;gap:8px">'+
     '<div style="font-weight:700;font-size:14px">'+filename+' — <span style="color:var(--gold)">'+parsedRows.length+' transação(ões)</span>'+(parsedBal?' · Saldo final do extrato: <span style="color:var(--gold)">'+fmtCur(parsedBal.amt)+'</span>':'')+'</div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
     '<button class="btn btn-secondary btn-sm" onclick="toggleAllImport(true)">Selecionar tudo</button>'+
     '<button class="btn btn-secondary btn-sm" onclick="toggleAllImport(false)">Desmarcar tudo</button>'+
     '<button class="btn btn-gold" onclick="confirmImport()">Importar selecionadas</button></div></div>'+
-    '<div id="imp-rows">'+parsedRows.map((t,i)=>{
-      const exact=S.transactions.some(x=>x.description===t.description&&x.amount===t.amount&&x.date===t.date);
-      const maybe=!exact&&S.transactions.some(x=>x.amount===t.amount&&x.date===t.date);
+    summary+
+    '<div id="imp-rows">'+rows.map(({t,i,exact,maybe})=>{
       const flag=exact
         ?'<span class="badge" style="background:var(--paper3);color:var(--ink3)">Já importada</span>'
         :maybe?'<span class="badge" style="background:#fef3c7;color:#b45309">Possível duplicata</span>':'';
-      return '<div class="imp-row"'+(exact?' style="opacity:.5"':'')+'>'+
-      '<input type="checkbox" class="chk imp-chk" data-i="'+i+'"'+(exact?' disabled':(maybe?'':' checked'))+'>'+
+      return '<div class="imp-row"'+(exact?' style="opacity:.5"':(maybe?' style="background:#fef3c7;border-left:3px solid #f0b429"':''))+'>'+
+      '<input type="checkbox" class="chk imp-chk" data-i="'+i+'"'+(maybe?' data-maybe="1"':'')+(exact?' disabled':(maybe?'':' checked'))+'>'+
       '<span class="badge '+(t.type==='income'?'badge-in':'badge-out')+'">'+(t.type==='income'?'Receita':'Despesa')+'</span>'+
       '<span style="flex:1;font-weight:500;min-width:120px">'+esc(t.description)+'</span>'+
       flag+
@@ -2798,10 +2810,22 @@ function renderImportPreview(filename){
       '</div>';
     }).join('')+'</div>';
 }
-function toggleAllImport(state){document.querySelectorAll('.imp-chk').forEach(c=>c.checked=state);}
+function toggleAllImport(state){
+  document.querySelectorAll('.imp-chk').forEach(c=>{
+    if(state&&c.dataset.maybe==='1')return; // "Selecionar tudo" não marca possíveis duplicatas sozinho
+    c.checked=state;
+  });
+}
 async function confirmImport(){
   const sel=[...document.querySelectorAll('.imp-chk:checked')].map(c=>parseInt(c.dataset.i));
   if(!sel.length){showAlert('Selecione ao menos uma.');return;}
+  const maybeChecked=document.querySelectorAll('.imp-chk:checked[data-maybe="1"]').length;
+  if(maybeChecked>0){
+    const msg=maybeChecked===1
+      ?'1 transação selecionada tem a mesma data e valor de um lançamento que já existe. Quer importar mesmo assim?'
+      :maybeChecked+' transações selecionadas têm a mesma data e valor de lançamentos que já existem. Quer importar mesmo assim?';
+    if(!(await showConfirm(msg,{title:'Possíveis duplicatas',confirmLabel:'Importar mesmo assim'})))return;
+  }
   let added=0,dup=0;
   sel.forEach(i=>{
     const t=parsedRows[i];
