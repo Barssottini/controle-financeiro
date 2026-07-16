@@ -1178,7 +1178,6 @@ async function onSignedIn(session){
 
 // ═══ ASSINATURA / PAYWALL ═══
 const FN_BASE=SUPA_URL+'/functions/v1';
-function fmtDate(d){try{return new Date(d).toLocaleDateString('pt-BR');}catch(e){return '';}}
 function daysLeft(d){return Math.max(0,Math.ceil((new Date(d).getTime()-Date.now())/86400000));}
 
 async function getSubscription(uid){
@@ -2411,7 +2410,12 @@ function renderGoalsPage(){
 
 // ═══ RENDER / DASHBOARD ═══
 function fmtCur(v){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);}
-function fmtDate(s){return new Date(s+'T00:00:00').toLocaleDateString('pt-BR');}
+function fmtDate(d){
+  try{
+    const dt=typeof d==='number'?new Date(d):new Date(d+'T00:00:00');
+    return dt.toLocaleDateString('pt-BR');
+  }catch(e){return '';}
+}
 function emptyHTML(msg){return '<div class="empty"><p>'+msg+'</p></div>';}
 
 function updateDashboard(){
