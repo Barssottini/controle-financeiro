@@ -458,10 +458,16 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
       <div class="panel">
         <div class="panel-head">
           <span class="panel-title">Receitas × Despesas</span>
-          <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="chart-period" onchange="renderChart()">
-            <option value="6">Últimos 6 meses</option>
-            <option value="12">Últimos 12 meses</option>
-          </select>
+          <div style="display:flex;gap:8px">
+            <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="chart-type" onchange="S.settings.chartType=this.value;persistSettings();renderChart()">
+              <option value="line">Gráfico de linhas</option>
+              <option value="bar">Gráfico de barras</option>
+            </select>
+            <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="chart-period" onchange="renderChart()">
+              <option value="6">Últimos 6 meses</option>
+              <option value="12">Últimos 12 meses</option>
+            </select>
+          </div>
         </div>
         <div class="chart-wrap"><canvas id="dash-chart"></canvas></div>
       </div>
@@ -2593,6 +2599,9 @@ function populateMonthFilter(){
 
 // ═══ CHART ═══
 function renderChart(){
+  const chartType=S.settings.chartType==='bar'?'bar':'line';
+  const typeSel=document.getElementById('chart-type');
+  if(typeSel)typeSel.value=chartType;
   const months=parseInt(document.getElementById('chart-period')?.value||6);
   const labels=[],incData=[],expData=[];
   const now=new Date();
@@ -2605,16 +2614,20 @@ function renderChart(){
   }
   const ctx=document.getElementById('dash-chart').getContext('2d');
   if(dashChart)dashChart.destroy();
+  const datasets=chartType==='bar'?[
+    {label:'Receitas',data:incData,backgroundColor:'rgba(38,122,72,.7)',borderRadius:6,borderSkipped:false},
+    {label:'Despesas',data:expData,backgroundColor:'rgba(184,50,40,.65)',borderRadius:6,borderSkipped:false}
+  ]:[
+    {label:'Receitas',data:incData,borderColor:'#267a48',backgroundColor:'rgba(38,122,72,.12)',
+      pointBackgroundColor:'#267a48',pointBorderColor:'#faf9f7',pointBorderWidth:2,pointRadius:4,pointHoverRadius:6,
+      borderWidth:2.5,tension:.35,fill:true},
+    {label:'Despesas',data:expData,borderColor:'#b83228',backgroundColor:'rgba(184,50,40,.1)',
+      pointBackgroundColor:'#b83228',pointBorderColor:'#faf9f7',pointBorderWidth:2,pointRadius:4,pointHoverRadius:6,
+      borderWidth:2.5,tension:.35,fill:true}
+  ];
   dashChart=new Chart(ctx,{
-    type:'line',
-    data:{labels,datasets:[
-      {label:'Receitas',data:incData,borderColor:'#267a48',backgroundColor:'rgba(38,122,72,.12)',
-        pointBackgroundColor:'#267a48',pointBorderColor:'#faf9f7',pointBorderWidth:2,pointRadius:4,pointHoverRadius:6,
-        borderWidth:2.5,tension:.35,fill:true},
-      {label:'Despesas',data:expData,borderColor:'#b83228',backgroundColor:'rgba(184,50,40,.1)',
-        pointBackgroundColor:'#b83228',pointBorderColor:'#faf9f7',pointBorderWidth:2,pointRadius:4,pointHoverRadius:6,
-        borderWidth:2.5,tension:.35,fill:true}
-    ]},
+    type:chartType,
+    data:{labels,datasets},
     options:{
       responsive:true,maintainAspectRatio:false,
       interaction:{intersect:false,mode:'index'},
