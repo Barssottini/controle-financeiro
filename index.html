@@ -501,7 +501,9 @@ body.values-hidden #dash-chart{filter:blur(6px)}
               <option value="bar">Gráfico de barras</option>
             </select>
             <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="chart-period" onchange="renderChart()">
-              <option value="6">Últimos 6 meses</option>
+              <option value="7d">Últimos 7 dias</option>
+              <option value="30d">Últimos 30 dias</option>
+              <option value="6" selected>Últimos 6 meses</option>
               <option value="12">Últimos 12 meses</option>
             </select>
           </div>
@@ -2827,15 +2829,28 @@ function renderChart(){
   const chartType=S.settings.chartType==='bar'?'bar':'line';
   const typeSel=document.getElementById('chart-type');
   if(typeSel)typeSel.value=chartType;
-  const months=parseInt(document.getElementById('chart-period')?.value||6);
+  const periodVal=document.getElementById('chart-period')?.value||'6';
+  const daily=/d$/.test(periodVal);
   const labels=[],incData=[],expData=[];
   const now=new Date();
-  for(let i=months-1;i>=0;i--){
-    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
-    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    labels.push(d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}));
-    incData.push(S.transactions.filter(t=>t.type==='income'&&t.date.startsWith(key)).reduce((s,t)=>s+t.amount,0));
-    expData.push(S.transactions.filter(t=>t.type==='expense'&&t.date.startsWith(key)).reduce((s,t)=>s+t.amount,0));
+  if(daily){
+    const days=parseInt(periodVal);
+    for(let i=days-1;i>=0;i--){
+      const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i);
+      const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      labels.push(d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}));
+      incData.push(S.transactions.filter(t=>t.type==='income'&&t.date===key).reduce((s,t)=>s+t.amount,0));
+      expData.push(S.transactions.filter(t=>t.type==='expense'&&t.date===key).reduce((s,t)=>s+t.amount,0));
+    }
+  }else{
+    const months=parseInt(periodVal);
+    for(let i=months-1;i>=0;i--){
+      const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+      const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      labels.push(d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}));
+      incData.push(S.transactions.filter(t=>t.type==='income'&&t.date.startsWith(key)).reduce((s,t)=>s+t.amount,0));
+      expData.push(S.transactions.filter(t=>t.type==='expense'&&t.date.startsWith(key)).reduce((s,t)=>s+t.amount,0));
+    }
   }
   const ctx=document.getElementById('dash-chart').getContext('2d');
   if(dashChart)dashChart.destroy();
@@ -2859,7 +2874,7 @@ function renderChart(){
       plugins:{legend:{position:'top',labels:{font:{family:'Plus Jakarta Sans',size:12},color:'#383533'}},
         tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtCur(ctx.raw)}`}}},
       scales:{
-        x:{grid:{display:false},ticks:{font:{family:'Plus Jakarta Sans',size:12},color:'#79736d'}},
+        x:{grid:{display:false},ticks:{font:{family:'Plus Jakarta Sans',size:12},color:'#79736d',autoSkip:true,maxTicksLimit:15}},
         y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{family:'Plus Jakarta Sans',size:11},color:'#79736d',callback:v=>fmtCur(v)}}
       }
     }
