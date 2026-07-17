@@ -82,9 +82,15 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .page{display:none}.page.active{display:block;animation:pageIn .18s ease}
 @keyframes pageIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 #toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(70px);z-index:10008;background:var(--ink);color:var(--paper);padding:11px 20px;border-radius:100px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:9px;box-shadow:0 14px 40px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:transform .3s cubic-bezier(.22,.8,.3,1),opacity .3s}
-#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
 #toast .tk{color:#7dc98f;font-weight:800}
-@media(prefers-reduced-motion:reduce){.page.active{animation:none}.goal-bar-fill,.cat-bar{transition:none}}
+#toast-undo{background:none;border:none;color:var(--gold);font-family:var(--ff);font-weight:800;font-size:13px;cursor:pointer;padding:3px 4px;margin-left:5px}
+#toast-undo:hover{color:var(--goldl)}
+@keyframes txflash{0%{background:var(--goldl)}100%{background:transparent}}
+.tx-item.just-added{animation:txflash 1.4s ease}
+.donut-svg{width:100%;height:100%;display:block}
+.donut-seg{transition:stroke-dasharray .9s cubic-bezier(.3,.6,.3,1)}
+@media(prefers-reduced-motion:reduce){.page.active{animation:none}.goal-bar-fill,.cat-bar,.donut-seg{transition:none}.tx-item.just-added{animation:none}}
 .ph{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px}
 .pt{font-size:28px;font-weight:800;color:var(--ink);letter-spacing:-.6px;line-height:1}
 .ps{font-size:13px;color:var(--ink3);margin-top:5px;font-weight:400}
@@ -505,7 +511,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
       <div class="panel">
         <div class="panel-head">
           <span class="panel-title">Pra onde foi seu dinheiro</span>
-          <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="cat-month" onchange="renderCatBreakdown()"></select>
+          <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="cat-month" onchange="_donutAnimate=true;renderCatBreakdown()"></select>
         </div>
         <div id="cat-breakdown"></div>
       </div>
@@ -1140,7 +1146,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 </div>
 
 <!-- TOAST: confirmação discreta de ações -->
-<div id="toast"><span class="tk">✓</span><span id="toast-msg"></span></div>
+<div id="toast"><span class="tk">✓</span><span id="toast-msg"></span><button id="toast-undo">Desfazer</button></div>
 
 <script>
 // ═══ PWA ═══
@@ -2020,7 +2026,7 @@ function showPage(id){
   document.querySelectorAll('.navi').forEach(n=>n.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.navi').forEach(n=>{if((n.getAttribute('onclick')||'').includes("'"+id+"'"))n.classList.add('active');});
-  if(id==='dashboard'){updateDashboard();renderChart();}
+  if(id==='dashboard'){_donutAnimate=true;updateDashboard();renderChart();}
   if(id==='transactions')renderTxList();
   if(id==='credit-card')renderCCPage();
   if(id==='investments'){
@@ -2182,6 +2188,7 @@ function saveTx(){
   else S.transactions.push(tx);
   persist();closeModal('tx-modal');updateDashboard();renderTxList();populateMonthFilter();
   toast('Transação salva');
+  flashItem(tx.id);
 }
 function editTx(id){
   const t=S.transactions.find(x=>x.id===id);if(!t)return;
@@ -2195,10 +2202,8 @@ function editTx(id){
   document.getElementById('tx-cat').value=t.category;
   openModal('tx-modal');
 }
-async function delTx(id){
-  if(!(await showConfirm('Excluir esta transação?',{title:'Excluir transação',confirmLabel:'Excluir',danger:true})))return;
-  S.transactions=S.transactions.filter(t=>t.id!==id);
-  persist();updateDashboard();renderTxList();
+function delTx(id){
+  delFromArray(S.transactions,id,persist,function(){updateDashboard();renderTxList();},'Transação excluída');
 }
 function resetTxForm(){
   document.getElementById('modal-title').textContent='Nova Transação';
@@ -2223,10 +2228,8 @@ function saveCC(){
   renderCCPage();updateDashboard();
   toast('Lançamento salvo');
 }
-async function delCC(id){
-  if(!(await showConfirm('Excluir lançamento?',{title:'Excluir lançamento',confirmLabel:'Excluir',danger:true})))return;
-  S.ccItems=S.ccItems.filter(c=>c.id!==id);
-  persistCC();renderCCPage();updateDashboard();
+function delCC(id){
+  delFromArray(S.ccItems,id,persistCC,function(){renderCCPage();updateDashboard();},'Lançamento excluído');
 }
 function toggleCCStatus(id){
   const c=S.ccItems.find(x=>x.id===id);if(!c)return;
@@ -2423,10 +2426,8 @@ function editInv(id){
   openModal('inv-modal');
   toggleInvKind();toggleTickerCustom();
 }
-async function delInv(id){
-  if(!(await showConfirm('Excluir investimento?',{title:'Excluir investimento',confirmLabel:'Excluir',danger:true})))return;
-  S.investments=S.investments.filter(x=>x.id!==id);
-  persistInv();renderInvPage();updateDashboard();
+function delInv(id){
+  delFromArray(S.investments,id,persistInv,function(){renderInvPage();updateDashboard();},'Investimento excluído');
 }
 function renderInvPage(){
   let totI=0,totG=0;
@@ -2491,10 +2492,8 @@ function editGoal(id){
   if(cdiInfo)cdiInfo.style.display=(g.cdi>0)?'block':'none';
   openModal('goal-modal');
 }
-async function delGoal(id){
-  if(!(await showConfirm('Excluir esta meta?',{title:'Excluir meta',confirmLabel:'Excluir',danger:true})))return;
-  S.goals=S.goals.filter(x=>x.id!==id);
-  persistGoals();renderGoalsPage();updateDashboard();
+function delGoal(id){
+  delFromArray(S.goals,id,persistGoals,function(){renderGoalsPage();updateDashboard();},'Meta excluída');
 }
 function openProgressModal(id){
   document.getElementById('gp-id').value=id;
@@ -2621,13 +2620,43 @@ function animateBars(box){
   requestAnimationFrame(()=>requestAnimationFrame(()=>bars.forEach(b=>b.style.width=b.dataset.w+'%')));
 }
 // Confirmação discreta ao salvar
-let toastTimer=null;
+let toastTimer=null,undoTimer=null,_donutAnimate=false;
 function toast(msg){
   const el=document.getElementById('toast');if(!el)return;
   document.getElementById('toast-msg').textContent=msg;
+  document.getElementById('toast-undo').style.display='none';
   el.classList.add('show');
-  clearTimeout(toastTimer);
+  clearTimeout(toastTimer);clearTimeout(undoTimer);
   toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
+}
+// Toast com botão "Desfazer" (padrão Gmail) — some sozinho em 5s
+function toastUndo(msg,onUndo){
+  const el=document.getElementById('toast');if(!el){return;}
+  document.getElementById('toast-msg').textContent=msg;
+  const btn=document.getElementById('toast-undo');
+  btn.style.display='inline-block';
+  btn.onclick=function(){clearTimeout(undoTimer);clearTimeout(toastTimer);el.classList.remove('show');onUndo();};
+  el.classList.add('show');
+  clearTimeout(toastTimer);clearTimeout(undoTimer);
+  undoTimer=setTimeout(()=>el.classList.remove('show'),5000);
+}
+// Exclui um item de um array com opção de desfazer por 5s (restaura na mesma posição)
+function delFromArray(arr,id,persistFn,renderFn,label){
+  const idx=arr.findIndex(x=>x.id===id);
+  if(idx<0)return;
+  const item=arr[idx];
+  arr.splice(idx,1);
+  persistFn();renderFn();
+  toastUndo(label,function(){arr.splice(idx,0,item);persistFn();renderFn();});
+}
+// Piscar dourado na transação recém-salva (ajuda a localizá-la na lista)
+function flashItem(id){
+  if(REDUCED_MOTION)return;
+  document.querySelectorAll('.tx-item[data-id="'+id+'"]').forEach(function(el){
+    el.classList.remove('just-added');void el.offsetWidth;
+    el.classList.add('just-added');
+    setTimeout(function(){el.classList.remove('just-added');},1500);
+  });
 }
 
 function updateDashboard(){
@@ -2695,16 +2724,22 @@ function renderCatBreakdown(){
   const entries=Object.entries(cur).sort((a,b)=>b[1]-a[1]);
   if(!entries.length){box.innerHTML=emptyHTML('Nenhum gasto registrado em '+monthLabel(month));return;}
   const total=entries.reduce((s,e)=>s+e[1],0);
-  // rosca via conic-gradient, furo central com o total do mês
-  let acc=0;
-  const segs=entries.map(([cat,v],i)=>{
-    const from=acc/total*360;acc+=v;const to=acc/total*360;
-    return PIE_COLORS[i%PIE_COLORS.length]+' '+from.toFixed(2)+'deg '+to.toFixed(2)+'deg';
-  }).join(',');
+  // rosca em SVG: cada fatia é um arco (stroke-dasharray) que cresce em sequência
+  const doAnim=_donutAnimate&&!REDUCED_MOTION;_donutAnimate=false;
+  let cum=0;
+  const segCircles=entries.map(([cat,v],i)=>{
+    const len=v/total*100;
+    const off=25-cum;cum+=len;
+    const da=doAnim?'0 100':(len.toFixed(2)+' '+(100-len).toFixed(2));
+    return '<circle class="donut-seg" pathLength="100" cx="70" cy="70" r="52" fill="none" stroke="'+PIE_COLORS[i%PIE_COLORS.length]+'" stroke-width="17" stroke-dasharray="'+da+'" stroke-dashoffset="'+off.toFixed(2)+'" data-len="'+len.toFixed(2)+'"/>';
+  }).join('');
   box.innerHTML=
     '<div style="display:flex;align-items:center;justify-content:center;gap:38px;flex-wrap:wrap;padding:14px 0 6px">'+
       '<div style="position:relative;width:212px;height:212px;flex:none">'+
-        '<div style="width:100%;height:100%;border-radius:50%;background:conic-gradient('+segs+')"></div>'+
+        '<svg class="donut-svg" viewBox="0 0 140 140" aria-hidden="true">'+
+          '<circle cx="70" cy="70" r="52" fill="none" stroke="var(--paper3)" stroke-width="17"/>'+
+          segCircles+
+        '</svg>'+
         '<div style="position:absolute;inset:34px;background:var(--paper);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px">'+
           '<div style="font-size:21px;font-weight:800;letter-spacing:-.5px">'+fmtCur(total)+'</div>'+
           '<div style="font-size:10px;color:var(--ink3);letter-spacing:1.5px;font-weight:600;margin-top:3px">GASTOS NO MÊS</div>'+
@@ -2720,6 +2755,12 @@ function renderCatBreakdown(){
         }).join('')+
       '</div>'+
     '</div>';
+  if(doAnim){
+    box.querySelectorAll('.donut-seg').forEach(function(c,i){
+      const len=parseFloat(c.dataset.len);
+      setTimeout(function(){c.style.strokeDasharray=len+' '+(100-len);},120+i*140);
+    });
+  }
 }
 
 function txCompare(a,b){
@@ -2731,7 +2772,7 @@ function txHTML(t,showAct=true){
   const signs={income:'+',expense:'−',cc:'−',investment:'−'};
   const cats={income:'Receita',expense:'Despesa',cc:'Crédito',investment:'Investimento'};
   const timeStr=t.time?' · '+t.time.substring(0,5):'';
-  return '<div class="tx-item">'+
+  return '<div class="tx-item" data-id="'+t.id+'">'+
     '<div class="tx-icon '+(t.type||'expense')+'">'+(CAT_ICONS[t.category]||CAT_ICONS['Sem categoria'])+'</div>'+
     '<div class="tx-info"><div class="tx-desc">'+esc(t.description)+'</div>'+
     '<div class="tx-meta">'+esc(t.category||cats[t.type])+' · '+fmtDate(t.date)+timeStr+'</div></div>'+
@@ -3150,10 +3191,8 @@ function saveRecurring(){
   document.getElementById('r-day').value='5';
   document.querySelector('input[name="rtype"][value="income"]').checked=true;
 }
-async function delRecurring(id){
-  if(!(await showConfirm('Excluir recorrência?',{title:'Excluir recorrência',confirmLabel:'Excluir',danger:true})))return;
-  S.recurring=S.recurring.filter(x=>x.id!==id);
-  persistRecurring();renderRecurringList();
+function delRecurring(id){
+  delFromArray(S.recurring,id,persistRecurring,renderRecurringList,'Recorrência excluída');
 }
 function toggleRecurring(id){
   const r=S.recurring.find(x=>x.id===id);if(!r)return;
@@ -3245,11 +3284,8 @@ function saveBudget(){
   renderBudgetPage();
   toast('Limite salvo');
 }
-async function delBudget(id){
-  if(!(await showConfirm('Remover este limite?',{title:'Remover limite',confirmLabel:'Remover',danger:true})))return;
-  S.budgets=S.budgets.filter(x=>x.id!==id);
-  persistBudgets();
-  renderBudgetPage();
+function delBudget(id){
+  delFromArray(S.budgets,id,persistBudgets,renderBudgetPage,'Limite removido');
 }
 function renderBudgetPage(){
   populateBudgetMonths();
@@ -3348,12 +3384,8 @@ function saveBill(){
   renderBillsAlert();
   toast('Conta salva');
 }
-async function delBill(id){
-  if(!(await showConfirm('Excluir esta conta? Os lembretes dela param de ser enviados.',{title:'Excluir conta',confirmLabel:'Excluir',danger:true})))return;
-  S.bills=S.bills.filter(x=>x.id!==id);
-  persistBills();
-  renderBillsPage();
-  renderBillsAlert();
+function delBill(id){
+  delFromArray(S.bills,id,persistBills,function(){renderBillsPage();renderBillsAlert();},'Conta excluída');
 }
 function markBillPaid(id){
   const b=S.bills.find(x=>x.id===id);if(!b)return;
