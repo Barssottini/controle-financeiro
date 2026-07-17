@@ -79,7 +79,12 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 
 /* MAIN */
 .main{margin-left:var(--sw);flex:1;padding:36px 34px;max-width:calc(100vw - var(--sw))}
-.page{display:none}.page.active{display:block}
+.page{display:none}.page.active{display:block;animation:pageIn .18s ease}
+@keyframes pageIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(70px);z-index:10008;background:var(--ink);color:var(--paper);padding:11px 20px;border-radius:100px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:9px;box-shadow:0 14px 40px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:transform .3s cubic-bezier(.22,.8,.3,1),opacity .3s}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#toast .tk{color:#7dc98f;font-weight:800}
+@media(prefers-reduced-motion:reduce){.page.active{animation:none}.goal-bar-fill,.cat-bar{transition:none}}
 .ph{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px}
 .pt{font-size:28px;font-weight:800;color:var(--ink);letter-spacing:-.6px;line-height:1}
 .ps{font-size:13px;color:var(--ink3);margin-top:5px;font-weight:400}
@@ -807,7 +812,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
       <div id="inv-asset-fields" style="display:none">
         <div class="frow">
           <div class="fgrp"><label class="flbl">Quantidade</label><input class="field" type="number" id="inv-qty" placeholder="Ex: 20" step="any" min="0" oninput="syncInvFields('qty')"></div>
-          <div class="fgrp"><label class="flbl">Total Pago (R$)</label><input class="field" type="number" id="inv-total" placeholder="Ex: 51,79" step="0.01" min="0" oninput="syncInvFields('total')"></div>
+          <div class="fgrp"><label class="flbl">Total Pago (R$)</label><input class="field" type="number" id="inv-total-paid" placeholder="Ex: 51,79" step="0.01" min="0" oninput="syncInvFields('total')"></div>
         </div>
         <div class="frow">
           <div class="fgrp"><label class="flbl">Preço Médio (R$/un.) — automático</label><input class="field" type="number" id="inv-pm" placeholder="Calculado sozinho" step="any" min="0" oninput="syncInvFields('pm')"></div>
@@ -1133,6 +1138,9 @@ body.values-hidden #dash-chart{filter:blur(6px)}
     </div>
   </div>
 </div>
+
+<!-- TOAST: confirmação discreta de ações -->
+<div id="toast"><span class="tk">✓</span><span id="toast-msg"></span></div>
 
 <script>
 // ═══ PWA ═══
@@ -2051,7 +2059,7 @@ function closeModal(id){
     S.invEditId=null;
     document.getElementById('inv-modal-title').textContent='Novo Investimento';
     document.querySelector('input[name="invkind"][value="cdi"]').checked=true;
-    ['inv-name','inv-principal','inv-qty','inv-pm','inv-total','inv-price','inv-ticker','inv-ticker-custom'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    ['inv-name','inv-principal','inv-qty','inv-pm','inv-total-paid','inv-price','inv-ticker','inv-ticker-custom'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     const ic=document.getElementById('inv-cdi');if(ic)ic.value='100';
     toggleInvKind();toggleTickerCustom();
   }
@@ -2173,6 +2181,7 @@ function saveTx(){
   if(S.editId){const i=S.transactions.findIndex(t=>t.id===S.editId);if(S.transactions[i]&&S.transactions[i].time)tx.time=S.transactions[i].time;S.transactions[i]=tx;}
   else S.transactions.push(tx);
   persist();closeModal('tx-modal');updateDashboard();renderTxList();populateMonthFilter();
+  toast('Transação salva');
 }
 function editTx(id){
   const t=S.transactions.find(x=>x.id===id);if(!t)return;
@@ -2212,6 +2221,7 @@ function saveCC(){
   ['cc-desc','cc-amt','cc-cat'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('cc-status').value='open';
   renderCCPage();updateDashboard();
+  toast('Lançamento salvo');
 }
 async function delCC(id){
   if(!(await showConfirm('Excluir lançamento?',{title:'Excluir lançamento',confirmLabel:'Excluir',danger:true})))return;
@@ -2226,9 +2236,9 @@ function toggleCCStatus(id){
 function renderCCPage(){
   const total=S.ccItems.reduce((s,c)=>s+c.amount,0);
   const paid=S.ccItems.filter(c=>c.status==='paid').reduce((s,c)=>s+c.amount,0);
-  document.getElementById('cc-total').textContent=fmtCur(total);
-  document.getElementById('cc-paid').textContent=fmtCur(paid);
-  document.getElementById('cc-open').textContent=fmtCur(total-paid);
+  setCurAnimated('cc-total',total);
+  setCurAnimated('cc-paid',paid);
+  setCurAnimated('cc-open',total-paid);
   const sorted=[...S.ccItems].sort((a,b)=>new Date(b.date)-new Date(a.date));
   document.getElementById('cc-list').innerHTML=sorted.length?sorted.map(c=>
     '<div class="tx-item" style="'+(c.status==='paid'?'opacity:.55':'')+'">'+
@@ -2323,7 +2333,7 @@ function quotesInfo(){
 }
 function syncInvFields(src){
   const q=parseFloat(document.getElementById('inv-qty').value);
-  const tEl=document.getElementById('inv-total'),pEl=document.getElementById('inv-pm');
+  const tEl=document.getElementById('inv-total-paid'),pEl=document.getElementById('inv-pm');
   const t=parseFloat(tEl.value),p=parseFloat(pEl.value);
   const fmt=v=>(+v.toFixed(8)).toString();
   if(src==='total'&&q>0&&!isNaN(t))pEl.value=fmt(t/q);
@@ -2373,7 +2383,7 @@ function saveInv(){
   }else{
     const qty=parseFloat(document.getElementById('inv-qty').value);
     let pm=parseFloat(document.getElementById('inv-pm').value);
-    const total=parseFloat(document.getElementById('inv-total').value);
+    const total=parseFloat(document.getElementById('inv-total-paid').value);
     // Total Pago sempre tem prioridade: recalcula o PM a partir dele
     if(!isNaN(total)&&total>0&&qty>0)pm=total/qty;
     const price=parseFloat(document.getElementById('inv-price').value);
@@ -2386,6 +2396,7 @@ function saveInv(){
   if(S.invEditId){const i=S.investments.findIndex(x=>x.id===S.invEditId);S.investments[i]=inv;}
   else S.investments.push(inv);
   persistInv();closeModal('inv-modal');renderInvPage();updateDashboard();
+  toast('Investimento salvo');
   if(inv.kind==='asset'&&inv.ticker)updateQuotes(true);
 }
 function editInv(id){
@@ -2402,7 +2413,7 @@ function editInv(id){
   }else{
     document.getElementById('inv-qty').value=inv.qty;
     document.getElementById('inv-pm').value=inv.pm;
-    document.getElementById('inv-total').value=(inv.qty*inv.pm).toFixed(2);
+    document.getElementById('inv-total-paid').value=(inv.qty*inv.pm).toFixed(2);
     document.getElementById('inv-price').value=inv.price;
     document.getElementById('inv-asset-cat').value=inv.assetCat||'Outro';
     const tsel=document.getElementById('inv-ticker'),tk=inv.ticker||'';
@@ -2420,9 +2431,9 @@ async function delInv(id){
 function renderInvPage(){
   let totI=0,totG=0;
   S.investments.forEach(inv=>{const n=invNumbers(inv);totI+=n.invested;totG+=n.gain;});
-  document.getElementById('inv-total').textContent=fmtCur(totI);
-  document.getElementById('inv-yield-total').textContent=fmtCur(totG);
-  document.getElementById('inv-patrimony').textContent=fmtCur(totI+totG);
+  setCurAnimated('inv-total',totI);
+  setCurAnimated('inv-yield-total',totG);
+  setCurAnimated('inv-patrimony',totI+totG);
   const list=document.getElementById('inv-list');
   if(!S.investments.length){list.innerHTML=emptyHTML('Nenhum investimento cadastrado');return;}
   list.innerHTML=S.investments.map(inv=>{
@@ -2461,6 +2472,7 @@ function saveGoal(){
   if(S.goalEditId){const i=S.goals.findIndex(x=>x.id===S.goalEditId);S.goals[i]=g;}
   else S.goals.push(g);
   persistGoals();closeModal('goal-modal');renderGoalsPage();updateDashboard();
+  toast('Meta salva');
 }
 function editGoal(id){
   const g=S.goals.find(x=>x.id===id);if(!g)return;
@@ -2497,6 +2509,7 @@ function updateGoalProgress(){
   g.current=val;
   if(g.cdi>0){g.cdiPrincipal=val;g.cdiStartDate=new Date().toISOString().split('T')[0];}
   persistGoals();closeModal('goal-progress-modal');renderGoalsPage();updateDashboard();
+  toast('Progresso atualizado');
 }
 function calcGoalCDI(g){
   if(!g.cdi||!g.cdiStartDate||!g.current)return null;
@@ -2555,7 +2568,7 @@ function renderGoalCard(g){
     '<div style="text-align:right"><div class="goal-target">Meta: '+fmtCur(g.target)+'</div>'+
     (done?'<div style="color:var(--green);font-size:12px;font-weight:700">Meta atingida!</div>':
           '<div class="goal-remaining">Faltam '+fmtCur(rem)+'</div>')+'</div></div>'+
-    '<div class="goal-bar-bg"><div class="goal-bar-fill'+(done?' done':'')+'" style="width:'+pct+'%"></div></div>'+
+    '<div class="goal-bar-bg"><div class="goal-bar-fill'+(done?' done':'')+'" style="width:0%" data-w="'+pct+'"></div></div>'+
     '<div class="goal-pct">'+pct+'% concluído</div>'+
     '<div class="goal-actions">'+
     (g.link?'':'<button class="btn btn-gold btn-sm" onclick="openProgressModal('+g.id+')">Atualizar progresso</button>')+
@@ -2566,6 +2579,7 @@ function renderGoalCard(g){
 function renderGoalsPage(){
   const list=document.getElementById('goals-list');
   list.innerHTML=S.goals.length?S.goals.map(renderGoalCard).join(''):emptyHTML('Nenhuma meta cadastrada. Clique em "+ Nova Meta" para começar.');
+  animateBars(list);
 }
 
 // ═══ RENDER / DASHBOARD ═══
@@ -2581,14 +2595,49 @@ function fmtDate(d){
 }
 function emptyHTML(msg){return '<div class="empty"><p>'+msg+'</p></div>';}
 
+// ═══ MICROANIMAÇÕES ═══
+const REDUCED_MOTION=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Números que contam até o valor — só anima na primeira carga ou quando o valor muda de verdade
+const _curPrev={},_curTok={};
+function setCurAnimated(id,value){
+  const el=document.getElementById(id);if(!el)return;
+  const tok=(_curTok[id]||0)+1;_curTok[id]=tok;
+  const prev=_curPrev[id];_curPrev[id]=value;
+  if(!S.settings.showValues||REDUCED_MOTION||prev===value){el.textContent=fmtCur(value);return;}
+  const from=(prev===undefined)?0:prev;
+  const t0=performance.now(),DUR=450;
+  (function frame(t){
+    if(_curTok[id]!==tok)return;
+    const p=Math.min((t-t0)/DUR,1),e=1-Math.pow(1-p,3);
+    el.textContent=fmtCur(from+(value-from)*e);
+    if(p<1)requestAnimationFrame(frame);
+  })(t0);
+}
+// Barras que enchem do zero: renderizadas com width:0 + data-w, disparam no frame seguinte
+function animateBars(box){
+  if(!box)return;
+  const bars=box.querySelectorAll('[data-w]');
+  if(REDUCED_MOTION){bars.forEach(b=>b.style.width=b.dataset.w+'%');return;}
+  requestAnimationFrame(()=>requestAnimationFrame(()=>bars.forEach(b=>b.style.width=b.dataset.w+'%')));
+}
+// Confirmação discreta ao salvar
+let toastTimer=null;
+function toast(msg){
+  const el=document.getElementById('toast');if(!el)return;
+  document.getElementById('toast-msg').textContent=msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
+}
+
 function updateDashboard(){
   const income=S.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=S.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   const cc=S.ccItems.reduce((s,c)=>s+c.amount,0);
-  document.getElementById('total-income').textContent=fmtCur(income);
-  document.getElementById('total-expense').textContent=fmtCur(expense);
-  document.getElementById('total-cc').textContent=fmtCur(cc);
-  document.getElementById('total-balance').textContent=fmtCur(income-expense);
+  setCurAnimated('total-income',income);
+  setCurAnimated('total-expense',expense);
+  setCurAnimated('total-cc',cc);
+  setCurAnimated('total-balance',income-expense);
 
   const recent=[...S.transactions].sort(txCompare).slice(0,5);
   document.getElementById('recent-list').innerHTML=recent.length?recent.map(t=>txHTML(t)).join(''):emptyHTML('Nenhuma transação cadastrada');
@@ -3080,7 +3129,7 @@ function saveSettings(){
   const cc=document.getElementById('set-show-cc');if(cc)S.settings.showCC=cc.checked;
   persistSettings();
   applyModules();
-  showAlert('Configurações salvas!');
+  toast('Configurações salvas');
 }
 
 // ═══ RECURRING ═══
@@ -3094,6 +3143,7 @@ function saveRecurring(){
   if(day<1||day>28){showAlert('Dia deve ser entre 1 e 28.');return;}
   S.recurring.push({id:Date.now(),type,description:desc,amount:amt,category:cat,day,active:true,lastGenerated:''});
   persistRecurring();renderRecurringList();
+  toast('Recorrência adicionada');
   document.getElementById('r-desc').value='';
   document.getElementById('r-amt').value='';
   document.getElementById('r-cat').value='';
@@ -3193,6 +3243,7 @@ function saveBudget(){
   persistBudgets();
   closeModal('budget-modal');
   renderBudgetPage();
+  toast('Limite salvo');
 }
 async function delBudget(id){
   if(!(await showConfirm('Remover este limite?',{title:'Remover limite',confirmLabel:'Remover',danger:true})))return;
@@ -3234,13 +3285,14 @@ function renderBudgetPage(){
         '<span style="font-size:13px;color:var(--ink2)"><b style="color:'+color+'">'+fmtCur(v)+'</b> / '+fmtCur(b.limit)+'</span>'+
         '<span style="display:flex;gap:6px"><button class="ibt" onclick="editBudget('+b.id+')">✏️</button><button class="ibt del" onclick="delBudget('+b.id+')">🗑️</button></span>'+
       '</div>'+
-      '<div style="height:8px;background:var(--paper2);border-radius:20px;overflow:hidden"><div style="height:100%;width:'+pctBar+'%;background:'+color+';border-radius:20px;transition:width .3s"></div></div>'+
+      '<div style="height:8px;background:var(--paper2);border-radius:20px;overflow:hidden"><div style="height:100%;width:0%;background:'+color+';border-radius:20px;transition:width .6s cubic-bezier(.22,.8,.3,1)" data-w="'+pctBar+'"></div></div>'+
       '<div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink3);margin-top:5px">'+
         '<span>'+pctReal+'% usado</span>'+
         '<span>'+(stourou?'<b style="color:var(--red)">Estourou em '+fmtCur(v-b.limit)+'</b>':'Restam '+fmtCur(b.limit-v))+'</span>'+
       '</div>'+
     '</div>';
   }).join('');
+  animateBars(list);
 }
 
 // ═══ CONTAS A PAGAR ═══
@@ -3294,6 +3346,7 @@ function saveBill(){
   closeModal('bill-modal');
   renderBillsPage();
   renderBillsAlert();
+  toast('Conta salva');
 }
 async function delBill(id){
   if(!(await showConfirm('Excluir esta conta? Os lembretes dela param de ser enviados.',{title:'Excluir conta',confirmLabel:'Excluir',danger:true})))return;
@@ -3312,6 +3365,7 @@ function markBillPaid(id){
   renderBillsPage();
   populateMonthFilter();
   updateDashboard();
+  toast('Conta paga · despesa lançada');
 }
 async function unmarkBillPaid(id){
   const b=S.bills.find(x=>x.id===id);if(!b)return;
@@ -3321,15 +3375,16 @@ async function unmarkBillPaid(id){
   persistBills();
   renderBillsPage();
   renderBillsAlert();
+  toast('Pagamento desfeito');
 }
 function renderBillsPage(){
   const el=document.getElementById('bills-list');if(!el)return;
   const month=monthKeyOf(new Date());
   const total=S.bills.reduce((s,b)=>s+b.amount,0);
   const paid=S.bills.filter(b=>billPaidThisMonth(b,month)).reduce((s,b)=>s+b.amount,0);
-  document.getElementById('bills-total').textContent=fmtCur(total);
-  document.getElementById('bills-paid').textContent=fmtCur(paid);
-  document.getElementById('bills-open').textContent=fmtCur(total-paid);
+  setCurAnimated('bills-total',total);
+  setCurAnimated('bills-paid',paid);
+  setCurAnimated('bills-open',total-paid);
   if(!S.bills.length){
     el.innerHTML=emptyHTML('Nenhuma conta cadastrada. Clique em "+ Nova Conta" para receber lembretes de vencimento.');
     return;
