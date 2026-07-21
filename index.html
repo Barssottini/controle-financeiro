@@ -382,6 +382,45 @@ body.values-hidden #dash-chart{filter:blur(6px)}
   </div>
 </div>
 
+<!-- E2E: chave de recuperação (cadastro/migração) -->
+<div id="reckey-screen" style="position:fixed;inset:0;z-index:10011;background:#0d0d0d;display:none;align-items:center;justify-content:center;overflow:auto;padding:24px">
+  <div class="login-box" style="max-width:470px">
+    <div class="login-brand" style="margin-bottom:6px">North<span> Finances</span></div>
+    <p style="font-size:19px;font-weight:800;text-align:center;margin-bottom:6px;letter-spacing:-.3px">Sua chave de recuperação</p>
+    <p class="login-sub" style="text-align:center">Agora seus dados são cifrados no seu aparelho. Guarde este arquivo em lugar seguro: é a <b>única</b> forma de recuperar seus dados se você esquecer a senha. A North não tem cópia dela.</p>
+    <div id="reckey-value" style="font-family:'Courier New',monospace;font-size:16px;font-weight:700;letter-spacing:1px;text-align:center;background:#f2ede8;border:1px solid #e6dfd8;border-radius:10px;padding:16px;margin:6px 0 16px;color:#0d0d0d;word-break:break-all;user-select:all"></div>
+    <button class="lbtn" id="reckey-dl" onclick="downloadRecoveryKey()">Baixar chave de recuperação (.txt)</button>
+    <label style="display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--ink3);margin:16px 0;cursor:pointer;line-height:1.5"><input type="checkbox" id="reckey-chk" onchange="reckeyGate()" style="margin-top:2px;flex:none"> Salvei minha chave de recuperação e entendo que, sem ela, se eu esquecer a senha meus dados não poderão ser recuperados.</label>
+    <button class="lbtn" id="reckey-continue" onclick="reckeyContinue()" disabled style="opacity:.5">Continuar</button>
+  </div>
+</div>
+
+<!-- E2E: desbloquear (aparelho sem a chave em cache) -->
+<div id="unlock-screen" style="position:fixed;inset:0;z-index:10011;background:#0d0d0d;display:none;align-items:center;justify-content:center;overflow:auto;padding:24px">
+  <div class="login-box" style="max-width:440px">
+    <div class="login-brand" style="margin-bottom:6px">North<span> Finances</span></div>
+    <p style="font-size:19px;font-weight:800;text-align:center;margin-bottom:6px;letter-spacing:-.3px">Desbloquear conta</p>
+    <p class="login-sub" style="text-align:center">Seus dados estão cifrados. Digite sua senha para desbloquear neste dispositivo.</p>
+    <input class="linput" id="unlock-pass" type="password" placeholder="Sua senha" onkeydown="if(event.key==='Enter')doUnlock()">
+    <div class="lerr" id="unlock-err"><span id="unlock-err-msg">Senha incorreta.</span></div>
+    <button class="lbtn" onclick="doUnlock()">Desbloquear</button>
+    <p style="text-align:center;margin-top:14px;font-size:12px"><a href="#" onclick="unlockForgot();return false" style="color:var(--ink3);font-weight:700">Esqueci minha senha</a></p>
+  </div>
+</div>
+
+<!-- E2E: restaurar dados com a recovery key (após reset de senha) -->
+<div id="recentry-screen" style="position:fixed;inset:0;z-index:10011;background:#0d0d0d;display:none;align-items:center;justify-content:center;overflow:auto;padding:24px">
+  <div class="login-box" style="max-width:460px">
+    <div class="login-brand" style="margin-bottom:6px">North<span> Finances</span></div>
+    <p style="font-size:19px;font-weight:800;text-align:center;margin-bottom:6px;letter-spacing:-.3px">Restaurar seus dados</p>
+    <p class="login-sub" style="text-align:center">Você redefiniu a senha. Para recuperar seus dados cifrados, digite a chave de recuperação (o arquivo .txt que você guardou).</p>
+    <input class="linput" id="recentry-key" type="text" placeholder="XXXX-XXXX-XXXX-XXXX-..." autocomplete="off">
+    <div class="lerr" id="recentry-err"><span id="recentry-err-msg">Chave incorreta.</span></div>
+    <button class="lbtn" onclick="doRecoveryRestore()">Restaurar dados</button>
+    <p style="text-align:center;margin-top:14px;font-size:12px"><a href="#" onclick="recoveryGiveUp();return false" style="color:#b83228;font-weight:700">Não tenho a chave — recomeçar do zero</a></p>
+  </div>
+</div>
+
 <div id="kicked-screen" style="position:fixed;inset:0;z-index:10004;background:#0d0d0d;display:none;align-items:center;justify-content:center;overflow:auto;padding:24px">
   <div class="login-box" style="text-align:center;max-width:440px">
     <div class="login-brand" style="margin-bottom:6px">North<span> Finances</span></div>
@@ -1185,12 +1224,85 @@ function scheduleCloudSave(){
   clearTimeout(cloudTimer);
   cloudTimer=setTimeout(cloudSaveNow,1500);
 }
+// ═══ CRIPTOGRAFIA CLIENT-SIDE (E2E) ═══
+// A chave-mestra (MK) cifra o blob financeiro. Ela é guardada no servidor SÓ trancada
+// (pela senha e pela recovery key). Nada em aberto sobe. No aparelho, a MK fica no
+// localStorage (coerente: o cache local já é texto puro — a blindagem é do SERVIDOR).
+const NF_KDF_ITER=600000; // OWASP 2023 (PBKDF2-SHA256)
+let _mk=null,_nfPass=null,_nfPendingSignupPass=null,_nfNewPass=null;
+const _b64=b=>{const u=new Uint8Array(b);let s='';for(let i=0;i<u.length;i+=0x8000){s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));}return btoa(s);};
+const _unb64=s=>{const bin=atob(s);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;};
+const _rnd=n=>crypto.getRandomValues(new Uint8Array(n));
+async function nfDeriveKey(materialBytes,salt){
+  const km=await crypto.subtle.importKey('raw',materialBytes,'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:NF_KDF_ITER,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function nfGenMK(){return crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']);}
+async function nfWrap(key,wk){const raw=new Uint8Array(await crypto.subtle.exportKey('raw',key));const iv=_rnd(12);const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},wk,raw));return{iv:_b64(iv),ct:_b64(ct)};}
+async function nfUnwrap(w,wk){const raw=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(w.iv)},wk,_unb64(w.ct)));return crypto.subtle.importKey('raw',raw,{name:'AES-GCM',length:256},true,['encrypt','decrypt']);}
+async function nfEnc(mk,plaintext){const iv=_rnd(12);const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},mk,new TextEncoder().encode(plaintext)));return{iv:_b64(iv),ct:_b64(ct)};}
+async function nfDec(mk,blob){const pt=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(blob.iv)},mk,_unb64(blob.ct)));return new TextDecoder().decode(pt);}
+// recovery key: 20 bytes → Crockford base32 (sem 0/O 1/I/L ambíguos), grupos de 4
+const NF_B32='0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+function nfToB32(bytes){let bits=0,val=0,out='';for(let i=0;i<bytes.length;i++){val=(val<<8)|bytes[i];bits+=8;while(bits>=5){out+=NF_B32[(val>>>(bits-5))&31];bits-=5;}}if(bits>0)out+=NF_B32[(val<<(5-bits))&31];return out;}
+function nfFromB32(str){const clean=String(str).toUpperCase().replace(/O/g,'0').replace(/[IL]/g,'1').replace(/[^0-9A-Z]/g,'');let bits=0,val=0;const out=[];for(let i=0;i<clean.length;i++){const idx=NF_B32.indexOf(clean[i]);if(idx<0)continue;val=(val<<5)|idx;bits+=5;if(bits>=8){out.push((val>>>(bits-8))&0xff);bits-=8;}}return new Uint8Array(out);}
+function nfGenRecovery(){const bytes=_rnd(20);return{display:nfToB32(bytes).match(/.{1,4}/g).join('-'),bytes};}
+async function nfStoreMK(uid){try{if(!_mk||!uid)return;const raw=new Uint8Array(await crypto.subtle.exportKey('raw',_mk));localStorage.setItem('nf_mk_'+uid,_b64(raw));}catch(e){}}
+async function nfLoadStoredMK(uid){try{const s=localStorage.getItem('nf_mk_'+uid);if(!s)return null;return await crypto.subtle.importKey('raw',_unb64(s),{name:'AES-GCM',length:256},true,['encrypt','decrypt']);}catch(e){return null;}}
+function nfClearMK(uid){try{if(uid)localStorage.removeItem('nf_mk_'+uid);else Object.keys(localStorage).filter(k=>k.indexOf('nf_mk_')===0).forEach(k=>localStorage.removeItem(k));}catch(e){}_mk=null;}
+async function nfBuildMeta(password,recoveryBytes){
+  const saltPw=_rnd(16),saltRk=_rnd(16),mk=await nfGenMK();
+  const kpw=await nfDeriveKey(new TextEncoder().encode(password),saltPw);
+  const krk=await nfDeriveKey(recoveryBytes,saltRk);
+  return {mk,meta:{v:1,salt_pw:_b64(saltPw),salt_rk:_b64(saltRk),mk_pw:await nfWrap(mk,kpw),mk_rk:await nfWrap(mk,krk),iter:NF_KDF_ITER}};
+}
+// Estabelece a MK antes de qualquer sync. Retorna {ok, reason?, showRecovery?}.
+async function nfEstablishKey(uid){
+  const stored=await nfLoadStoredMK(uid);
+  let row=null;
+  try{const {data}=await sb.from('user_data').select('enc_meta,enc_data,data').eq('user_id',uid).maybeSingle();row=data;}catch(e){}
+  const meta=row&&row.enc_meta;
+  const pass=_nfPass;_nfPass=null;
+  if(meta){
+    if(stored){_mk=stored;return {ok:true};}                 // reload no mesmo aparelho
+    if(pass){
+      try{const kpw=await nfDeriveKey(new TextEncoder().encode(pass),_unb64(meta.salt_pw));_mk=await nfUnwrap(meta.mk_pw,kpw);await nfStoreMK(uid);return {ok:true};}
+      catch(e){return {ok:false,reason:'recovery'};}          // senha não abre (trocada sem re-embrulhar) → recovery key
+    }
+    return {ok:false,reason:'password'};                      // aparelho novo, sem senha em mãos
+  }
+  // ainda não há material de cripto: cadastro novo OU migração de texto puro
+  if(pass){
+    const rec=nfGenRecovery();
+    const built=await nfBuildMeta(pass,rec.bytes);
+    _mk=built.mk;
+    const legacy=row&&row.data;
+    if(legacy){
+      const encBlob=await nfEnc(_mk,JSON.stringify(legacy));
+      JSON.parse(await nfDec(_mk,encBlob));                   // CONFERE que decifra antes de apagar o texto puro
+      const {data:upd}=await sb.from('user_data').update({enc_meta:built.meta,enc_data:encBlob,data:null,updated_at:new Date().toISOString()}).eq('user_id',uid).is('enc_meta',null).select('user_id');
+      if(!upd||!upd.length){                                  // outro aparelho migrou primeiro → destranca pela senha
+        const {data:d2}=await sb.from('user_data').select('enc_meta').eq('user_id',uid).maybeSingle();
+        const kpw=await nfDeriveKey(new TextEncoder().encode(pass),_unb64(d2.enc_meta.salt_pw));
+        _mk=await nfUnwrap(d2.enc_meta.mk_pw,kpw);await nfStoreMK(uid);return {ok:true};
+      }
+    }else{
+      await sb.from('user_data').upsert({user_id:uid,enc_meta:built.meta,updated_at:new Date().toISOString()});
+    }
+    await nfStoreMK(uid);
+    return {ok:true,showRecovery:rec.display};                // tela obrigatória da recovery key
+  }
+  return {ok:false,reason:'password'};
+}
+
 async function cloudSaveNow(){
   try{
     const {data:{session}}=await sb.auth.getSession();
     if(!session)return;
+    if(!_mk){setSync('offline');return;}   // sem a chave, não sobe nada (fica local até destravar)
     const payload={transactions:S.transactions,ccItems:S.ccItems,investments:S.investments,goals:S.goals,budgets:S.budgets,bills:S.bills,recurring:S.recurring,settings:S.settings};
-    const {error}=await sb.from('user_data').upsert({user_id:session.user.id,data:payload,updated_at:new Date().toISOString()});
+    const encBlob=await nfEnc(_mk,JSON.stringify(payload));
+    const {error}=await sb.from('user_data').upsert({user_id:session.user.id,enc_data:encBlob,data:null,updated_at:new Date().toISOString()});
     if(error)throw error;
     setSync('ok');
   }catch(e){setSync('offline');}
@@ -1209,9 +1321,10 @@ function applyCloud(d){
 }
 async function loadCloud(uid){
   try{
-    const {data,error}=await sb.from('user_data').select('data').eq('user_id',uid).maybeSingle();
+    const {data,error}=await sb.from('user_data').select('enc_data').eq('user_id',uid).maybeSingle();
     if(error)throw error;
-    const cloud=(data&&data.data)?data.data:null;
+    let cloud=null;
+    if(data&&data.enc_data&&_mk){try{cloud=JSON.parse(await nfDec(_mk,data.enc_data));}catch(e){cloud=null;}}
     const cloudN=dataCount(cloud);
     loadData(); // carrega o que há neste dispositivo (localStorage)
     const localN=dataCount(S);
@@ -1237,6 +1350,12 @@ async function onSignedIn(session,fresh){
   document.getElementById('confirm-screen').style.display='none';
   document.getElementById('forgot-screen').style.display='none';
   document.getElementById('login-screen').classList.add('hidden');
+  // Estabelece a chave-mestra ANTES de qualquer leitura/gravação na nuvem.
+  const est=await nfEstablishKey(session.user.id);
+  if(!est.ok){
+    if(est.reason==='recovery'){showRecoveryEntry(session);return;}
+    showUnlock(session);return;   // aparelho novo / sem chave → pede a senha
+  }
   claimSession(session.user.id,!!fresh);
   const sub=await getSubscription(session.user.id);
   const acc=subAccess(sub);
@@ -1252,7 +1371,8 @@ async function onSignedIn(session,fresh){
   renderMFAStatus();
   renderEyeToggle();
   resetInactivityTimer();
-  if(!S.settings.manualSeen)openModal('welcome-modal');
+  if(est.showRecovery){showRecoveryDisplay(est.showRecovery);}
+  else if(!S.settings.manualSeen)openModal('welcome-modal');
 }
 
 // ═══ ASSINATURA / PAYWALL ═══
@@ -1739,6 +1859,7 @@ async function doLogin(){
     setTimeout(()=>{passInput.style.borderColor='';},2000);
     return;
   }
+  _nfPass=pass;
   finishSignIn(data.session,true);
 }
 
@@ -1756,6 +1877,7 @@ async function doSetup(){
     if(error){showErr(pwErrMsg(error));return;}
     showAlert('Senha redefinida com sucesso!');
     recoveryMode=false;
+    _nfNewPass=pass;_nfPass=pass;   // p/ restaurar dados via recovery key e re-embrulhar com a senha nova
     const {data:{session}}=await sb.auth.getSession();
     if(session)finishSignIn(session,true);else location.reload();
     return;
@@ -1773,7 +1895,8 @@ async function doSetup(){
     showErr('Erro: '+error.message);
     return;
   }
-  if(data.session){finishSignIn(data.session,true);return;}
+  if(data.session){_nfPass=pass;finishSignIn(data.session,true);return;}
+  _nfPendingSignupPass=pass;   // a senha some do escopo até confirmar o código; guardamos p/ cifrar depois
   // E-mail novo OU já existente caem na MESMA tela — indistinguível de fora.
   showConfirmScreen(email);
 }
@@ -1805,6 +1928,7 @@ async function doVerifyCode(){
     confirmErr(/expired|invalid/i.test(error.message)?'Código incorreto ou expirado. Confira ou toque em "Reenviar código".':'Erro: '+error.message);
     b.disabled=false;b.textContent='Confirmar e entrar';return;
   }
+  if(_nfPendingSignupPass){_nfPass=_nfPendingSignupPass;_nfPendingSignupPass=null;}
   const session=data.session||(await sb.auth.getSession()).data.session;
   if(session)finishSignIn(session,true);else location.reload();
 }
@@ -1874,6 +1998,7 @@ async function doResetWithCode(){
   if(vErr){forgotErr(/expired|invalid/i.test(vErr.message)?'Código incorreto ou expirado. Toque em "Reenviar código".':'Erro: '+vErr.message);b.disabled=false;b.textContent='Redefinir senha';return;}
   const {error:uErr}=await sb.auth.updateUser({password:p1});
   if(uErr){forgotErr(pwErrMsg(uErr));b.disabled=false;b.textContent='Redefinir senha';return;}
+  _nfNewPass=p1;_nfPass=p1;   // p/ restaurar dados via recovery key e re-embrulhar com a senha nova
   const {data:{session}}=await sb.auth.getSession();
   document.getElementById('forgot-screen').style.display='none';
   if(session)finishSignIn(session,true);else location.reload();
@@ -1885,8 +2010,97 @@ async function doLogout(){
     const{data:{user}}=await sb.auth.getUser();
     if(user)await sb.from('active_sessions').delete().eq('user_id',user.id);
   }catch(e){}
+  nfClearMK();
   try{await sb.auth.signOut();}catch(e){}
   location.reload();
+}
+
+// ═══ E2E: telas de chave de recuperação / desbloqueio / restauração ═══
+let _reckeyStr='',_reckeyDled=false,_unlockSession=null,_recEntrySession=null;
+function showRecoveryDisplay(key){
+  _reckeyStr=key;_reckeyDled=false;
+  document.getElementById('reckey-value').textContent=key;
+  document.getElementById('reckey-chk').checked=false;
+  const b=document.getElementById('reckey-continue');b.disabled=true;b.style.opacity='.5';
+  document.getElementById('reckey-screen').style.display='flex';
+}
+function downloadRecoveryKey(){
+  const em=document.getElementById('udisp');const email=em?em.textContent:'';
+  const txt='North Finances — Chave de Recuperação\r\n\r\nConta: '+email+'\r\nData: '+new Date().toLocaleString('pt-BR')+'\r\n\r\nSua chave:\r\n'+_reckeyStr+'\r\n\r\nGUARDE ESTE ARQUIVO EM LUGAR SEGURO.\r\nSem esta chave, se você esquecer a senha, seus dados não poderão ser recuperados.\r\nA North Finances NÃO tem cópia desta chave e não consegue recuperá-la por você.\r\n';
+  const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='north-finances-chave-recuperacao.txt';
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1000);
+  _reckeyDled=true;reckeyGate();
+}
+function reckeyGate(){
+  const ok=_reckeyDled&&document.getElementById('reckey-chk').checked;
+  const b=document.getElementById('reckey-continue');b.disabled=!ok;b.style.opacity=ok?'1':'.5';
+}
+function reckeyContinue(){
+  document.getElementById('reckey-screen').style.display='none';
+  if(!S.settings.manualSeen)openModal('welcome-modal');
+}
+function showUnlock(session){
+  _unlockSession=session;
+  document.getElementById('unlock-pass').value='';
+  document.getElementById('unlock-err').classList.remove('show');
+  document.getElementById('unlock-screen').style.display='flex';
+  setTimeout(function(){document.getElementById('unlock-pass').focus();},60);
+}
+async function doUnlock(){
+  const pw=document.getElementById('unlock-pass').value;if(!pw||!_unlockSession)return;
+  const uid=_unlockSession.user.id;
+  try{
+    const {data}=await sb.from('user_data').select('enc_meta').eq('user_id',uid).maybeSingle();
+    if(!data||!data.enc_meta)throw new Error('sem meta');
+    const kpw=await nfDeriveKey(new TextEncoder().encode(pw),_unb64(data.enc_meta.salt_pw));
+    _mk=await nfUnwrap(data.enc_meta.mk_pw,kpw);await nfStoreMK(uid);
+    document.getElementById('unlock-screen').style.display='none';
+    onSignedIn(_unlockSession,false);
+  }catch(e){
+    document.getElementById('unlock-err-msg').textContent='Senha incorreta. Tente novamente.';
+    document.getElementById('unlock-err').classList.add('show');
+  }
+}
+function unlockForgot(){document.getElementById('unlock-screen').style.display='none';doLogout();}
+function showRecoveryEntry(session){
+  _recEntrySession=session;
+  document.getElementById('recentry-key').value='';
+  document.getElementById('recentry-err').classList.remove('show');
+  document.getElementById('recentry-screen').style.display='flex';
+}
+async function doRecoveryRestore(){
+  const typed=document.getElementById('recentry-key').value;
+  const errShow=function(m){document.getElementById('recentry-err-msg').textContent=m;document.getElementById('recentry-err').classList.add('show');};
+  if(!_recEntrySession)return;
+  const uid=_recEntrySession.user.id,newPass=_nfNewPass;
+  if(!newPass){errShow('Sessão expirada. Faça login novamente.');return;}
+  try{
+    const {data}=await sb.from('user_data').select('enc_meta').eq('user_id',uid).maybeSingle();
+    if(!data||!data.enc_meta)throw new Error('sem meta');
+    const krk=await nfDeriveKey(nfFromB32(typed),_unb64(data.enc_meta.salt_rk));
+    _mk=await nfUnwrap(data.enc_meta.mk_rk,krk);
+    const kpw=await nfDeriveKey(new TextEncoder().encode(newPass),_unb64(data.enc_meta.salt_pw));
+    const meta=Object.assign({},data.enc_meta,{mk_pw:await nfWrap(_mk,kpw)});
+    await sb.from('user_data').update({enc_meta:meta,updated_at:new Date().toISOString()}).eq('user_id',uid);
+    await nfStoreMK(uid);_nfNewPass=null;
+    document.getElementById('recentry-screen').style.display='none';
+    onSignedIn(_recEntrySession,false);
+  }catch(e){errShow('Chave de recuperação incorreta. Confira o arquivo .txt e tente de novo.');}
+}
+async function recoveryGiveUp(){
+  if(!_recEntrySession)return;
+  if(!(await showConfirm('Sem a chave de recuperação, seus dados antigos não podem ser recuperados e serão apagados. Você começa uma conta limpa com o mesmo e-mail. Tem certeza?',{title:'Recomeçar do zero',confirmLabel:'Apagar e recomeçar',danger:true})))return;
+  const uid=_recEntrySession.user.id,newPass=_nfNewPass||'';
+  const rec=nfGenRecovery();const built=await nfBuildMeta(newPass,rec.bytes);_mk=built.mk;
+  await sb.from('user_data').upsert({user_id:uid,enc_meta:built.meta,enc_data:null,data:null,updated_at:new Date().toISOString()});
+  ['bf_tx','bf_cc','bf_inv','bf_goals','bf_budgets','bf_bills','bf_recurring'].forEach(function(k){localStorage.removeItem(k);});
+  S.transactions=[];S.ccItems=[];S.investments=[];S.goals=[];S.budgets=[];S.bills=[];S.recurring=[];
+  await nfStoreMK(uid);_nfNewPass=null;
+  document.getElementById('recentry-screen').style.display='none';
+  await onSignedIn(_recEntrySession,false);
+  showRecoveryDisplay(rec.display);
 }
 
 // ═══ "NÃO FUI EU" — bloqueio de emergência via link do e-mail de alerta ═══
