@@ -62,6 +62,9 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 .sb-brand span{color:var(--gold)}
 .sb-user{font-size:11px;color:var(--ink4)}
 .sb-user strong{color:var(--paper);display:block;font-size:12px;margin-top:2px}
+.sb-user-btn{display:block;width:100%;text-align:left;background:none;border:none;padding:0;margin:0;cursor:pointer;font-family:var(--ff)}
+.sb-user-more{display:block;font-size:10px;color:var(--gold);margin-top:3px;opacity:.75;transition:opacity .15s}
+.sb-user-btn:hover .sb-user-more{opacity:1}
 .sb-nav{padding:14px 10px;flex:1}
 .sb-section{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.25);padding:12px 10px 5px}
 .navi{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;color:var(--ink4);font-size:13px;font-weight:500;margin-bottom:1px;cursor:pointer;transition:all .2s;user-select:none}
@@ -431,6 +434,24 @@ body.values-hidden #dash-chart{filter:blur(6px)}
   </div>
 </div>
 
+<!-- EXCLUSÃO PENDENTE: conta em período de carência (15 dias) -->
+<div id="deletion-screen" style="position:fixed;inset:0;z-index:10005;background:#0d0d0d;display:none;align-items:center;justify-content:center;overflow:auto;padding:24px">
+  <div class="login-box" style="text-align:center;max-width:460px">
+    <div class="login-brand" style="margin-bottom:6px">North<span> Finances</span></div>
+    <p style="font-size:19px;font-weight:800;margin-bottom:6px;letter-spacing:-.3px">Você solicitou a exclusão da sua conta</p>
+    <p class="login-sub" style="text-align:center">Enquanto o prazo não termina, o acesso ao app fica bloqueado. Se você não fizer nada, seus dados serão apagados <strong>definitivamente</strong> e não poderão ser recuperados.</p>
+    <div style="background:var(--paper2);border:1px solid var(--paper3);border-radius:16px;padding:20px;margin:20px 0">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:6px">Exclusão definitiva em</div>
+      <div id="del-days" style="font-size:38px;font-weight:900;color:var(--ink);line-height:1">—</div>
+    </div>
+    <p style="text-align:center;font-size:13px;color:var(--ink2);margin-bottom:18px">Mudou de ideia? É só reativar — tudo volta exatamente como estava.</p>
+    <button class="lbtn" id="del-reactivate-btn" onclick="reactivateAccount(this)">Quero reativar minha conta</button>
+    <p style="text-align:center;margin-top:18px;font-size:12px">
+      <a href="#" onclick="doLogout();return false" style="color:var(--ink3);font-weight:700">Sair</a>
+    </p>
+  </div>
+</div>
+
 <div id="paywall-screen" style="position:fixed;inset:0;z-index:10002;background:#0d0d0d;display:none;align-items:center;justify-content:center;overflow:auto;padding:24px">
   <div class="login-box" style="text-align:center;max-width:440px">
     <div class="login-brand" style="margin-bottom:6px">North<span> Finances</span></div>
@@ -484,7 +505,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
   <aside class="sidebar">
     <div class="sb-top">
       <div class="sb-brand"><img src="logo-192.png" alt="North Finances" style="width:48px;height:48px;border-radius:12px;display:block"></div>
-      <div class="sb-user">Logado como<strong id="udisp"></strong></div>
+      <button class="sb-user sb-user-btn" onclick="openPerfil()" title="Ver seu perfil">Logado como<strong id="udisp"></strong><span class="sb-user-more">Ver perfil ›</span></button>
       <div id="sync-status" style="font-size:10px;margin-top:6px;color:var(--ink4)"></div>
       <button id="eye-toggle" onclick="toggleShowValues()" style="background:none;border:none;color:var(--ink4);cursor:pointer;padding:5px 0 0;margin:0;display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--ff)"></button>
       <div id="trial-banner" style="display:none"></div>
@@ -1179,6 +1200,32 @@ body.values-hidden #dash-chart{filter:blur(6px)}
   </div>
 </div>
 
+<!-- MODAL: PERFIL DA CONTA -->
+<div class="overlay" id="perfil-modal">
+  <div class="modal" style="max-width:440px">
+    <div class="mhead"><h3>Seu perfil</h3></div>
+    <div class="mbody">
+      <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:18px">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">E-mail</span>
+        <span id="perfil-email" style="font-size:14px;color:var(--ink);font-weight:600;word-break:break-all">—</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:18px">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Conta criada em</span>
+        <span id="perfil-created" style="font-size:14px;color:var(--ink);font-weight:600">—</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:22px">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Assinatura</span>
+        <span id="perfil-sub" style="font-size:14px;color:var(--ink);font-weight:600">—</span>
+      </div>
+      <div style="border:1px solid var(--redl);background:var(--redl);border-radius:14px;padding:16px 16px 18px">
+        <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-bottom:6px">Zona de risco</div>
+        <p style="font-size:12.5px;color:var(--ink2);line-height:1.55;margin:0 0 14px">Ao excluir sua conta, você tem <strong>15 dias</strong> para se arrepender. Nesse período o acesso fica bloqueado e é possível reativar. Passado o prazo, tudo é apagado <strong>para sempre</strong>.</p>
+        <button class="btn btn-danger" style="width:100%" onclick="requestAccountDeletion(this)">Excluir minha conta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: MENSAGENS (substitui alert/confirm/prompt nativos do navegador) -->
 <div class="overlay" id="msg-modal" style="z-index:10010">
   <div class="modal" style="max-width:380px">
@@ -1208,6 +1255,7 @@ const SUPA_URL='https://uipywjbcjzhqueyrfwef.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcHl3amJjanpocXVleXJmd2VmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3ODI3NTUsImV4cCI6MjA5OTM1ODc1NX0.fSSocZhCBOoRRcfMD-VRCg7ZTyiItd23xkUNYBnwbXw';
 const sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
 let cloudReady=false,cloudTimer=null,recoveryMode=false;
+let _nfUser=null,_nfSub=null;   // usados pela tela de Perfil
 
 function setSync(state){
   const el=document.getElementById('sync-status');if(!el)return;
@@ -1350,6 +1398,12 @@ async function onSignedIn(session,fresh){
   document.getElementById('confirm-screen').style.display='none';
   document.getElementById('forgot-screen').style.display='none';
   document.getElementById('login-screen').classList.add('hidden');
+  _nfUser=session.user;
+  // Conta em período de carência de exclusão? Bloqueia o acesso e mostra a tela de reativação.
+  try{
+    const del=await sb.from('account_deletion').select('requested_at').eq('user_id',session.user.id).maybeSingle();
+    if(del&&del.data){showDeletionPending(del.data.requested_at);return;}
+  }catch(e){/* falha de rede não trava o login (fail-open) */}
   // Estabelece a chave-mestra ANTES de qualquer leitura/gravação na nuvem.
   const est=await nfEstablishKey(session.user.id);
   if(!est.ok){
@@ -1358,6 +1412,7 @@ async function onSignedIn(session,fresh){
   }
   claimSession(session.user.id,!!fresh);
   const sub=await getSubscription(session.user.id);
+  _nfSub=sub;
   const acc=subAccess(sub);
   if(!acc.ok){ showPaywall(acc); return; }
   document.getElementById('paywall-screen').style.display='none';
@@ -2013,6 +2068,64 @@ async function doLogout(){
   nfClearMK();
   try{await sb.auth.signOut();}catch(e){}
   location.reload();
+}
+
+// ═══ PERFIL DA CONTA ═══
+function perfilSubText(sub){
+  if(!sub)return'Teste grátis';
+  const now=Date.now();
+  const t=sub.trial_ends_at?new Date(sub.trial_ends_at).getTime():0;
+  const p=sub.current_period_end?new Date(sub.current_period_end).getTime():0;
+  const fmt=d=>new Date(d).toLocaleDateString('pt-BR');
+  if(sub.status==='active')return p?('Ativa · renova em '+fmt(p)):'Ativa';
+  if(sub.status==='trialing'&&now<t)return'Teste grátis · termina em '+fmt(t);
+  if(sub.status==='trialing')return'Teste expirado';
+  if(sub.status==='canceled'&&now<p)return'Cancelada · acesso até '+fmt(p);
+  if(sub.status==='canceled')return'Cancelada';
+  return sub.status||'—';
+}
+function openPerfil(){
+  document.getElementById('perfil-email').textContent=(_nfUser&&_nfUser.email)||'—';
+  const c=_nfUser&&_nfUser.created_at;
+  document.getElementById('perfil-created').textContent=c?new Date(c).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'}):'—';
+  document.getElementById('perfil-sub').textContent=perfilSubText(_nfSub);
+  openModal('perfil-modal');
+}
+async function requestAccountDeletion(btn){
+  const ok=await showConfirm('Sua conta entrará em período de exclusão de 15 dias. Durante esse prazo o acesso ao app fica bloqueado, mas você pode reativar a qualquer momento entrando com seu e-mail e senha.\n\nPassados os 15 dias, todos os seus dados são apagados definitivamente e não há como recuperar.\n\nVamos te enviar um e-mail confirmando o pedido.',{title:'Excluir minha conta',confirmLabel:'Sim, quero excluir',cancelLabel:'Voltar',danger:true});
+  if(!ok)return;
+  const old=btn.textContent;btn.disabled=true;btn.textContent='Processando…';
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    const r=await fetch(FN_BASE+'/request-deletion',{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'}});
+    if(!r.ok)throw new Error('falha');
+    closeModal('perfil-modal');
+    await showAlert('Pedido registrado. Enviamos um e-mail confirmando. Sua conta será apagada em 15 dias — até lá, é só entrar de novo e reativar se mudar de ideia.','Exclusão agendada');
+    await doLogout();
+  }catch(e){
+    btn.disabled=false;btn.textContent=old;
+    showAlert('Não conseguimos registrar o pedido agora. Verifique sua conexão e tente novamente.','Ops');
+  }
+}
+function showDeletionPending(requestedAt){
+  document.getElementById('app').classList.remove('visible');
+  ['setup-screen','confirm-screen','forgot-screen','paywall-screen','kicked-screen'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  document.getElementById('login-screen').classList.add('hidden');
+  const elapsed=Math.floor((Date.now()-new Date(requestedAt).getTime())/86400000);
+  const left=Math.max(0,15-elapsed);
+  document.getElementById('del-days').textContent=left===1?'1 dia':(left+' dias');
+  document.getElementById('deletion-screen').style.display='flex';
+}
+async function reactivateAccount(btn){
+  const old=btn.textContent;btn.disabled=true;btn.textContent='Reativando…';
+  try{
+    const {data:{user}}=await sb.auth.getUser();
+    if(user)await sb.from('account_deletion').delete().eq('user_id',user.id);
+    location.reload();
+  }catch(e){
+    btn.disabled=false;btn.textContent=old;
+    showAlert('Não conseguimos reativar agora. Verifique sua conexão e tente novamente.','Ops');
+  }
 }
 
 // ═══ E2E: telas de chave de recuperação / desbloqueio / restauração ═══
