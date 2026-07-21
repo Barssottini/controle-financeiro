@@ -1332,7 +1332,7 @@ async function loadCloud(uid){
     if(cloudN>0 && cloudN>=localN){
       applyCloud(cloud);            // nuvem é mais rica (ou igual) → usa nuvem
     }else if(localN>0){
-      await cloudSaveNow();         // este dispositivo é mais rico → sobe para a nuvem
+      await cloudSaveNow();return;  // cloudSaveNow reporta o próprio status (ok/offline) — não mascarar
     }
     setSync('ok');
   }catch(e){setSync('offline');}
