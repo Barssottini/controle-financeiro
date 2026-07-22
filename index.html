@@ -1868,6 +1868,19 @@ async function logoutAllDevices(){
   location.reload();
 }
 
+// ═══ Hash de autenticação (separado da chave de cifragem) ═══
+// A senha CRUA nunca vai ao servidor de auth: derivamos no aparelho um segredo de alta
+// entropia a partir de (e-mail, senha) e é ELE que vai pro Supabase como "senha". A chave de
+// cifragem dos dados continua vindo da senha crua (outra derivação, outro sal) — logo isto NÃO
+// mexe nos dados já cifrados. Sal determinístico do e-mail p/ dar pra derivar antes do login.
+async function nfAuthSecret(email,password){
+  const enc=new TextEncoder();
+  const salt=new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode('nf-auth-v1|'+String(email||'').toLowerCase())));
+  const km=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:200000,hash:'SHA-256'},km,256);
+  return 'nfa1_'+_b64(bits);
+}
+
 async function doLogin(){
   const email=document.getElementById('lemail').value.trim().toLowerCase();
   const pass=document.getElementById('lpass').value;
@@ -1878,14 +1891,37 @@ async function doLogin(){
   if(!email||!pass){msg.textContent='Preencha e-mail e senha.';err.classList.add('show');return;}
   const ct=await getCaptcha('captcha-login');
   if(captchaOn()&&!ct){msg.textContent=CAPTCHA_WAIT_MSG;err.classList.add('show');return;}
+  const authSecret=await nfAuthSecret(email,pass);
   let data,error;
   try{
-    const r=await sb.auth.signInWithPassword({email,password:pass,options:{captchaToken:ct}});
+    const r=await sb.auth.signInWithPassword({email,password:authSecret,options:{captchaToken:ct}});
     data=r.data;error=r.error;
   }catch(ex){
     error={message:'FETCH_FAIL: '+(ex&&ex.message?ex.message:String(ex))};
   }
   resetCaptcha('captcha-login');
+  // Migração de esquema: usuários antigos têm a senha CRUA no Supabase Auth. Se o login com o
+  // hash falhou por credencial inválida, tenta UMA vez o esquema antigo e, se entrar, rotaciona
+  // a senha de auth para o hash (a partir daí a senha crua nunca mais sai do aparelho).
+  if(error&&/invalid login credentials/i.test((error.message||''))){
+    const ct2=await getCaptcha('captcha-login');
+    if(captchaOn()&&!ct2){
+      // 2º token do captcha não veio a tempo: não dá pra distinguir esquema — pede pra tentar de novo
+      // (nunca mostrar "senha incorreta" a um usuário antigo com a senha certa por causa disso).
+      resetCaptcha('captcha-login');
+      msg.textContent=CAPTCHA_WAIT_MSG;void err.offsetWidth;err.classList.add('show');passInput.focus();return;
+    }
+    try{
+      const r2=await sb.auth.signInWithPassword({email,password:pass,options:{captchaToken:ct2}});
+      if(!r2.error&&r2.data&&r2.data.session){
+        try{await sb.auth.updateUser({password:authSecret});}catch(e){console.error('AUTHMIG_FAIL',e);}
+        data=r2.data;error=null;
+      }else if(r2.error){
+        error=r2.error;   // erro do esquema antigo é mais informativo (ex.: conta não confirmada)
+      }
+    }catch(ex2){/* mantém o erro do 1º attempt */}
+    resetCaptcha('captcha-login');
+  }
   if(error){
     const emsg=(error&&error.message)?String(error.message):'';
     if(/confirm/i.test(emsg)){
@@ -1928,7 +1964,10 @@ async function doSetup(){
   const pIss=passwordIssue(pass);if(pIss){showErr(pIss);return;}
   if(pass!==pass2){showErr('As senhas não conferem.');return;}
   if(recoveryMode){
-    const {error}=await sb.auth.updateUser({password:pass});
+    let rmEmail='';
+    try{const {data:{user}}=await sb.auth.getUser();rmEmail=((user&&user.email)||'').toLowerCase();}catch(e){}
+    const rmSecret=rmEmail?await nfAuthSecret(rmEmail,pass):pass;
+    const {error}=await sb.auth.updateUser({password:rmSecret});
     if(error){showErr(pwErrMsg(error));return;}
     showAlert('Senha redefinida com sucesso!');
     recoveryMode=false;
@@ -1941,7 +1980,8 @@ async function doSetup(){
   if(!email){showErr('Preencha o e-mail.');return;}
   const ct=await getCaptcha('captcha-setup');
   if(captchaOn()&&!ct){showErr(CAPTCHA_WAIT_MSG);return;}
-  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:'https://app.northfinances.com.br/',captchaToken:ct}});
+  const authSecret=await nfAuthSecret(email,pass);
+  const {data,error}=await sb.auth.signUp({email,password:authSecret,options:{emailRedirectTo:'https://app.northfinances.com.br/',captchaToken:ct}});
   resetCaptcha('captcha-setup');
   if(error){
     // Proteção contra enumeração: não revelamos se o e-mail já existe.
@@ -2051,7 +2091,8 @@ async function doResetWithCode(){
   const b=document.getElementById('reset-btn');b.disabled=true;b.textContent='Redefinindo...';
   const {error:vErr}=await sb.auth.verifyOtp({email,token:code,type:'recovery'});
   if(vErr){forgotErr(/expired|invalid/i.test(vErr.message)?'Código incorreto ou expirado. Toque em "Reenviar código".':'Erro: '+vErr.message);b.disabled=false;b.textContent='Redefinir senha';return;}
-  const {error:uErr}=await sb.auth.updateUser({password:p1});
+  const rSecret=await nfAuthSecret(email,p1);
+  const {error:uErr}=await sb.auth.updateUser({password:rSecret});
   if(uErr){forgotErr(pwErrMsg(uErr));b.disabled=false;b.textContent='Redefinir senha';return;}
   _nfNewPass=p1;_nfPass=p1;   // p/ restaurar dados via recovery key e re-embrulhar com a senha nova
   const {data:{session}}=await sb.auth.getSession();
