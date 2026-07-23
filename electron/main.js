@@ -25,8 +25,12 @@ let LOCAL_URL = null;
 
 function startLocalServer() {
   return new Promise(resolve => {
+    let boundPort = 0;
     const server = http.createServer((req, res) => {
       try {
+        // Defesa contra DNS rebinding: só atende requests cujo Host seja localhost/127.0.0.1 na porta ligada.
+        const host = String(req.headers.host || '');
+        if (host !== 'localhost:' + boundPort && host !== '127.0.0.1:' + boundPort) { res.writeHead(403); res.end(); return; }
         let p = decodeURIComponent((req.url || '/').split('?')[0].split('#')[0]);
         if (p === '/' || p === '') p = '/index.html';
         if (p === '/sw.js') { res.writeHead(404); res.end(); return; }   // sem service worker no desktop
@@ -46,7 +50,7 @@ function startLocalServer() {
       if (port === undefined) { resolve(null); return; }
       const onErr = () => { server.removeListener('error', onErr); tryNext(); };
       server.once('error', onErr);
-      server.listen(port, '127.0.0.1', () => { server.removeListener('error', onErr); resolve('http://localhost:' + port + '/'); });
+      server.listen(port, '127.0.0.1', () => { server.removeListener('error', onErr); boundPort = port; resolve('http://localhost:' + port + '/'); });
     };
     tryNext();
   });
