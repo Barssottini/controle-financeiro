@@ -1,10 +1,12 @@
-// Assina o instalador do release com a chave privada OFFLINE (Ed25519).
+// Assina o release com a chave privada OFFLINE (Ed25519).
 // Uso:  node sign-release.js [caminho-do-exe]
 // Sem argumento, assina dist/North-Setup-<versao>.exe.
-// Gera <exe>.sig (base64) — suba OS DOIS arquivos (.exe e .exe.sig) no GitHub Release.
+// Gera <exe>.sig = manifesto JSON {version, sha256, sig} — a VERSÃO e o HASH ficam DENTRO da
+// assinatura, então o app recusa rollback (build antiga) e arquivo trocado. Suba OS DOIS
+// (.exe e .exe.sig) no GitHub Release.
 //
-// A chave privada NUNCA é commitada (*.pem está no .gitignore). O app verifica a assinatura
-// contra a chave pública embutida em electron/main.js antes de executar qualquer instalador.
+// A chave privada NUNCA é commitada (*.pem no .gitignore). O app verifica contra as chaves
+// públicas embutidas em electron/main.js (UPDATE_PUBKEYS) antes de executar qualquer instalador.
 const crypto = require('crypto'), fs = require('fs'), path = require('path');
 
 const PRIV = process.env.NF_UPDATE_KEY || 'nf-update-private.pem';
@@ -20,7 +22,10 @@ if (!fs.existsSync(exe)) {
   process.exit(1);
 }
 const buf = fs.readFileSync(exe);
-const sig = crypto.sign(null, buf, crypto.createPrivateKey(fs.readFileSync(PRIV)));
-fs.writeFileSync(exe + '.sig', sig.toString('base64'));
-console.log('Assinado: ' + exe + '.sig  (' + buf.length + ' bytes assinados)');
+const sha256 = crypto.createHash('sha256').update(buf).digest('hex');
+const msg = Buffer.from(version + '|' + sha256, 'utf8');
+const sig = crypto.sign(null, msg, crypto.createPrivateKey(fs.readFileSync(PRIV))).toString('base64');
+fs.writeFileSync(exe + '.sig', JSON.stringify({ version, sha256, sig }));
+console.log('Assinado: ' + exe + '.sig');
+console.log('  versão ' + version + ' + sha256 ' + sha256.slice(0, 16) + '… dentro do manifesto assinado');
 console.log('Suba no Release os DOIS: ' + path.basename(exe) + '  +  ' + path.basename(exe) + '.sig');

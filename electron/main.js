@@ -9,12 +9,14 @@ const { spawn } = require('child_process');
 const SITE = 'https://app.northfinances.com.br/';
 const REPO = 'Barssottini/controle-financeiro';
 
-// Chave PÚBLICA (Ed25519) que verifica a assinatura dos instaladores de update. A privada
-// correspondente fica OFFLINE com o Pedro e assina cada release (script sign-release.js). Assim,
-// mesmo que o canal de download seja comprometido, o app só executa um instalador assinado por nós.
-const UPDATE_PUBKEY = `-----BEGIN PUBLIC KEY-----
+// Chaves PÚBLICAS (Ed25519) aceitas para verificar o update. Lista p/ permitir ROTAÇÃO: ao trocar,
+// adicione a nova mantendo a antiga por um tempo (a antiga assina um release que embute a nova).
+// A privada correspondente fica OFFLINE com o Pedro e assina cada release (sign-release.js).
+const UPDATE_PUBKEYS = [
+`-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAbiFyUnJs1frO4PtYMc+aAcJGdEkhfoxQO9MuUZE0+SU=
------END PUBLIC KEY-----`;
+-----END PUBLIC KEY-----`
+];
 
 // ── Servidor estático local: serve o app EMPACOTADO (código fixado), não o remoto ──
 // Assim, o servidor web remoto não consegue entregar a este app um JS diferente do que foi
@@ -47,7 +49,7 @@ function startLocalServer() {
         if (!file.startsWith(WEB_ROOT)) { res.writeHead(403); res.end(); return; }
         fs.readFile(file, (err, data) => {
           if (err) { res.writeHead(404); res.end('Not found'); return; }
-          res.writeHead(200, { 'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+          res.writeHead(200, { 'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-store', 'Content-Security-Policy': "frame-ancestors 'none'", 'X-Frame-Options': 'DENY' });
           res.end(data);
         });
       } catch (e) { res.writeHead(500); res.end(); }
@@ -173,14 +175,23 @@ function fetchText(url) {
   });
 }
 
-// Verifica a assinatura Ed25519 do instalador contra a chave pública embutida.
-function verifyInstaller(file, sigB64) {
+// Verifica o MANIFESTO assinado: assinatura Ed25519 sobre "versao|sha256", contra QUALQUER chave
+// aceita (rotação). Ligar a versão à assinatura impede rollback (servir uma build antiga válida).
+function verifyManifest(manifestText) {
   try {
-    const buf = fs.readFileSync(file);
-    const sig = Buffer.from(String(sigB64 || '').trim(), 'base64');
-    if (sig.length < 32) return false;
-    return crypto.verify(null, buf, crypto.createPublicKey(UPDATE_PUBKEY), sig);
-  } catch (e) { return false; }
+    const m = JSON.parse(manifestText);
+    if (!m || typeof m.version !== 'string' || typeof m.sha256 !== 'string' || typeof m.sig !== 'string') return null;
+    const msg = Buffer.from(m.version + '|' + m.sha256, 'utf8');
+    const sig = Buffer.from(m.sig, 'base64');
+    if (sig.length < 32) return null;
+    for (const pk of UPDATE_PUBKEYS) {
+      try { if (crypto.verify(null, msg, crypto.createPublicKey(pk), sig)) return m; } catch (e) {}
+    }
+    return null;
+  } catch (e) { return null; }
+}
+function sha256Hex(file) {
+  const h = crypto.createHash('sha256'); h.update(fs.readFileSync(file)); return h.digest('hex');
 }
 
 function downloadAndInstall(win, info) {
@@ -205,20 +216,17 @@ function downloadAndInstall(win, info) {
       });
       res.on('end', () => {
         ws.end(async () => {
-          // Só executa o instalador se a ASSINATURA bater com a nossa chave pública.
-          if (!info.sigUrl) {
-            set('Atualização sem assinatura — cancelada por segurança.', null);
-            try { fs.unlinkSync(file); } catch (e) {}
-            setTimeout(() => loadSite(win), 2400); return;
-          }
+          const abort = (m) => { set(m, null); try { fs.unlinkSync(file); } catch (e) {} setTimeout(() => loadSite(win), 2800); };
+          if (!info.sigUrl) { abort('Atualização sem assinatura — cancelada por segurança.'); return; }
           set('Verificando assinatura...', 100);
-          let sigB64 = '';
-          try { sigB64 = await fetchText(info.sigUrl); } catch (e) { sigB64 = ''; }
-          if (!verifyInstaller(file, sigB64)) {
-            set('Assinatura inválida — atualização cancelada por segurança.', null);
-            try { fs.unlinkSync(file); } catch (e) {}
-            setTimeout(() => loadSite(win), 2800); return;
-          }
+          let manifestText = '';
+          try { manifestText = await fetchText(info.sigUrl); } catch (e) { manifestText = ''; }
+          const m = verifyManifest(manifestText);
+          if (!m) { abort('Assinatura inválida — atualização cancelada.'); return; }
+          // o arquivo baixado tem que ser exatamente o que foi assinado
+          if (sha256Hex(file).toLowerCase() !== String(m.sha256).toLowerCase()) { abort('Arquivo não confere com a assinatura — cancelado.'); return; }
+          // anti-rollback: recusa instalar versão igual ou anterior à atual (mesmo assinada)
+          if (!isNewer(m.version, app.getVersion())) { abort('Essa versão não é mais nova que a atual — cancelada.'); return; }
           set('Instalando a nova versão...', 100);
           setTimeout(() => {
             spawn(file, [], { detached: true, stdio: 'ignore' }).unref();
