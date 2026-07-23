@@ -1873,13 +1873,17 @@ async function logoutAllDevices(){
 // entropia a partir de (e-mail, senha) e é ELE que vai pro Supabase como "senha". A chave de
 // cifragem dos dados continua vindo da senha crua (outra derivação, outro sal) — logo isto NÃO
 // mexe nos dados já cifrados. Sal determinístico do e-mail p/ dar pra derivar antes do login.
-async function nfAuthSecret(email,password){
+async function nfAuthSecretV(email,password,iter,prefix){
   const enc=new TextEncoder();
   const salt=new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode('nf-auth-v1|'+String(email||'').toLowerCase())));
   const km=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);
-  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:200000,hash:'SHA-256'},km,256);
-  return 'nfa1_'+_b64(bits);
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},km,256);
+  return prefix+_b64(bits);
 }
+// versão ATUAL do segredo de auth: 600k (igual à cifragem, p/ o piso de brute force não ser menor)
+async function nfAuthSecret(email,password){return nfAuthSecretV(email,password,600000,'nfa2_');}
+// versão ANTERIOR (200k) — só usada como passo de migração no login
+async function nfAuthSecretV1(email,password){return nfAuthSecretV(email,password,200000,'nfa1_');}
 // Anti-downgrade: o fallback que reenvia a SENHA CRUA (p/ migrar conta antiga) só pode rodar se
 // este aparelho nunca confirmou o esquema hasheado E antes da data de corte. Assim um servidor
 // comprometido não consegue forçar o cliente a reenviar a senha crua respondendo "inválido".
@@ -1896,43 +1900,31 @@ async function doLogin(){
   const passInput=document.getElementById('lpass');
   err.classList.remove('show');
   if(!email||!pass){msg.textContent='Preencha e-mail e senha.';err.classList.add('show');return;}
-  const ct=await getCaptcha('captcha-login');
-  if(captchaOn()&&!ct){msg.textContent=CAPTCHA_WAIT_MSG;err.classList.add('show');return;}
-  const authSecret=await nfAuthSecret(email,pass);
-  let data,error;
-  try{
-    const r=await sb.auth.signInWithPassword({email,password:authSecret,options:{captchaToken:ct}});
-    data=r.data;error=r.error;
-  }catch(ex){
-    error={message:'FETCH_FAIL: '+(ex&&ex.message?ex.message:String(ex))};
+  // Ordem de tentativa: esquema ATUAL (600k) → anterior (200k) → senha CRUA (legado). As duas
+  // últimas são "downgrade" (entregam derivação mais fraca / a senha crua ao servidor) e só rodam
+  // se este aparelho nunca confirmou o esquema forte E antes da data de corte — senão um servidor
+  // comprometido poderia forçar o downgrade respondendo "credencial inválida".
+  const s2=await nfAuthSecret(email,pass);
+  const attempts=[s2];
+  if(!nfRawDisabled(email)&&Date.now()<NF_RAW_LEGACY_UNTIL){
+    attempts.push(await nfAuthSecretV1(email,pass));   // 200k (esquema anterior)
+    attempts.push(pass);                                // senha crua (legado)
   }
-  resetCaptcha('captcha-login');
-  if(!error){
-    nfMarkAuthHashed(email);   // logou pelo hash → conta tem senha hasheada; desliga o fallback de senha crua neste aparelho
-  } else if(/invalid login credentials/i.test((error.message||''))){
-    // Migração de conta antiga (senha CRUA no Supabase). SÓ tenta o fallback se este aparelho nunca
-    // confirmou o esquema hasheado E antes da data de corte — senão seria um vetor de downgrade
-    // acionável por um servidor comprometido (que responderia "inválido" pra forçar o reenvio da crua).
-    if(!nfRawDisabled(email) && Date.now()<NF_RAW_LEGACY_UNTIL){
-      const ct2=await getCaptcha('captcha-login');
-      if(captchaOn()&&!ct2){
-        // 2º token não veio a tempo: pede pra tentar de novo (nunca mostrar "senha incorreta" a um
-        // usuário antigo com a senha certa por causa de captcha lento).
-        resetCaptcha('captcha-login');
-        msg.textContent=CAPTCHA_WAIT_MSG;void err.offsetWidth;err.classList.add('show');passInput.focus();return;
-      }
-      try{
-        const r2=await sb.auth.signInWithPassword({email,password:pass,options:{captchaToken:ct2}});
-        if(!r2.error&&r2.data&&r2.data.session){
-          try{await sb.auth.updateUser({password:authSecret});}catch(e){console.error('AUTHMIG_FAIL',e);}
-          nfMarkAuthHashed(email);
-          data=r2.data;error=null;
-        }else if(r2.error){
-          error=r2.error;   // erro do esquema antigo é mais informativo (ex.: conta não confirmada)
-        }
-      }catch(ex2){/* mantém o erro do 1º attempt */}
-      resetCaptcha('captcha-login');
-    }
+  let data=null,error=null,migrated=false;
+  for(let i=0;i<attempts.length;i++){
+    const ct=await getCaptcha('captcha-login');
+    if(captchaOn()&&!ct){resetCaptcha('captcha-login');msg.textContent=CAPTCHA_WAIT_MSG;void err.offsetWidth;err.classList.add('show');passInput.focus();return;}
+    let r;
+    try{r=await sb.auth.signInWithPassword({email,password:attempts[i],options:{captchaToken:ct}});}
+    catch(ex){r={error:{message:'FETCH_FAIL: '+(ex&&ex.message?ex.message:String(ex))}};}
+    resetCaptcha('captcha-login');
+    if(!r.error&&r.data&&r.data.session){data=r.data;error=null;migrated=(i>0);break;}
+    error=r.error||error;
+    if(!/invalid login credentials/i.test((r.error&&r.error.message)||''))break;   // erro que não é senha errada (ex.: não confirmado): para aqui
+  }
+  if(data){
+    if(migrated){try{await sb.auth.updateUser({password:s2});}catch(e){console.error('AUTHMIG_FAIL',e);}}   // rotaciona pro esquema forte
+    nfMarkAuthHashed(email);   // conta confirmada no esquema hasheado → desliga downgrades neste aparelho
   }
   if(error){
     const emsg=(error&&error.message)?String(error.message):'';
