@@ -994,22 +994,22 @@ body.values-hidden #dash-chart{filter:blur(6px)}
       </div>
       <div class="fgrp"><label class="flbl">Nome da Meta</label><input class="field" type="text" id="g-name" placeholder="Ex: Viagem para Europa"></div>
       <div class="frow">
-        <div class="fgrp"><label class="flbl">Valor Total (R$)</label><input class="field" type="number" id="g-target" placeholder="0,00" step="0.01" min="1"></div>
-        <div class="fgrp"><label class="flbl">Já guardado (R$)</label><input class="field" type="number" id="g-current" placeholder="0,00" step="0.01" min="0" value="0"></div>
+        <div class="fgrp"><label class="flbl">Valor Total (R$) — a meta</label><input class="field" type="number" id="g-target" placeholder="Ex: 10000" step="0.01" min="1"></div>
+        <div class="fgrp" id="g-current-wrap"><label class="flbl">Já guardado (R$)</label><input class="field" type="number" id="g-current" placeholder="0,00" step="0.01" min="0" value="0"></div>
       </div>
       <div class="fgrp"><label class="flbl">Prazo (opcional)</label><input class="field" type="date" id="g-deadline"></div>
       <div class="fgrp">
         <label class="flbl">Vincular ao patrimônio (automático)</label>
-        <select class="field" id="g-link">
+        <select class="field" id="g-link" onchange="onGoalLinkChange()">
           <option value="">Não vincular — atualização manual</option>
           <option value="xp">XP — ETFs, FIIs, Ações e Renda Fixa</option>
           <option value="cripto">Cripto — BTC, USDC etc.</option>
           <option value="cdi">Caixinhas CDI</option>
           <option value="all">Patrimônio total (tudo da aba Investimentos)</option>
         </select>
-        <p style="font-size:11px;color:var(--ink3);margin-top:6px">Vinculada, a meta acompanha sozinha o valor atual dos investimentos — sem precisar atualizar progresso.</p>
+        <p style="font-size:11px;color:var(--ink3);margin-top:6px">Vinculada, o <strong>progresso</strong> é automático (vem dos seus investimentos). Você só precisa definir o <strong>Valor Total</strong> (a meta) lá em cima.</p>
       </div>
-      <div class="fgrp">
+      <div class="fgrp" id="g-cdi-wrap">
         <label class="flbl">Rendimento CDI (opcional)</label>
         <select class="field" id="g-cdi">
           <option value="0">Sem rendimento (guardado manualmente)</option>
@@ -2489,6 +2489,7 @@ function openModal(id){
       '<span style="color:var(--ink3)">Rendimento calculado por dias úteis (252/ano).</span>';
   }
   if(id==='recurring-modal')renderRecurringList();
+  if(id==='goal-modal')onGoalLinkChange();
 }
 function closeModal(id){
   if(id==='msg-modal'){closeMsgModal(false);return;}
@@ -2890,6 +2891,15 @@ function renderInvPage(){
 }
 
 // ═══ GOALS ═══
+// Vinculada ao patrimônio: o progresso ("Já guardado") e o rendimento CDI viram automáticos,
+// então esconde esses campos — só o Valor Total (a meta) continua sendo preenchido à mão.
+function onGoalLinkChange(){
+  const linked=!!document.getElementById('g-link').value;
+  const cur=document.getElementById('g-current-wrap');
+  const cdi=document.getElementById('g-cdi-wrap');
+  if(cur)cur.style.display=linked?'none':'';
+  if(cdi)cdi.style.display=linked?'none':'';
+}
 function saveGoal(){
   const name=document.getElementById('g-name').value.trim();
   const target=parseFloat(document.getElementById('g-target').value);
@@ -2898,7 +2908,8 @@ function saveGoal(){
   const type=document.querySelector('input[name="gtype"]:checked').value;
   const link=document.getElementById('g-link').value;
   const cdi=link?0:(parseInt(document.getElementById('g-cdi').value)||0);
-  if(!name||!target){showAlert('Preencha nome e valor.');return;}
+  if(!name){showAlert('Dê um nome para a meta.');return;}
+  if(!target||target<=0){showAlert('Informe o Valor Total — quanto você quer atingir (ex.: 10000). O progresso é que fica automático quando vinculado, não a meta.');return;}
   const existing=S.goalEditId?S.goals.find(x=>x.id===S.goalEditId):null;
   const unchanged=existing&&cdi>0&&existing.cdi===cdi&&existing.current===current;
   const cdiStartDate=unchanged?existing.cdiStartDate:(cdi>0?new Date().toISOString().split('T')[0]:null);
