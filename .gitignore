@@ -4,6 +4,9 @@ exportar-informacoes/
 meu-assessor/
 backup*.json
 
+# Chaves de assinatura do auto-update — a PRIVADA jamais pode vazar
+*.pem
+
 # Configuração local do Claude Code
 .claude/
 

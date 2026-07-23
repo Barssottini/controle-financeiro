@@ -3,10 +3,18 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const http = require('http');
+const crypto = require('crypto');
 const { spawn } = require('child_process');
 
 const SITE = 'https://app.northfinances.com.br/';
 const REPO = 'Barssottini/controle-financeiro';
+
+// Chave PÚBLICA (Ed25519) que verifica a assinatura dos instaladores de update. A privada
+// correspondente fica OFFLINE com o Pedro e assina cada release (script sign-release.js). Assim,
+// mesmo que o canal de download seja comprometido, o app só executa um instalador assinado por nós.
+const UPDATE_PUBKEY = `-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAbiFyUnJs1frO4PtYMc+aAcJGdEkhfoxQO9MuUZE0+SU=
+-----END PUBLIC KEY-----`;
 
 // ── Servidor estático local: serve o app EMPACOTADO (código fixado), não o remoto ──
 // Assim, o servidor web remoto não consegue entregar a este app um JS diferente do que foi
@@ -127,8 +135,9 @@ function checkUpdate() {
             const j = JSON.parse(body);
             const latest = (j.tag_name || '').replace(/^v/, '');
             const asset = (j.assets || []).find(a => /\.exe$/i.test(a.name));
+            const sigAsset = (j.assets || []).find(a => /\.exe\.sig$/i.test(a.name));
             if (latest && asset && isNewer(latest, app.getVersion())) {
-              done({ version: latest, current: app.getVersion(), url: asset.browser_download_url });
+              done({ version: latest, current: app.getVersion(), url: asset.browser_download_url, sigUrl: sigAsset ? sigAsset.browser_download_url : null });
             } else done(null);
           } catch (e) { done(null); }
         });
@@ -144,6 +153,34 @@ function loadSite(win) {
   // Prefere o app empacotado (local, código fixado). Se o servidor local não subiu, cai pro remoto.
   const target = LOCAL_URL ? (LOCAL_URL + 'index.html') : SITE;
   win.loadURL(target).catch(() => win.loadURL(OFFLINE_HTML));
+}
+
+function fetchText(url) {
+  return new Promise((resolve, reject) => {
+    try {
+      const req = net.request(url);
+      req.setHeader('User-Agent', 'NorthApp');
+      let body = '';
+      req.on('response', res => {
+        if (res.statusCode >= 400) { reject(new Error('http ' + res.statusCode)); return; }
+        res.on('data', d => body += d);
+        res.on('end', () => resolve(body));
+        res.on('error', reject);
+      });
+      req.on('error', reject);
+      req.end();
+    } catch (e) { reject(e); }
+  });
+}
+
+// Verifica a assinatura Ed25519 do instalador contra a chave pública embutida.
+function verifyInstaller(file, sigB64) {
+  try {
+    const buf = fs.readFileSync(file);
+    const sig = Buffer.from(String(sigB64 || '').trim(), 'base64');
+    if (sig.length < 32) return false;
+    return crypto.verify(null, buf, crypto.createPublicKey(UPDATE_PUBKEY), sig);
+  } catch (e) { return false; }
 }
 
 function downloadAndInstall(win, info) {
@@ -167,7 +204,21 @@ function downloadAndInstall(win, info) {
         if (total) { const pct = Math.round(got / total * 100); set('Baixando atualização... ' + pct + '%', pct); }
       });
       res.on('end', () => {
-        ws.end(() => {
+        ws.end(async () => {
+          // Só executa o instalador se a ASSINATURA bater com a nossa chave pública.
+          if (!info.sigUrl) {
+            set('Atualização sem assinatura — cancelada por segurança.', null);
+            try { fs.unlinkSync(file); } catch (e) {}
+            setTimeout(() => loadSite(win), 2400); return;
+          }
+          set('Verificando assinatura...', 100);
+          let sigB64 = '';
+          try { sigB64 = await fetchText(info.sigUrl); } catch (e) { sigB64 = ''; }
+          if (!verifyInstaller(file, sigB64)) {
+            set('Assinatura inválida — atualização cancelada por segurança.', null);
+            try { fs.unlinkSync(file); } catch (e) {}
+            setTimeout(() => loadSite(win), 2800); return;
+          }
           set('Instalando a nova versão...', 100);
           setTimeout(() => {
             spawn(file, [], { detached: true, stdio: 'ignore' }).unref();
