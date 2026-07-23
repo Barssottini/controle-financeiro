@@ -10,15 +10,15 @@ Controle financeiro pessoal. Você **exporta** o extrato do seu banco (OFX/CSV) 
 
 - **Criptografia de ponta a ponta (at-rest).** Chave-mestra aleatória, embrulhada por uma chave derivada da sua senha (PBKDF2-SHA256, 600k) **e** por uma chave de recuperação independente. Conteúdo cifrado com AES-GCM-256. O servidor guarda **só texto cifrado** — verificável no banco.
 - **A senha crua não vai ao servidor de auth.** Derivamos no cliente um segredo de auth separado (PBKDF2, outro uso); é ele que autentica no Supabase. A chave de cifragem vem da senha crua com outro sal.
-- **Auto-update assinado + anti-rollback (desktop).** O app só executa um instalador cuja assinatura Ed25519 (sobre `versão|sha256`) bate com uma chave pública embutida, e recusa versões ≤ a atual. Chave privada offline.
-- **Código fixado no desktop.** O app de desktop empacota o código e serve de `localhost` — o servidor remoto não injeta JS sob medida. Servidor local com bind em 127.0.0.1 e validação de `Host` (anti DNS-rebinding).
+- **Desktop e web são o MESMO app.** O app de desktop (Electron) carrega o site ao vivo — mesma versão, mesma criptografia, mesma sincronização (via nuvem), sem diferença. Não há código empacotado separado.
+- **Auto-update assinado + anti-rollback (instalador desktop).** O app só executa um instalador cuja assinatura Ed25519 (sobre `versão|sha256`) bate com uma chave pública embutida, e recusa versões ≤ a atual. Chave privada offline. (Protege o wrapper/instalador; o código do app vem do site.)
 - **CSP limitando exfiltração.** `connect-src`/`img-src` em allowlist: um script injetado não consegue mandar dados para hosts fora da lista.
 - **Escape rígido** de todo dado de arquivo/usuário renderizado (parser OFX, nome de arquivo, campos digitados).
 - Isolamento por usuário no banco (RLS), 2FA opcional, alerta de novo login, sessão única, bloqueio por inatividade.
 
 ## O que NÃO está resolvido (resíduos conhecidos)
 
-1. **Entrega web não é fixada.** No navegador, você confia no que o servidor te serve **a cada carregamento**. Um GitHub Pages / DNS / TLS comprometido poderia servir um JS malicioso que lê a chave-mestra da memória. O desktop empacotado fecha isso; a web, não. *Correção no radar: build reproduzível + hash publicado.*
+1. **A entrega do app não é fixada (web e desktop).** Você confia no que o servidor te serve **a cada carregamento** — vale para o navegador e para o app de desktop (que carrega o mesmo site). Um GitHub Pages / DNS / TLS comprometido poderia servir um JS malicioso que lê a chave-mestra da memória. *Correção no radar: build reproduzível + hash publicado, ou uma versão desktop com código empacotado e verificável.*
 2. **XSS seria comprometimento total.** Num app E2EE, execução de script arbitrário no contexto lê a chave — a cripto at-rest vira irrelevante. Mitigamos com escape rígido + CSP, **mas** `script-src` mantém `unsafe-inline` (o app usa handlers inline), então um script inline injetado não é bloqueado — só seus canais de exfiltração são. Não é uma barreira completa.
 3. **Build ainda não é reproduzível.** Empacotar prova que você roda o que **compilamos**, não que compilamos o que está no GitHub. Terceiro ainda não consegue reproduzir o binário e conferir. *É o próximo passo.*
 4. **O salto para a primeira versão assinada é feito por clientes antigos, sem verificação.** Da primeira versão assinada em diante, todo update é verificado.
@@ -31,4 +31,4 @@ Controle financeiro pessoal. Você **exporta** o extrato do seu banco (OFX/CSV) 
 
 ## Modelo de confiança, em uma frase
 
-No **desktop**, você confia que compilamos honestamente (uma vez, verificável quando o build for reproduzível). Na **web**, você confia no servidor a cada carregamento. Em ambos, você confia que o código aberto é o que roda — e pode ler o código para verificar boa parte disso.
+Desktop e web são o mesmo app e têm o mesmo modelo de confiança: você confia no servidor a cada carregamento. O código é aberto — você pode ler e verificar boa parte disso. Fixar o código de forma verificável (build reproduzível + hash publicado, ou um desktop com bundle assinado) é um passo futuro.

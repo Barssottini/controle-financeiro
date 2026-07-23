@@ -767,6 +767,15 @@ body.values-hidden #dash-chart{filter:blur(6px)}
         <button class="btn btn-secondary" onclick="logoutAllDevices()">Sair de todos os dispositivos</button>
       </div>
 
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Sincronização</span></div>
+        <p style="font-size:13px;color:var(--ink3);margin-bottom:12px">Se este aparelho e a nuvem ficarem diferentes, você força qual lado vale. <strong>Cuidado:</strong> o lado sobrescrito é substituído por inteiro, sem misturar.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-secondary" onclick="forcePullCloud()">Baixar da nuvem (substituir este aparelho)</button>
+          <button class="btn btn-secondary" onclick="forcePushCloud()">Enviar este aparelho (substituir a nuvem)</button>
+        </div>
+      </div>
+
       <div class="panel" id="sub-panel">
         <div class="panel-head"><span class="panel-title">Assinatura</span></div>
         <div id="sub-info" style="font-size:13px;color:var(--ink2);line-height:1.8">—</div>
@@ -1406,6 +1415,28 @@ async function loadCloud(uid){
     if(dataCount(merged)>dataCount(cloud)){await cloudSaveNow();return;}
     setSync('ok');
   }catch(e){setSync('offline');}
+}
+
+// Força manual de sincronização (para resolver divergência entre aparelhos sem merge).
+async function forcePullCloud(){
+  if(!(await showConfirm('Isto DESCARTA os dados deste aparelho e traz a versão que está na nuvem. Use se este aparelho está errado e a nuvem está certa.',{title:'Baixar da nuvem',confirmLabel:'Baixar e substituir',cancelLabel:'Cancelar',danger:true})))return;
+  try{
+    const {data:{user}}=await sb.auth.getUser();
+    if(!user||!_mk){showAlert('Você precisa estar logado e com a conta destravada.');return;}
+    const {data,error}=await sb.from('user_data').select('enc_data').eq('user_id',user.id).maybeSingle();
+    if(error)throw error;
+    if(!data||!data.enc_data){showAlert('Não há dados na nuvem para baixar.');return;}
+    const cloud=JSON.parse(await nfDec(_mk,data.enc_data));
+    applyCloud(cloud);   // SUBSTITUI o local pelo da nuvem (sem misturar)
+    await showAlert('Pronto. Este aparelho agora está igual à nuvem.');
+    location.reload();
+  }catch(e){showAlert('Não consegui baixar da nuvem agora. Verifique a conexão e tente de novo.');}
+}
+async function forcePushCloud(){
+  if(!(await showConfirm('Isto SUBSTITUI o que está na nuvem pelos dados deste aparelho. Use se este aparelho está certo e a nuvem (ou outro aparelho) está errada.',{title:'Enviar este aparelho',confirmLabel:'Enviar e substituir',cancelLabel:'Cancelar',danger:true})))return;
+  if(!_mk){showAlert('Você precisa estar com a conta destravada.');return;}
+  await cloudSaveNow();
+  showAlert('Enviado. A nuvem agora tem os dados deste aparelho.');
 }
 
 // ═══ AUTH ═══

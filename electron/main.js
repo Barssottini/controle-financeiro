@@ -2,7 +2,6 @@ const { app, BrowserWindow, Menu, shell, session, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const http = require('http');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 
@@ -17,54 +16,6 @@ const UPDATE_PUBKEYS = [
 MCowBQYDK2VwAyEAbiFyUnJs1frO4PtYMc+aAcJGdEkhfoxQO9MuUZE0+SU=
 -----END PUBLIC KEY-----`
 ];
-
-// ── Servidor estático local: serve o app EMPACOTADO (código fixado), não o remoto ──
-// Assim, o servidor web remoto não consegue entregar a este app um JS diferente do que foi
-// publicado neste build. http://localhost é contexto seguro, então o WebCrypto (cripto E2E)
-// funciona normalmente. IMPORTANTE: 'localhost' precisa estar na lista de domínios permitidos
-// do widget Turnstile (Cloudflare), senão o captcha do login não valida.
-const WEB_ROOT = path.join(__dirname, '..');            // raiz do pacote, onde os arquivos web são empacotados
-const WEB_PORTS = [47615, 47616, 47617, 47618];
-const MIME = {
-  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg',
-  '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.css': 'text/css; charset=utf-8',
-  '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2'
-};
-let LOCAL_URL = null;
-
-function startLocalServer() {
-  return new Promise(resolve => {
-    let boundPort = 0;
-    const server = http.createServer((req, res) => {
-      try {
-        // Defesa contra DNS rebinding: só atende requests cujo Host seja localhost/127.0.0.1 na porta ligada.
-        const host = String(req.headers.host || '');
-        if (host !== 'localhost:' + boundPort && host !== '127.0.0.1:' + boundPort) { res.writeHead(403); res.end(); return; }
-        let p = decodeURIComponent((req.url || '/').split('?')[0].split('#')[0]);
-        if (p === '/' || p === '') p = '/index.html';
-        if (p === '/sw.js') { res.writeHead(404); res.end(); return; }   // sem service worker no desktop
-        const rel = path.normalize(p).replace(/^([/\\]|\.\.[/\\])+/, '');
-        const file = path.join(WEB_ROOT, rel);
-        if (!file.startsWith(WEB_ROOT)) { res.writeHead(403); res.end(); return; }
-        fs.readFile(file, (err, data) => {
-          if (err) { res.writeHead(404); res.end('Not found'); return; }
-          res.writeHead(200, { 'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-store', 'Content-Security-Policy': "frame-ancestors 'none'", 'X-Frame-Options': 'DENY' });
-          res.end(data);
-        });
-      } catch (e) { res.writeHead(500); res.end(); }
-    });
-    const ports = WEB_PORTS.slice();
-    const tryNext = () => {
-      const port = ports.shift();
-      if (port === undefined) { resolve(null); return; }
-      const onErr = () => { server.removeListener('error', onErr); tryNext(); };
-      server.once('error', onErr);
-      server.listen(port, '127.0.0.1', () => { server.removeListener('error', onErr); boundPort = port; resolve('http://localhost:' + port + '/'); });
-    };
-    tryNext();
-  });
-}
 
 // User-Agent LIMPO (sem acentos). O padrão do Electron injeta o productName com acento,
 // e um "ç"/acento em Latin-1 quebra o Postgres do Supabase ao criar a sessão (erro 500).
@@ -152,9 +103,9 @@ function checkUpdate() {
 }
 
 function loadSite(win) {
-  // Prefere o app empacotado (local, código fixado). Se o servidor local não subiu, cai pro remoto.
-  const target = LOCAL_URL ? (LOCAL_URL + 'index.html') : SITE;
-  win.loadURL(target).catch(() => win.loadURL(OFFLINE_HTML));
+  // Desktop e web rodam EXATAMENTE o mesmo app: o desktop carrega o site ao vivo. Mesma versão,
+  // mesma criptografia, mesma sincronização — sem diferença nenhuma entre os dois.
+  win.loadURL(SITE).catch(() => win.loadURL(OFFLINE_HTML));
 }
 
 function fetchText(url) {
@@ -299,9 +250,6 @@ app.whenReady().then(async () => {
   try {
     session.defaultSession.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) NorthApp Chrome/130.0.0.0 Safari/537.36');
   } catch (e) {}
-
-  // Sobe o servidor estático local que serve o app EMPACOTADO (código fixado)
-  try { LOCAL_URL = await startLocalServer(); } catch (e) { LOCAL_URL = null; }
 
   const win = createWindow();
   currentUpdateInfo = await checkUpdate();

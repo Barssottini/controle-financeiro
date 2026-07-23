@@ -1,7 +1,7 @@
 {
   "name": "north",
   "productName": "North Finances",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Controle financeiro pessoal — 100% local",
   "main": "electron/main.js",
   "author": "Pedro Barssottini Gianchetta",
@@ -20,13 +20,6 @@
     "productName": "North Finances",
     "files": [
       "electron/**/*",
-      "index.html",
-      "manual.html",
-      "termos.html",
-      "manifest.json",
-      "sw.js",
-      "logo-192.png",
-      "logo-512.png",
       "logo.ico"
     ],
     "win": {
