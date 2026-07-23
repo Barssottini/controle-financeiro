@@ -1371,21 +1371,39 @@ function applyCloud(d){
   migrateData();
   persistAllLocal();
 }
+// Compara duas versões de uma MESMA seção e devolve a mais "rica" (mais itens). Assim uma seção
+// cheia (ex.: investimentos) NUNCA é apagada por um lado que está com ela vazia. Empate → nuvem.
+function richerList(local,cloud){
+  local=Array.isArray(local)?local:[]; cloud=Array.isArray(cloud)?cloud:[];
+  return cloud.length>=local.length?cloud:local;
+}
 async function loadCloud(uid){
   try{
     const {data,error}=await sb.from('user_data').select('enc_data').eq('user_id',uid).maybeSingle();
     if(error)throw error;
     let cloud=null;
     if(data&&data.enc_data&&_mk){try{cloud=JSON.parse(await nfDec(_mk,data.enc_data));}catch(e){cloud=null;}}
-    const cloudN=dataCount(cloud);
-    loadData(); // carrega o que há neste dispositivo (localStorage)
-    const localN=dataCount(S);
-    // Regra segura: o lado com MAIS dados vence. Vazio nunca sobrescreve cheio.
-    if(cloudN>0 && cloudN>=localN){
-      applyCloud(cloud);            // nuvem é mais rica (ou igual) → usa nuvem
-    }else if(localN>0){
-      await cloudSaveNow();return;  // cloudSaveNow reporta o próprio status (ok/offline) — não mascarar
+    loadData(); // carrega o que há neste dispositivo (localStorage) em S
+    if(!cloud){
+      if(dataCount(S)>0){await cloudSaveNow();return;}  // nuvem vazia + local com dados → sobe
+      setSync('ok');return;
     }
+    // MERGE POR SEÇÃO (não global): cada lista vira a versão com mais itens. Corrige o bug em que
+    // um estado com muitas transações mas SEM investimentos apagava a carteira inteira.
+    const merged={
+      transactions:richerList(S.transactions,cloud.transactions),
+      ccItems:richerList(S.ccItems,cloud.ccItems),
+      investments:richerList(S.investments,cloud.investments),
+      goals:richerList(S.goals,cloud.goals),
+      budgets:richerList(S.budgets,cloud.budgets),
+      bills:richerList(S.bills,cloud.bills),
+      recurring:richerList(S.recurring,cloud.recurring),
+      settings:cloud.settings||{}
+    };
+    applyCloud(merged);
+    // se o merge ficou mais rico que a nuvem (este dispositivo trouxe uma seção que faltava lá),
+    // sobe pra alinhar os dois lados — é isto que RECUPERA uma seção perdida.
+    if(dataCount(merged)>dataCount(cloud)){await cloudSaveNow();return;}
     setSync('ok');
   }catch(e){setSync('offline');}
 }
