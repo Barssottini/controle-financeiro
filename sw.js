@@ -3,7 +3,7 @@
 // v3: o DOCUMENTO (app) NUNCA é servido de uma versão antiga em cache — crítico para a
 // criptografia client-side (código velho gravaria dados em texto puro). Só assets estáticos
 // (logos, manifest) usam cache de reserva offline.
-const CACHE = 'bf-v10';
+const CACHE = 'bf-v11';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./index.html', './manifest.json', './logo-192.png', './logo-512.png'])));

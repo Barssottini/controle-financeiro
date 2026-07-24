@@ -632,9 +632,9 @@ body.values-hidden #dash-chart{filter:blur(6px)}
         <button class="btn btn-primary" onclick="openCCModal()">+ Lançar no Crédito</button>
       </div>
       <div class="cards-row" style="grid-template-columns:repeat(3,1fr)">
-        <div class="sum-card cc"><div class="sc-label">Fatura Total</div><div class="sc-val" id="cc-total">R$ 0,00</div></div>
+        <div class="sum-card expense"><div class="sc-label">Em aberto no mês</div><div class="sc-val" id="cc-open-month">R$ 0,00</div></div>
+        <div class="sum-card cc"><div class="sc-label">Em aberto total</div><div class="sc-val" id="cc-open-total">R$ 0,00</div></div>
         <div class="sum-card income"><div class="sc-label">Pago</div><div class="sc-val" id="cc-paid">R$ 0,00</div></div>
-        <div class="sum-card expense"><div class="sc-label">Em Aberto</div><div class="sc-val" id="cc-open">R$ 0,00</div></div>
       </div>
       <div class="panel"><div class="panel-head"><span class="panel-title">Lançamentos</span></div><div id="cc-list"></div></div>
     </div>
@@ -845,25 +845,22 @@ body.values-hidden #dash-chart{filter:blur(6px)}
   <div class="modal">
     <div class="mhead"><h3>Lançamento no Crédito</h3><button class="xbtn" onclick="closeModal('cc-modal')">✕</button></div>
     <div class="mbody">
-      <div class="fgrp"><label class="flbl">Descrição</label><input class="field" type="text" id="cc-desc" placeholder="Ex: Compra na Zara..."></div>
+      <div class="fgrp"><label class="flbl">Descrição</label><input class="field" type="text" id="cc-desc" placeholder="Ex: Compra na Sephora..."></div>
       <div class="frow">
-        <div class="fgrp"><label class="flbl">Valor</label><input class="field" type="number" id="cc-amt" placeholder="0,00" step="0.01" min="0.01"></div>
-        <div class="fgrp"><label class="flbl">Data</label><input class="field" type="date" id="cc-date"></div>
+        <div class="fgrp"><label class="flbl">Valor total</label><input class="field" type="number" id="cc-amt" placeholder="0,00" step="0.01" min="0.01" oninput="updateCCParcelaHint()"></div>
+        <div class="fgrp"><label class="flbl">Parcelas</label><input class="field" type="number" id="cc-parcelas" value="1" min="1" max="72" step="1" oninput="updateCCParcelaHint()"></div>
       </div>
-      <div class="fgrp">
-        <label class="flbl">Categoria</label>
-        <select class="field" id="cc-cat">
-          <option value="">Selecione...</option>
-          <option>Alimentação</option><option>Transporte</option><option>Moradia</option>
-          <option>Contas</option><option>Lazer</option><option>Saúde</option><option>Outros</option>
-        </select>
-      </div>
-      <div class="fgrp">
-        <label class="flbl">Status</label>
-        <select class="field" id="cc-status">
-          <option value="open">Em aberto</option>
-          <option value="paid">Pago</option>
-        </select>
+      <p id="cc-parcela-hint" style="font-size:12px;color:var(--gold);font-weight:600;margin:-4px 0 12px;display:none"></p>
+      <div class="frow">
+        <div class="fgrp"><label class="flbl">Data da compra</label><input class="field" type="date" id="cc-date"></div>
+        <div class="fgrp">
+          <label class="flbl">Categoria</label>
+          <select class="field" id="cc-cat">
+            <option value="">Selecione...</option>
+            <option>Alimentação</option><option>Transporte</option><option>Moradia</option>
+            <option>Contas</option><option>Lazer</option><option>Saúde</option><option>Outros</option>
+          </select>
+        </div>
       </div>
       <div class="factions">
         <button class="btn btn-secondary" onclick="closeModal('cc-modal')">Cancelar</button>
@@ -2633,47 +2630,63 @@ function resetTxForm(){
 }
 
 // ═══ CREDIT CARD ═══
-function openCCModal(){document.getElementById('cc-date').valueAsDate=new Date();openModal('cc-modal');}
+function openCCModal(){document.getElementById('cc-date').valueAsDate=new Date();const p=document.getElementById('cc-parcelas');if(p)p.value='1';updateCCParcelaHint();openModal('cc-modal');}
+function updateCCParcelaHint(){
+  const el=document.getElementById('cc-parcela-hint');if(!el)return;
+  const amt=parseFloat(document.getElementById('cc-amt').value)||0;
+  const n=Math.max(1,parseInt(document.getElementById('cc-parcelas').value)||1);
+  if(n>1&&amt>0){el.style.display='block';el.textContent=n+'x de '+fmtCur(amt/n)+' · total '+fmtCur(amt);}
+  else{el.style.display='none';}
+}
 function saveCC(){
   const desc=document.getElementById('cc-desc').value.trim();
   const amt=parseFloat(document.getElementById('cc-amt').value);
   const date=document.getElementById('cc-date').value;
   const cat=document.getElementById('cc-cat').value;
-  const status=document.getElementById('cc-status').value;
-  if(!desc||!amt||!date||!cat){showAlert('Preencha todos os campos.');return;}
-  S.ccItems.push({id:Date.now(),description:desc,amount:amt,date,category:cat,status});
+  const parcelas=Math.max(1,parseInt(document.getElementById('cc-parcelas').value)||1);
+  if(!desc||!amt||!date||!cat){showAlert('Preencha descrição, valor, data e categoria.');return;}
+  S.ccItems.push({id:Date.now(),description:desc,amount:amt,date,category:cat,parcelas,paidCount:0});
   persistCC();closeModal('cc-modal');
   ['cc-desc','cc-amt','cc-cat'].forEach(i=>document.getElementById(i).value='');
-  document.getElementById('cc-status').value='open';
+  document.getElementById('cc-parcelas').value='1';updateCCParcelaHint();
   renderCCPage();updateDashboard();
   toast('Lançamento salvo');
 }
+// ── Parcelamento do cartão ──
+function ccParcelas(c){return Math.max(1,parseInt(c.parcelas)||1);}
+function ccPaid(c){if(typeof c.paidCount==='number')return Math.max(0,Math.min(ccParcelas(c),c.paidCount));return c.status==='paid'?ccParcelas(c):0;} // legado: status→parcelas pagas
+function ccValorParcela(c){return c.amount/ccParcelas(c);}
+function ccCurMonth(){return new Date().toISOString().substring(0,7);}
+function ccParcelaMonth(c,k){const d=new Date(((c.date||'').substring(0,10))+'T00:00:00');if(isNaN(d.getTime()))return'';d.setMonth(d.getMonth()+(k-1));return d.toISOString().substring(0,7);}
+function ccOpenTotal(){return S.ccItems.reduce((s,c)=>s+ccValorParcela(c)*(ccParcelas(c)-ccPaid(c)),0);}
+function ccPaidTotal(){return S.ccItems.reduce((s,c)=>s+ccValorParcela(c)*ccPaid(c),0);}
+function ccOpenMonth(month){let sum=0;S.ccItems.forEach(c=>{const n=ccParcelas(c),paid=ccPaid(c),vp=ccValorParcela(c);for(let k=paid+1;k<=n;k++){if(ccParcelaMonth(c,k)===month)sum+=vp;}});return sum;}
+function payCCParcela(id){const c=S.ccItems.find(x=>x.id===id);if(!c)return;const n=ccParcelas(c),p=ccPaid(c);if(p<n){c.paidCount=p+1;delete c.status;persistCC();renderCCPage();updateDashboard();}}
+function reopenCCParcela(id){const c=S.ccItems.find(x=>x.id===id);if(!c)return;const p=ccPaid(c);if(p>0){c.paidCount=p-1;delete c.status;persistCC();renderCCPage();updateDashboard();}}
 function delCC(id){
   delFromArray(S.ccItems,id,persistCC,function(){renderCCPage();updateDashboard();},'Lançamento excluído');
 }
-function toggleCCStatus(id){
-  const c=S.ccItems.find(x=>x.id===id);if(!c)return;
-  c.status=c.status==='open'?'paid':'open';
-  persistCC();renderCCPage();updateDashboard();
-}
 function renderCCPage(){
-  const total=S.ccItems.reduce((s,c)=>s+c.amount,0);
-  const paid=S.ccItems.filter(c=>c.status==='paid').reduce((s,c)=>s+c.amount,0);
-  setCurAnimated('cc-total',total);
-  setCurAnimated('cc-paid',paid);
-  setCurAnimated('cc-open',total-paid);
+  setCurAnimated('cc-open-month',ccOpenMonth(ccCurMonth()));
+  setCurAnimated('cc-open-total',ccOpenTotal());
+  setCurAnimated('cc-paid',ccPaidTotal());
   const sorted=[...S.ccItems].sort((a,b)=>new Date(b.date)-new Date(a.date));
-  document.getElementById('cc-list').innerHTML=sorted.length?sorted.map(c=>
-    '<div class="tx-item" style="'+(c.status==='paid'?'opacity:.55':'')+'">'+
-    '<div class="tx-icon cc">'+(CAT_ICONS[c.category]||'📦')+'</div>'+
-    '<div class="tx-info"><div class="tx-desc">'+esc(c.description)+'</div>'+
-    '<div class="tx-meta">'+esc(c.category)+' · '+fmtDate(c.date)+' · <span style="color:'+(c.status==='paid'?'var(--green)':'var(--purple)')+'">● '+(c.status==='paid'?'Pago':'Em aberto')+'</span></div></div>'+
-    '<div class="tx-amount cc">− '+fmtCur(c.amount)+'</div>'+
-    '<div class="tx-actions" style="opacity:1">'+
-    '<button class="btn btn-sm '+(c.status==='open'?'btn-green':'btn-secondary')+'" onclick="toggleCCStatus('+c.id+')">'+(c.status==='open'?'Pagar':'Reabrir')+'</button>'+
-    '<button class="ibt del" onclick="delCC('+c.id+')">🗑️</button>'+
-    '</div></div>'
-  ).join(''):emptyHTML('Nenhum lançamento no crédito');
+  document.getElementById('cc-list').innerHTML=sorted.length?sorted.map(function(c){
+    const n=ccParcelas(c),paid=ccPaid(c),vp=ccValorParcela(c),full=paid>=n;
+    const meta=n>1
+      ? 'Parcela <strong>'+paid+'/'+n+'</strong> · '+fmtCur(vp)+'/mês'
+      : '<span style="color:'+(full?'var(--green)':'var(--purple)')+'">● '+(full?'Pago':'Em aberto')+'</span>';
+    return '<div class="tx-item" style="'+(full?'opacity:.6':'')+'">'+
+      '<div class="tx-icon cc">'+(CAT_ICONS[c.category]||'📦')+'</div>'+
+      '<div class="tx-info"><div class="tx-desc">'+esc(c.description)+(n>1?' <span style="font-size:10px;color:var(--gold);font-weight:800">'+n+'x</span>':'')+'</div>'+
+      '<div class="tx-meta">'+esc(c.category)+' · '+fmtDate(c.date)+' · '+meta+'</div></div>'+
+      '<div class="tx-amount cc">− '+fmtCur(c.amount)+'</div>'+
+      '<div class="tx-actions" style="opacity:1">'+
+      (paid<n?'<button class="btn btn-sm btn-green" onclick="payCCParcela('+c.id+')">'+(n>1?'Pagar parcela':'Pagar')+'</button>':'')+
+      (paid>0?'<button class="btn btn-sm btn-secondary" onclick="reopenCCParcela('+c.id+')">'+(n>1?'Estornar':'Reabrir')+'</button>':'')+
+      '<button class="ibt del" onclick="delCC('+c.id+')">🗑️</button>'+
+      '</div></div>';
+  }).join(''):emptyHTML('Nenhum lançamento no crédito');
 }
 
 // ═══ INVESTMENTS ═══
