@@ -653,6 +653,8 @@ body.values-hidden #dash-chart{filter:blur(6px)}
         <div class="sum-card income"><div class="sc-label">Rendimento Acumulado</div><div class="sc-val" id="inv-yield-total">R$ 0,00</div></div>
         <div class="sum-card" style="background:var(--goldl);border-color:var(--gold)"><div class="sc-label">Patrimônio Total</div><div class="sc-val" style="color:var(--gold)" id="inv-patrimony">R$ 0,00</div></div>
       </div>
+      <div id="inv-prov-banner" style="display:none;background:var(--greenl);border:1px solid var(--green);border-radius:14px;padding:13px 16px;margin-bottom:18px"></div>
+      <div class="panel" id="inv-alloc-panel" style="display:none"><div class="panel-head"><span class="panel-title">Alocação da carteira</span></div><div id="inv-alloc"></div></div>
       <div class="panel"><div class="panel-head"><span class="panel-title">Carteira</span></div><div id="inv-list"></div></div>
     </div>
 
@@ -978,6 +980,21 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 </div>
 
 <!-- MODAL: META -->
+<div class="overlay" id="prov-modal">
+  <div class="modal" style="max-width:440px">
+    <div class="mhead"><h3>Proventos — <span id="prov-inv-name"></span></h3><button class="xbtn" onclick="closeModal('prov-modal')">✕</button></div>
+    <div class="mbody">
+      <p style="font-size:12.5px;color:var(--ink3);margin-bottom:14px;line-height:1.5">Registre os dividendos/rendimentos que caíram deste ativo. Assim você acompanha a <strong>renda passiva</strong> que ele te paga, mês a mês.</p>
+      <div class="frow">
+        <div class="fgrp"><label class="flbl">Data</label><input class="field" type="date" id="prov-date"></div>
+        <div class="fgrp"><label class="flbl">Valor recebido (R$)</label><input class="field" type="number" id="prov-amt" placeholder="Ex: 1,60" step="0.01" min="0.01"></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="addProvento()">Adicionar provento</button>
+      <div id="prov-list" style="margin-top:16px"></div>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="goal-modal">
   <div class="modal">
     <div class="mhead"><h3 id="goal-modal-title">Nova Meta</h3><button class="xbtn" onclick="closeModal('goal-modal')">✕</button></div>
@@ -2868,6 +2885,8 @@ function renderInvPage(){
   setCurAnimated('inv-total',totI);
   setCurAnimated('inv-yield-total',totG);
   setCurAnimated('inv-patrimony',totI+totG);
+  renderInvProvBanner();
+  renderInvAllocation();
   const list=document.getElementById('inv-list');
   if(!S.investments.length){list.innerHTML=emptyHTML('Nenhum investimento cadastrado');return;}
   list.innerHTML=S.investments.map(inv=>{
@@ -2875,17 +2894,89 @@ function renderInvPage(){
     const pct=n.invested>0?(n.gain/n.invested*100).toFixed(2):'0.00';
     const gainColor=n.gain>=0?'var(--green)':'var(--red)';
     const gainSign=n.gain>=0?'+ ':'− ';
+    const prov=invProvTotal(inv);
     return '<div class="inv-card">'+
-      '<div class="inv-actions"><button class="ibt" onclick="editInv('+inv.id+')" title="Editar / atualizar preço">✏️</button>'+
+      '<div class="inv-actions"><button class="ibt" onclick="openProvModal('+inv.id+')" title="Proventos / dividendos recebidos">💰</button>'+
+      '<button class="ibt" onclick="editInv('+inv.id+')" title="Editar / atualizar preço">✏️</button>'+
       '<button class="ibt del" onclick="delInv('+inv.id+')" title="Excluir">🗑️</button></div>'+
       '<div class="inv-name">'+esc(inv.name)+'</div>'+
       '<div style="display:flex;align-items:baseline;gap:10px">'+
       '<div class="inv-amount">'+fmtCur(n.current)+'</div>'+
       '<span style="background:var(--goldl);color:var(--gold);font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">'+esc(n.tag)+'</span></div>'+
       '<div class="inv-yield" style="color:'+gainColor+'">'+gainSign+fmtCur(Math.abs(n.gain))+' ('+pct+'%)</div>'+
-      '<div class="inv-meta">'+n.meta+'</div>'+
+      '<div class="inv-meta">'+n.meta+(prov>0?' · <span style="color:var(--green);font-weight:600">💰 '+fmtCur(prov)+' em proventos</span>':'')+'</div>'+
       '</div>';
   }).join('');
+}
+// ── Proventos (dividendos / rendimentos recebidos por ativo) ──
+function invProventos(inv){return Array.isArray(inv.proventos)?inv.proventos:[];}
+function invProvTotal(inv){return invProventos(inv).reduce((s,p)=>s+(+p.amount||0),0);}
+function invProvMonth(inv,month){return invProventos(inv).reduce((s,p)=>s+(((p.date||'').substring(0,7)===month)?(+p.amount||0):0),0);}
+function provTotalAll(){return S.investments.reduce((s,i)=>s+invProvTotal(i),0);}
+function provMonthAll(month){return S.investments.reduce((s,i)=>s+invProvMonth(i,month),0);}
+function renderInvProvBanner(){
+  const el=document.getElementById('inv-prov-banner');if(!el)return;
+  const tot=provTotalAll();
+  if(tot<=0){el.style.display='none';return;}
+  const mes=provMonthAll(new Date().toISOString().substring(0,7));
+  el.style.display='block';
+  el.innerHTML='<span style="font-size:15px">💰</span> <strong style="color:var(--ink)">Proventos recebidos:</strong> <strong style="color:var(--green)">'+fmtCur(tot)+'</strong> no total'+(mes>0?' · <strong style="color:var(--green)">'+fmtCur(mes)+'</strong> neste mês':'')+' <span style="color:var(--ink3);font-size:12.5px">— sua renda passiva acumulada</span>';
+}
+let _provInvId=null;
+function openProvModal(id){
+  const inv=S.investments.find(x=>x.id===id);if(!inv)return;
+  _provInvId=id;
+  document.getElementById('prov-inv-name').textContent=inv.name;
+  document.getElementById('prov-date').valueAsDate=new Date();
+  document.getElementById('prov-amt').value='';
+  renderProvList();
+  openModal('prov-modal');
+}
+function renderProvList(){
+  const inv=S.investments.find(x=>x.id===_provInvId);const box=document.getElementById('prov-list');if(!inv||!box)return;
+  const ps=[...invProventos(inv)].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  box.innerHTML='<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:9px 0;border-top:1px solid var(--paper3);border-bottom:1px solid var(--paper3);margin-bottom:6px"><span>Recebido acumulado</span><span style="color:var(--green)">'+fmtCur(invProvTotal(inv))+'</span></div>'+
+    (ps.length?ps.map(p=>'<div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid var(--paper2)"><span style="color:var(--ink3)">'+fmtDate(p.date)+'</span><span style="display:flex;align-items:center;gap:12px"><b style="color:var(--green)">+ '+fmtCur(p.amount)+'</b><button class="ibt del" onclick="delProvento('+p.id+')" title="Excluir">🗑️</button></span></div>').join(''):'<p style="font-size:12.5px;color:var(--ink3);padding:10px 0">Nenhum provento registrado ainda.</p>');
+}
+function addProvento(){
+  const inv=S.investments.find(x=>x.id===_provInvId);if(!inv)return;
+  const date=document.getElementById('prov-date').value;
+  const amt=parseFloat(document.getElementById('prov-amt').value);
+  if(!date||!amt||amt<=0){showAlert('Informe a data e o valor recebido.');return;}
+  if(!Array.isArray(inv.proventos))inv.proventos=[];
+  inv.proventos.push({id:Date.now(),date,amount:amt});
+  document.getElementById('prov-amt').value='';
+  persistInv();renderProvList();renderInvPage();
+  toast('Provento registrado');
+}
+function delProvento(pid){
+  const inv=S.investments.find(x=>x.id===_provInvId);if(!inv)return;
+  inv.proventos=invProventos(inv).filter(p=>p.id!==pid);
+  persistInv();renderProvList();renderInvPage();
+}
+// ── Alocação da carteira (donut por tipo) ──
+function renderInvAllocation(){
+  const box=document.getElementById('inv-alloc'),panel=document.getElementById('inv-alloc-panel');if(!box||!panel)return;
+  const by={};
+  S.investments.forEach(inv=>{const n=invNumbers(inv);const t=(inv.kind==='cdi')?'Renda Fixa':(inv.assetCat||'Outro');by[t]=(by[t]||0)+n.current;});
+  const entries=Object.entries(by).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]);
+  const total=entries.reduce((s,e)=>s+e[1],0);
+  if(entries.length<2||total<=0){panel.style.display='none';return;}   // só faz sentido com mistura de tipos
+  panel.style.display='';
+  let cum=0;
+  const segs=entries.map(function(e,i){const len=e[1]/total*100;const off=25-cum;cum+=len;return '<circle class="donut-seg" pathLength="100" cx="70" cy="70" r="52" fill="none" stroke="'+PIE_COLORS[i%PIE_COLORS.length]+'" stroke-width="17" stroke-dasharray="'+(len.toFixed(2)+' '+(100-len).toFixed(2))+'" stroke-dashoffset="'+off.toFixed(2)+'"/>';}).join('');
+  box.innerHTML='<div style="display:flex;align-items:center;justify-content:center;gap:38px;flex-wrap:wrap;padding:14px 0 6px">'+
+    '<div style="position:relative;width:212px;height:212px;flex:none">'+
+      '<svg class="donut-svg" viewBox="0 0 140 140" aria-hidden="true"><circle cx="70" cy="70" r="52" fill="none" stroke="var(--paper3)" stroke-width="17"/>'+segs+'</svg>'+
+      '<div style="position:absolute;inset:34px;background:var(--paper);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px">'+
+        '<div style="font-size:19px;font-weight:800;letter-spacing:-.5px">'+fmtCur(total)+'</div>'+
+        '<div style="font-size:10px;color:var(--ink3);letter-spacing:1.5px;font-weight:600;margin-top:3px">PATRIMÔNIO</div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 24px;flex:1;min-width:220px;max-width:400px">'+
+      entries.map(function(e,i){const pct=Math.round(e[1]/total*100);return '<div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:10px;height:10px;border-radius:50%;background:'+PIE_COLORS[i%PIE_COLORS.length]+';flex:none"></span><span style="color:var(--ink2)">'+esc(e[0])+' <b style="color:var(--ink)">'+pct+'%</b> · '+fmtCur(e[1])+'</span></div>';}).join('')+
+    '</div>'+
+  '</div>';
 }
 
 // ═══ GOALS ═══
