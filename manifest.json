@@ -1,7 +1,7 @@
 {
   "name": "North Finances",
   "short_name": "North",
-  "description": "Controle financeiro pessoal — 100% local",
+  "description": "Controle financeiro pessoal com conta na nuvem e criptografia de ponta a ponta — os dados são cifrados no seu aparelho",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0d0d0d",

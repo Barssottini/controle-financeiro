@@ -9,7 +9,7 @@ Controle financeiro pessoal — site + app de desktop, com conta na nuvem (Supab
 - Janela nativa própria, ícone da North garantido na barra de tarefas e Menu Iniciar
 - Carrega sempre a **versão mais recente** direto do GitHub Pages — atualização automática, sem reinstalar
 - Funciona **offline** após o primeiro acesso (service worker faz cache)
-- Dados 100% locais (perfil do Electron nesta máquina)
+- Mesma conta e mesmos dados do navegador — sincroniza pela nuvem, cifrado de ponta a ponta
 
 Build: `npm install && npm run dist` (fonte em [electron/main.js](electron/main.js))
 
@@ -35,9 +35,11 @@ O app roda em janela própria (sem barra de navegador) usando o modo aplicativo 
 
 ## Onde ficam os dados
 
-Todos os dados (transações, cartão, investimentos, metas, orçamentos) ficam no `localStorage` do navegador, **na sua máquina**. Nada é enviado para servidor algum.
+Os dados (transações, cartão, investimentos, metas, orçamentos, contas a pagar) ficam na sua conta, em banco PostgreSQL da Supabase na região de São Paulo — e **cifrados de ponta a ponta**: a chave é derivada da sua senha no seu próprio aparelho e nunca é enviada. No servidor fica só texto cifrado. Uma cópia local fica no `localStorage` para o app abrir rápido e funcionar offline.
 
-⚠️ **Importante:** os dados são vinculados à forma como o app é aberto (origem). Se abrir pelo atalho (arquivo local), os dados são independentes de uma eventual versão hospedada (GitHub Pages). Para migrar dados entre versões ou máquinas, use **Configurações → Backup completo (JSON)** e restaure no destino.
+⚠️ **Chave de recuperação:** no primeiro acesso o app gera uma chave de recuperação e pede para você guardá-la. Ela é a única forma de reabrir seus dados se você esquecer a senha. **Sem a senha e sem a chave, nem nós conseguimos recuperar** — é consequência do desenho que protege você, não uma falha.
+
+Detalhes do que é e do que não é protegido: [THREAT_MODEL.md](THREAT_MODEL.md).
 
 ## Funcionalidades
 
@@ -49,7 +51,8 @@ Todos os dados (transações, cartão, investimentos, metas, orçamentos) ficam 
 - Orçamento mensal por categoria
 - Importação de extrato OFX/CSV (todos os bancos BR, com correção de encoding)
 - Transações recorrentes
-- Backup/restauração completa em JSON (inclui configurações)
+- Contas a pagar com aviso de vencimento no painel
+- Sincronização entre navegador e desktop pela conta na nuvem
 
 ## Rotina recomendada
 
