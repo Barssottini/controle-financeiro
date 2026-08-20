@@ -26,8 +26,10 @@ Controle financeiro pessoal. Você **exporta** o extrato do seu banco (OFX/CSV) 
 6. **A senha transita o login do Supabase.** É um hash derivado no cliente, não a senha crua — mas o material de derivação (a senha) passa pelo TLS do provedor de auth.
 7. **Sal determinístico** (derivado do e-mail) permite pré-computação alvo-a-alvo. Inerente: precisa ser derivável antes do login.
 8. **KDF é PBKDF2, não memory-hard.** Argon2id resistiria melhor a GPU pelo mesmo custo de UX. No radar.
-9. **Fallback de senha legada** existe até uma data de corte curta, para migrar contas antigas — janela estreita e protegida por flag local (que, na web, um bundle adulterado poderia ignorar; ver item 1/2).
-10. **Contas não migradas** ficam com dados em texto puro no banco até o próximo login (migração é oportunística, no login — não temos a chave para cifrar por você).
+9. ~~**Fallback de senha legada.**~~ **Encerrado.** A janela (`NF_RAW_LEGACY_UNTIL`) expirou em **02/08/2026**; desde então só os esquemas hasheados autenticam. Mantido aqui como registro histórico.
+10. ~~**Contas não migradas com dados em texto puro.**~~ **Encerrado.** Verificado no banco em **18/08/2026**: todas as contas têm `enc_data` preenchido e **nenhuma** tem `data` em texto puro. A migração oportunística no login concluiu. A afirmação "no servidor só existe texto cifrado" passou de meta a fato — e é conferível com uma consulta de contagem, sem ler o conteúdo de ninguém.
+
+> **Nota de manutenção.** Os itens 9 e 10 foram fechados em 18/08/2026 e ficam listados riscados de propósito: um modelo de ameaças que apaga o que já resolveu perde a serventia de mostrar o caminho percorrido. Os itens 1 a 8 continuam abertos, e o item 1 (entrega não fixada) segue sendo o mais importante.
 
 ## Modelo de confiança, em uma frase
 
