@@ -9,7 +9,7 @@
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --ink:#0d0d0d;--ink2:#2b2926;--ink3:#79736d;--ink4:#b5afa9;
+  --ink:#0d0d0d;--ink2:#383533;--ink3:#79736d;--ink4:#b5afa9;
   --paper:#faf9f7;--paper2:#f2ede8;--paper3:#e6dfd8;
   --gold:#c8903a;--goldl:#f4e4c8;--gold-d:#8a6420;
   --ff:'Plus Jakarta Sans',sans-serif;
@@ -46,6 +46,13 @@ a:hover{border-bottom-color:var(--gold-d)}
 .highlight{background:var(--goldl);border-radius:12px;padding:18px 22px;margin:18px 0;font-size:14px;color:var(--ink2)}
 .highlight strong{color:var(--gold-d)}
 
+.scroll{overflow-x:auto;margin:16px 0;border:1px solid var(--paper3);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:440px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--paper3);vertical-align:top}
+thead th{background:var(--paper2);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:var(--ink3)}
+
 .rights{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
 .right-item{background:var(--paper2);border:1px solid var(--paper3);border-radius:12px;padding:14px 16px}
 .right-item b{display:block;font-size:13.5px;color:var(--ink);margin-bottom:3px}
@@ -69,7 +76,7 @@ a:hover{border-bottom-color:var(--gold-d)}
   <img src="logo-192.png" alt="North Finances" class="badge">
   <div class="brand">North<span> Finances</span></div>
   <div class="doc-title">Termos de Uso &amp; Privacidade</div>
-  <div class="doc-date">Última atualização: 21 de julho de 2026</div>
+  <div class="doc-date">Última atualização: 17 de agosto de 2026</div>
 </div>
 
 <div class="wrap">
@@ -79,8 +86,17 @@ a:hover{border-bottom-color:var(--gold-d)}
 
   <h2><span class="num">1</span> Sobre o serviço</h2>
   <p>O <strong>North</strong> ("aplicativo", "serviço", "nós") é uma ferramenta pessoal de <strong>organização e acompanhamento financeiro</strong>. Ele permite registrar receitas, despesas, investimentos, metas e importar extratos bancários para consolidar suas finanças em um só lugar.</p>
-  <p>O serviço é oferecido por <strong>assinatura</strong>, com período de teste gratuito. Os valores e condições vigentes são apresentados no momento da contratação e o pagamento é processado pelo <strong>Mercado Pago</strong>. Você pode cancelar a assinatura a qualquer momento nas Configurações, mantendo o acesso até o fim do período já pago.</p>
-  <div class="highlight">⚠️ <strong>O aplicativo é uma ferramenta de organização, não uma consultoria financeira.</strong> As informações, cálculos, cotações e projeções exibidos têm caráter meramente informativo e não constituem recomendação de compra, venda ou manutenção de qualquer ativo. Toda decisão de investimento é de sua exclusiva responsabilidade.</p>
+  <p>O serviço é oferecido por <strong>assinatura</strong>, com período de teste gratuito. Os valores e condições vigentes são apresentados no momento da contratação e o pagamento é processado pelo <strong>Mercado Pago</strong>.</p>
+  <h3>Como funciona a cobrança</h3>
+  <ul>
+    <li><strong>A assinatura é mensal e se renova automaticamente.</strong> Após o teste gratuito, o valor é cobrado no cartão cadastrado a cada mês, <strong>até que você cancele</strong>. Não há fidelidade nem multa.</li>
+    <li><strong>Cancelamento:</strong> a qualquer momento, em Configurações → Assinatura, em dois cliques. Você mantém o acesso até o fim do período já pago e não é cobrado de novo.</li>
+    <li><strong>Mudança de preço:</strong> se o valor da assinatura mudar, avisamos dentro do aplicativo com antecedência, e o novo valor só passa a valer no ciclo seguinte. Você pode cancelar antes disso.</li>
+    <li><strong>Direito de arrependimento (art. 49 do Código de Defesa do Consumidor):</strong> por se tratar de contratação fora do estabelecimento, você pode desistir em até <strong>7 dias</strong> contados da primeira cobrança e receber a devolução integral do valor pago nesse período. Basta escrever para o e-mail da seção 13.</li>
+  </ul>
+  <h3>Se a assinatura terminar</h3>
+  <p>Se o teste acabar sem assinatura, se você cancelar ou se um pagamento não for processado, <strong>o acesso ao aplicativo fica bloqueado — mas os seus dados continuam guardados</strong>, cifrados, exatamente como estavam. Assinando de novo, tudo volta no ponto em que parou. <strong>Nada é apagado por falta de pagamento</strong>: a exclusão só acontece se você pedir (seção 8).</p>
+  <div class="highlight">⚠️ <strong>O aplicativo é uma ferramenta de organização, não uma consultoria financeira.</strong> As informações, cálculos, cotações e projeções exibidos têm caráter meramente informativo e não constituem recomendação de compra, venda ou manutenção de qualquer ativo. Toda decisão de investimento é de sua exclusiva responsabilidade.</div>
 
   <h2><span class="num">2</span> Sua conta</h2>
   <ul>
@@ -94,7 +110,7 @@ a:hover{border-bottom-color:var(--gold-d)}
   <h3>Dados de cadastro</h3>
   <ul>
     <li><strong>E-mail</strong> — para identificar sua conta e permitir o login.</li>
-    <li><strong>Senha</strong> — armazenada de forma <strong>criptografada</strong> (nunca temos acesso à sua senha em texto).</li>
+    <li><strong>Senha</strong> — guardada como <strong>hash irreversível</strong>, nunca em texto. Isso significa que não é possível "descriptografar" sua senha: nem com acesso total ao banco de dados alguém a recupera. Nós mesmos não temos como saber qual é.</li>
   </ul>
   <h3>Dados financeiros que você insere</h3>
   <ul>
@@ -131,29 +147,54 @@ a:hover{border-bottom-color:var(--gold-d)}
   <ul>
     <li><strong>Supabase</strong> — infraestrutura de banco de dados e autenticação (onde seus dados ficam hospedados, com segurança).</li>
     <li><strong>Mercado Pago</strong> — processa o pagamento da assinatura. Seus dados de cartão são tratados diretamente pelo Mercado Pago e <strong>não passam pelos nossos servidores</strong>.</li>
-    <li><strong>Resend</strong> — serviço de envio dos e-mails transacionais (códigos de confirmação e alertas de segurança); recebe apenas o seu e-mail e o conteúdo da mensagem.</li>
+    <li><strong>Resend</strong> — serviço de envio dos nossos e-mails; recebe apenas o seu endereço e o conteúdo da mensagem. Enviamos: códigos de confirmação, alertas de segurança de novo login, avisos sobre a sua conta e um <strong>lembrete mensal</strong>, no dia 1º, para você exportar o extrato do banco. O lembrete pode ser desligado em Configurações → Notificações por e-mail; os demais são essenciais ao serviço.</li>
     <li><strong>Cloudflare Turnstile</strong> — verificação anti-robô nas telas de login e cadastro; processa dados técnicos do navegador (como o IP) apenas para distinguir pessoas de robôs.</li>
     <li><strong>brapi.dev</strong> e <strong>CoinGecko</strong> — fornecem apenas <strong>cotações públicas</strong> de ativos e criptomoedas. Enviamos a eles somente o código do ativo (ex.: "BOVA11"); <strong>nenhum dado seu, saldo ou informação pessoal é compartilhado</strong>.</li>
     <li><strong>GitHub Pages</strong> — hospeda o código do aplicativo (não seus dados).</li>
+    <li><strong>Meta (Facebook/Instagram)</strong> — medição de publicidade <strong>apenas no site institucional</strong> (northfinances.com.br) e <strong>somente se você aceitar o aviso de cookies</strong>. Recebe dados de navegação (IP, navegador, página visitada); <strong>nunca recebe dados do seu aplicativo</strong>. Veja a seção 9.</li>
   </ul>
+  <h3>Transferência internacional de dados</h3>
+  <p>Seus dados financeiros ficam armazenados <strong>no Brasil</strong>, na região de São Paulo. Ainda assim, alguns fornecedores acima são empresas sediadas no exterior e podem tratar dados a partir de fora do país — é o caso de <strong>Supabase</strong>, <strong>Resend</strong>, <strong>Cloudflare</strong>, <strong>GitHub</strong> e <strong>Meta</strong>.</p>
+  <p>Essas transferências ocorrem nos termos dos <strong>artigos 33 a 35 da LGPD</strong>, amparadas nas cláusulas contratuais de proteção de dados oferecidas por cada fornecedor e limitadas ao <strong>estritamente necessário para executar o contrato</strong> com você. Vale lembrar o que mais importa aqui: como o conteúdo financeiro é cifrado no seu aparelho, o que trafega e o que fica armazenado nesses serviços é <strong>texto embaralhado</strong> — nenhum deles tem como lê-lo.</p>
 
   <h2><span class="num">7</span> Seus direitos (LGPD)</h2>
   <p>A qualquer momento, você pode exercer os direitos garantidos pela LGPD:</p>
   <div class="rights">
     <div class="right-item"><b>Acesso</b><span>Ver todos os dados que temos sobre você.</span></div>
     <div class="right-item"><b>Correção</b><span>Corrigir dados incompletos ou desatualizados.</span></div>
-    <div class="right-item"><b>Portabilidade</b><span>Seus dados financeiros ficam cifrados e acessíveis a você dentro do app; os dados de cadastro que mantemos podem ser fornecidos mediante solicitação.</span></div>
+    <div class="right-item"><b>Portabilidade</b><span>Ainda não oferecemos exportação em arquivo — veja a ressalva honesta logo abaixo desta grade.</span></div>
     <div class="right-item"><b>Exclusão</b><span>Apagar sua conta e todos os seus dados, direto no app.</span></div>
     <div class="right-item"><b>Revogação</b><span>Retirar o consentimento e encerrar o uso.</span></div>
     <div class="right-item"><b>Informação</b><span>Saber com quem e como seus dados são tratados.</span></div>
   </div>
+  <div class="highlight">📤 <strong>Sobre a portabilidade, com franqueza.</strong> A LGPD garante o direito de levar seus dados para outro fornecedor, e hoje o North <strong>não</strong> oferece um arquivo de exportação. O motivo é o mesmo que protege você: seus dados financeiros são cifrados com uma chave que existe apenas no seu aparelho, então <strong>não temos como gerar esse arquivo do nosso lado</strong> — o que guardamos é texto embaralhado que nem nós abrimos. Na prática: todo o seu histórico continua visível e consultável dentro do app, a qualquer momento, e os <strong>dados de cadastro</strong> que mantemos (e-mail, datas, registros de cobrança) são fornecidos mediante solicitação pelo e-mail da seção 13. Reconhecemos a lacuna e preferimos declará-la a fingir que ela não existe.</div>
   <p>Você mesmo já controla boa parte disso dentro do app: <strong>alterar senha</strong>, <strong>ativar a verificação em duas etapas</strong> e <strong>sair de todos os dispositivos</strong> ficam em Configurações, e <strong>excluir a sua conta</strong> fica no seu <strong>Perfil</strong>. Para qualquer outra solicitação de privacidade, entre em contato pelo e-mail abaixo.</p>
 
   <h2><span class="num">8</span> Retenção e exclusão</h2>
-  <p>Seus dados permanecem armazenados enquanto sua conta existir. Você pode solicitar a exclusão a qualquer momento, direto no app (no seu <strong>Perfil</strong>). A exclusão tem um <strong>período de arrependimento de 15 dias</strong>: durante esse prazo o acesso fica bloqueado e você pode <strong>reativar a conta</strong> quando quiser. Passados os 15 dias, seus dados são <strong>removidos definitivamente</strong> dos nossos servidores, ressalvadas obrigações legais de guarda, se aplicáveis. Como os dados financeiros ficam cifrados, o que é apagado é justamente o texto cifrado que só você poderia abrir.</p>
+  <p>Seus dados permanecem armazenados enquanto sua conta existir. Você pode solicitar a exclusão a qualquer momento, direto no app (no seu <strong>Perfil</strong>). A exclusão tem um <strong>período de arrependimento de 15 dias</strong>: durante esse prazo o acesso fica bloqueado e você pode <strong>reativar a conta</strong> quando quiser. Passados os 15 dias, seus dados são <strong>removidos definitivamente</strong> dos nossos servidores. Como os dados financeiros ficam cifrados, o que é apagado é justamente o texto cifrado que só você poderia abrir.</p>
+  <h3>O que a lei nos obriga a guardar mesmo depois</h3>
+  <ul>
+    <li><strong>Registros de acesso — 6 meses.</strong> Data, hora e IP dos acessos à sua conta, pelo prazo do <strong>art. 15 do Marco Civil da Internet</strong> (Lei nº 12.965/2014).</li>
+    <li><strong>Registros de cobrança — 5 anos.</strong> Comprovantes e dados fiscais das assinaturas pagas, pelos prazos da legislação tributária e do <strong>art. 27 do Código de Defesa do Consumidor</strong>.</li>
+  </ul>
+  <p>Esses registros são <strong>administrativos e mínimos</strong> — não incluem nenhuma das suas transações, metas ou investimentos, que são apagados junto com a conta.</p>
 
-  <h2><span class="num">9</span> Armazenamento local (cookies)</h2>
-  <p>O aplicativo utiliza o <strong>armazenamento local do navegador</strong> (localStorage) para guardar sua sessão e uma cópia dos seus dados no dispositivo. <strong>Não usamos cookies de rastreamento nem ferramentas de publicidade de terceiros.</strong></p>
+  <h2><span class="num">8.1</span> Incidentes de segurança</h2>
+  <p>Se ocorrer um incidente de segurança com risco relevante aos seus dados, comunicaremos <strong>você</strong> e a <strong>Autoridade Nacional de Proteção de Dados (ANPD)</strong> em prazo razoável, como determina o <strong>art. 48 da LGPD</strong>, informando o que aconteceu, quais dados foram afetados e o que estamos fazendo a respeito.</p>
+  <div class="highlight">🔒 Vale registrar o efeito prático da criptografia aqui: num eventual vazamento do nosso banco de dados, o que sairia de lá é <strong>texto cifrado</strong>. Sem a sua senha e sem a sua chave de recuperação, esse conteúdo é ilegível — inclusive para quem o roubasse.</div>
+
+  <h2 id="cookies"><span class="num">9</span> Cookies e armazenamento local</h2>
+  <p>Aqui é preciso separar duas coisas, porque elas funcionam de formas diferentes:</p>
+  <h3>No aplicativo (app.northfinances.com.br)</h3>
+  <p>O aplicativo utiliza o <strong>armazenamento local do navegador</strong> (localStorage) para guardar sua sessão e uma cópia cifrada dos seus dados no dispositivo. <strong>Dentro do aplicativo não há cookies de rastreamento, pixel de publicidade nem ferramenta de análise de terceiros.</strong> Seus dados financeiros não passam por nenhuma dessas ferramentas — eles são cifrados no seu aparelho e nunca saem em texto aberto.</p>
+  <h3>No site institucional (northfinances.com.br)</h3>
+  <p>O site de apresentação — a página que fala sobre o produto, antes de você entrar no aplicativo — utiliza o <strong>Meta Pixel</strong>, uma ferramenta de medição de publicidade da Meta (Facebook e Instagram). Ela nos permite saber de onde vêm nossos visitantes e medir o resultado dos anúncios.</p>
+  <ul>
+    <li><strong>Só carrega se você aceitar.</strong> Um aviso aparece na primeira visita e o pixel fica desligado até você clicar em "Aceitar". Se recusar, ele não é carregado.</li>
+    <li><strong>O que a Meta recebe:</strong> endereço IP, informações do navegador, a página visitada e o evento de clique no botão de acesso ao aplicativo. <strong>Nenhum dado financeiro, nenhum saldo, nenhuma transação</strong> — essas informações só existem dentro do aplicativo, cifradas.</li>
+    <li><strong>Como mudar de ideia:</strong> use o link "Preferências de cookies" no rodapé do site, ou limpe os dados do site no seu navegador. O aviso volta a aparecer e você pode recusar.</li>
+  </ul>
+  <div class="highlight">🔒 <strong>Resumo:</strong> a medição de publicidade acontece apenas na vitrine, nunca dentro do aplicativo — e sempre depende do seu consentimento.</div>
 
   <h2><span class="num">10</span> Menores de idade</h2>
   <p>O serviço é destinado a maiores de 18 anos. Não coletamos intencionalmente dados de menores de idade.</p>
@@ -161,19 +202,51 @@ a:hover{border-bottom-color:var(--gold-d)}
   <h2><span class="num">11</span> Limitação de responsabilidade</h2>
   <ul>
     <li>O aplicativo é fornecido "no estado em que se encontra", como ferramenta de apoio à organização financeira.</li>
+    <li><strong>Perda da senha e da chave de recuperação:</strong> como seus dados são cifrados com uma chave que só existe no seu aparelho, <strong>se você esquecer a senha e não tiver guardado a chave de recuperação, o conteúdo não poderá ser recuperado por ninguém — nem por nós</strong>. Não existe procedimento de exceção, atendimento especial ou backup nosso capaz de reverter isso: é a contrapartida direta da garantia de que nem a North lê os seus dados. Por isso o app exige que você confirme, no cadastro, que guardou a chave. Guarde-a em local seguro.</li>
     <li>Cotações e cálculos podem conter atrasos ou imprecisões próprias das fontes de dados; confira sempre com sua corretora e seu banco.</li>
     <li>Não nos responsabilizamos por decisões de investimento tomadas com base nas informações do app, nem por perdas financeiras delas decorrentes.</li>
   </ul>
+
+  <h2><span class="num">11.1</span> Propriedade intelectual e licença</h2>
+  <p>O <strong>código-fonte</strong> do aplicativo é aberto e distribuído sob a <strong>licença MIT</strong>, disponível em <a href="https://github.com/Barssottini/controle-financeiro" target="_blank" rel="noopener">github.com/Barssottini/controle-financeiro</a>. Você pode ler, auditar, modificar e reutilizar o código nos termos dessa licença — é o que torna verificável tudo o que afirmamos sobre criptografia nestes termos.</p>
+  <p>O <strong>nome "North Finances", o logotipo e a identidade visual não estão incluídos nessa licença</strong> e permanecem de titularidade exclusiva do controlador. Em outras palavras: o código é seu para usar; a marca, não.</p>
+  <p>Os <strong>dados que você insere continuam sendo seus</strong>. Não reivindicamos nenhum direito sobre eles — e, por serem cifrados no seu aparelho, sequer teríamos como exercê-lo.</p>
+
+  <h2><span class="num">11.2</span> Suspensão e encerramento pela North</h2>
+  <p>Queremos ser específicos aqui, porque cláusula genérica de encerramento é onde mora o abuso. Podemos suspender ou encerrar uma conta apenas nestas hipóteses:</p>
+  <ul>
+    <li><strong>Falta de pagamento</strong> — o acesso é bloqueado, mas <strong>os dados são preservados</strong> e voltam quando a assinatura for retomada (seção 1).</li>
+    <li><strong>Uso ilícito comprovado</strong> ou tentativa de usar o serviço para atividade contrária à lei.</li>
+    <li><strong>Ataque à infraestrutura</strong> — tentativas de invasão, sobrecarga deliberada, exploração de falhas ou uso automatizado que degrade o serviço para os demais.</li>
+    <li><strong>Ordem judicial ou determinação de autoridade competente.</strong></li>
+    <li><strong>Encerramento do serviço como um todo</strong>, caso a North deixe de operar.</li>
+  </ul>
+  <p>Fora a falta de pagamento, <strong>avisamos por e-mail antes</strong> e damos prazo razoável para você se manifestar, salvo quando a lei ou a urgência da situação exigir ação imediata. Se o serviço for descontinuado, avisaremos com <strong>pelo menos 30 dias</strong> de antecedência.</p>
 
   <h2><span class="num">12</span> Alterações nestes termos</h2>
   <p>Podemos atualizar este documento para refletir melhorias no serviço ou mudanças legais. A data no topo indica a última revisão. Alterações relevantes serão comunicadas dentro do aplicativo.</p>
 
   <h2><span class="num">13</span> Contato e responsável</h2>
-  <p>O responsável pelo tratamento dos seus dados (controlador) é <strong>Pedro Barssottini Gianchetta</strong>. Para dúvidas, solicitações de privacidade ou exclusão de conta, entre em contato:</p>
+  <p>O responsável pelo tratamento dos seus dados (<strong>controlador</strong>) é <strong>Pedro Barssottini Gianchetta</strong>, que também acumula a função de <strong>Encarregado pelo Tratamento de Dados Pessoais (DPO)</strong>, nos termos do <strong>art. 41 da LGPD</strong>.</p>
+  <p>Para dúvidas, solicitações de privacidade, exercício de qualquer direito da seção 7 ou exclusão de conta, o canal é o mesmo:</p>
   <p>✉️ <a href="mailto:suporte@northfinances.com.br">suporte@northfinances.com.br</a></p>
+  <p>Respondemos toda solicitação de privacidade em <strong>até 15 dias</strong>.</p>
 
   <h2><span class="num">14</span> Legislação e foro</h2>
   <p>Estes termos são regidos pelas leis da <strong>República Federativa do Brasil</strong>, em especial a Lei Geral de Proteção de Dados (Lei nº 13.709/2018) e o Marco Civil da Internet (Lei nº 12.965/2014). Fica eleito o foro do domicílio do usuário para dirimir eventuais controvérsias.</p>
+
+  <h2><span class="num">15</span> Histórico de versões</h2>
+  <p>Toda alteração relevante deste documento fica registrada aqui. Se você aceitou uma versão anterior, esta lista mostra o que mudou desde então.</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Data</th><th>O que mudou</th></tr></thead>
+      <tbody>
+        <tr><td class="dt">17/08/2026</td><td>Seção de cookies reescrita separando o aplicativo do site institucional, com a declaração do Meta Pixel e como recusá-lo. Meta incluída na lista de fornecedores. Encarregado (DPO) designado. Transferência internacional declarada. Renovação automática, direito de arrependimento de 7 dias e o que acontece quando a assinatura termina. Prazos de retenção com a lei citada. Compromisso de notificação de incidentes. Aviso sobre a perda da chave de recuperação.</td></tr>
+        <tr><td class="dt">18/08/2026</td><td>Ressalva honesta sobre portabilidade: ainda não há exportação em arquivo, e o motivo técnico. Licença do código (MIT) e da marca. Hipóteses de suspensão e encerramento pela North. Este histórico.</td></tr>
+        <tr><td class="dt">21/07/2026</td><td>Criptografia de ponta a ponta, exclusão de conta com 15 dias de arrependimento e revisão da seção de portabilidade.</td></tr>
+      </tbody>
+    </table>
+  </div>
 
   <div class="footer">
     <p class="sig">North<span> Finances</span></p>
