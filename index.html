@@ -980,6 +980,25 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 </div>
 
 <!-- MODAL: META -->
+<div class="overlay" id="aporte-modal">
+  <div class="modal" style="max-width:440px">
+    <div class="mhead"><h3><span id="aporte-modal-title">Aportes</span> — <span id="aporte-inv-name"></span></h3><button class="xbtn" onclick="closeModal('aporte-modal')">✕</button></div>
+    <div class="mbody">
+      <p id="aporte-hint" style="font-size:12.5px;color:var(--ink3);margin-bottom:14px;line-height:1.5"></p>
+      <div class="frow">
+        <div class="fgrp"><label class="flbl">Data</label><input class="field" type="date" id="aporte-date"></div>
+        <div class="fgrp" id="aporte-cdi-fields"><label class="flbl">Valor aportado (R$)</label><input class="field" type="number" id="aporte-amt" placeholder="Ex: 139,00" step="0.01" min="0.01"></div>
+      </div>
+      <div class="frow" id="aporte-asset-fields">
+        <div class="fgrp"><label class="flbl">Quantidade comprada</label><input class="field" type="number" id="aporte-qty" placeholder="Ex: 3" step="0.00000001" min="0"></div>
+        <div class="fgrp"><label class="flbl">Preço pago por unidade (R$)</label><input class="field" type="number" id="aporte-price" placeholder="Ex: 9,48" step="0.01" min="0"></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%" id="aporte-btn" onclick="addAporte()">Adicionar aporte</button>
+      <div id="aporte-list" style="margin-top:16px"></div>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="prov-modal">
   <div class="modal" style="max-width:440px">
     <div class="mhead"><h3>Proventos — <span id="prov-inv-name"></span></h3><button class="xbtn" onclick="closeModal('prov-modal')">✕</button></div>
@@ -2707,13 +2726,24 @@ function renderCCPage(){
 }
 
 // ═══ INVESTMENTS ═══
+function invAportes(inv){return Array.isArray(inv.aportes)?inv.aportes:[];}
+function invCompras(inv){return Array.isArray(inv.compras)?inv.compras:[];}
 function calcYield(inv){
   const cdiRate=S.settings.cdi?S.settings.cdi/100:CDI;
   const rate=cdiRate*(inv.cdi/100);
   const daily=Math.pow(1+rate,1/252)-1;
-  const days=bizDays(new Date(inv.date+'T00:00:00'),new Date());
-  const current=inv.principal*Math.pow(1+daily,days);
-  return{current,yieldAmt:current-inv.principal,days};
+  const now=new Date();
+  // Cada aporte rende a partir da SUA data — o principal inicial é só a primeira perna
+  const legs=[{date:inv.date,amount:+inv.principal||0}].concat(invAportes(inv));
+  let current=0,principal=0;
+  legs.forEach(l=>{
+    const amt=+l.amount||0;
+    const d=bizDays(new Date(l.date+'T00:00:00'),now);
+    current+=amt*Math.pow(1+daily,d);
+    principal+=amt;
+  });
+  const days=bizDays(new Date(inv.date+'T00:00:00'),now);
+  return{current,yieldAmt:current-principal,days,principal};
 }
 // ═══ COTAÇÕES AUTOMÁTICAS ═══
 // CDI automático — série 4389 do Banco Central (CDI anualizado base 252, % a.a.), API pública sem token
@@ -2813,9 +2843,10 @@ function getInvTicker(){
 function invNumbers(inv){
   if((inv.kind||'cdi')==='cdi'){
     const r=calcYield(inv);
-    return{invested:inv.principal,current:r.current,gain:r.yieldAmt,
+    const na=invAportes(inv).length;
+    return{invested:r.principal,current:r.current,gain:r.yieldAmt,
       tag:inv.cdi+'% CDI',
-      meta:'Principal: '+fmtCur(inv.principal)+' · Início: '+fmtDate(inv.date)+' · '+r.days+' dias úteis'};
+      meta:'Aplicado: '+fmtCur(r.principal)+(na?' · '+na+' aporte'+(na>1?'s':''):'')+' · Início: '+fmtDate(inv.date)+' · '+r.days+' dias úteis'};
   }
   const invested=inv.qty*inv.pm, current=inv.qty*inv.price;
   return{invested,current,gain:current-invested,
@@ -2896,7 +2927,8 @@ function renderInvPage(){
     const gainSign=n.gain>=0?'+ ':'− ';
     const prov=invProvTotal(inv);
     return '<div class="inv-card">'+
-      '<div class="inv-actions"><button class="ibt" onclick="openProvModal('+inv.id+')" title="Proventos / dividendos recebidos">💰</button>'+
+      '<div class="inv-actions"><button class="ibt" onclick="openAporteModal('+inv.id+')" title="'+((inv.kind||'cdi')==='cdi'?'Aportar dinheiro (sem zerar o histórico)':'Registrar nova compra (recalcula o PM)')+'">➕</button>'+
+      '<button class="ibt" onclick="openProvModal('+inv.id+')" title="Proventos / dividendos recebidos">💰</button>'+
       '<button class="ibt" onclick="editInv('+inv.id+')" title="Editar / atualizar preço">✏️</button>'+
       '<button class="ibt del" onclick="delInv('+inv.id+')" title="Excluir">🗑️</button></div>'+
       '<div class="inv-name">'+esc(inv.name)+'</div>'+
@@ -2907,6 +2939,90 @@ function renderInvPage(){
       '<div class="inv-meta">'+n.meta+(prov>0?' · <span style="color:var(--green);font-weight:600">💰 '+fmtCur(prov)+' em proventos</span>':'')+'</div>'+
       '</div>';
   }).join('');
+}
+// ── Aportes (caixinha) e Compras (ativo) ──
+let _aporteInvId=null;
+function openAporteModal(id){
+  const inv=S.investments.find(x=>x.id===id);if(!inv)return;
+  _aporteInvId=id;
+  const isCdi=(inv.kind||'cdi')==='cdi';
+  document.getElementById('aporte-modal-title').textContent=isCdi?'Aportes':'Compras';
+  document.getElementById('aporte-inv-name').textContent=inv.name;
+  document.getElementById('aporte-hint').textContent=isCdi
+    ?'Cada aporte rende a partir da sua própria data. O histórico da caixinha é preservado — você não precisa mais recomeçar do zero.'
+    :'Informe a nova compra. O preço médio é recalculado automaticamente pela fórmula ponderada.';
+  document.getElementById('aporte-cdi-fields').style.display=isCdi?'':'none';
+  document.getElementById('aporte-asset-fields').style.display=isCdi?'none':'';
+  document.getElementById('aporte-btn').textContent=isCdi?'Adicionar aporte':'Adicionar compra';
+  document.getElementById('aporte-date').valueAsDate=new Date();
+  document.getElementById('aporte-amt').value='';
+  document.getElementById('aporte-qty').value='';
+  document.getElementById('aporte-price').value='';
+  renderAporteList();
+  openModal('aporte-modal');
+}
+function renderAporteList(){
+  const inv=S.investments.find(x=>x.id===_aporteInvId);const box=document.getElementById('aporte-list');if(!inv||!box)return;
+  const hd=(a,b)=>'<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:9px 0;border-top:1px solid var(--paper3);border-bottom:1px solid var(--paper3);margin-bottom:6px"><span>'+a+'</span><span>'+b+'</span></div>';
+  if((inv.kind||'cdi')==='cdi'){
+    const legs=[{id:0,date:inv.date,amount:+inv.principal||0,inicial:true}]
+      .concat([...invAportes(inv)].sort((a,b)=>new Date(b.date)-new Date(a.date)));
+    const tot=legs.reduce((s,l)=>s+(+l.amount||0),0);
+    box.innerHTML=hd('Total aplicado',fmtCur(tot))+legs.map(l=>
+      '<div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid var(--paper2)">'+
+      '<span style="color:var(--ink3)">'+fmtDate(l.date)+(l.inicial?' <span style="font-size:11px">(inicial)</span>':'')+'</span>'+
+      '<span style="display:flex;align-items:center;gap:12px"><b style="color:var(--green)">+ '+fmtCur(l.amount)+'</b>'+
+      (l.inicial?'':'<button class="ibt del" onclick="delAporte('+l.id+')" title="Excluir">🗑️</button>')+'</span></div>').join('');
+  }else{
+    const cs=[...invCompras(inv)].sort((a,b)=>new Date(b.date)-new Date(a.date));
+    box.innerHTML=hd('Posição atual',(+inv.qty)+' un. · PM '+fmtCur(inv.pm))+
+      (cs.length?cs.map(c=>
+      '<div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid var(--paper2)">'+
+      '<span style="color:var(--ink3)">'+fmtDate(c.date)+'</span>'+
+      '<span style="display:flex;align-items:center;gap:12px"><b>'+(+c.qty)+' un. a '+fmtCur(c.price)+'</b>'+
+      '<button class="ibt del" onclick="delAporte('+c.id+')" title="Excluir">🗑️</button></span></div>').join('')
+      :'<p style="font-size:12.5px;color:var(--ink3);padding:10px 0">Nenhuma compra registrada aqui ainda — as anteriores já estão embutidas na posição atual.</p>');
+  }
+}
+function addAporte(){
+  const inv=S.investments.find(x=>x.id===_aporteInvId);if(!inv)return;
+  const date=document.getElementById('aporte-date').value;
+  if(!date){showAlert('Informe a data.');return;}
+  if((inv.kind||'cdi')==='cdi'){
+    const amt=parseFloat(document.getElementById('aporte-amt').value);
+    if(!amt||amt<=0){showAlert('Informe o valor do aporte.');return;}
+    if(!Array.isArray(inv.aportes))inv.aportes=[];
+    inv.aportes.push({id:Date.now(),date,amount:amt});
+    document.getElementById('aporte-amt').value='';
+    toast('Aporte registrado');
+  }else{
+    const q=parseFloat(document.getElementById('aporte-qty').value);
+    const p=parseFloat(document.getElementById('aporte-price').value);
+    if(!q||q<=0||isNaN(p)||p<0){showAlert('Informe a quantidade e o preço pago por unidade.');return;}
+    const oq=+inv.qty||0,op=+inv.pm||0,nq=oq+q;
+    inv.pm=(oq*op+q*p)/nq;  // preço médio ponderado
+    inv.qty=nq;
+    if(!Array.isArray(inv.compras))inv.compras=[];
+    inv.compras.push({id:Date.now(),date,qty:q,price:p});
+    document.getElementById('aporte-qty').value='';
+    document.getElementById('aporte-price').value='';
+    toast('Compra registrada — PM agora é '+fmtCur(inv.pm));
+  }
+  persistInv();renderAporteList();renderInvPage();updateDashboard();
+}
+function delAporte(aid){
+  const inv=S.investments.find(x=>x.id===_aporteInvId);if(!inv)return;
+  if((inv.kind||'cdi')==='cdi'){
+    inv.aportes=invAportes(inv).filter(a=>a.id!==aid);
+  }else{
+    const c=invCompras(inv).find(x=>x.id===aid);if(!c)return;
+    const oq=+inv.qty||0,op=+inv.pm||0,nq=oq-(+c.qty||0);
+    if(nq<=0){showAlert('Não dá para remover: a posição ficaria zerada ou negativa.\n\nSe quiser zerar o ativo, use o botão de excluir (🗑️) no card.');return;}
+    inv.pm=(oq*op-(+c.qty||0)*(+c.price||0))/nq;
+    inv.qty=nq;
+    inv.compras=invCompras(inv).filter(x=>x.id!==aid);
+  }
+  persistInv();renderAporteList();renderInvPage();updateDashboard();
 }
 // ── Proventos (dividendos / rendimentos recebidos por ativo) ──
 function invProventos(inv){return Array.isArray(inv.proventos)?inv.proventos:[];}
