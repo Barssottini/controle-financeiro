@@ -9,10 +9,10 @@
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --ink:#0d0d0d;--ink2:#2b2926;--ink3:#79736d;--ink4:#b5afa9;
+  --ink:#0d0d0d;--ink2:#383533;--ink3:#79736d;--ink4:#b5afa9;
   --paper:#faf9f7;--paper2:#f2ede8;--paper3:#e6dfd8;
   --gold:#c8903a;--goldl:#f4e4c8;--gold-d:#8a6420;
-  --green:#267a48;--greenl:#d2edde;--red:#b83228;--redl:#f8e4e2;--purple:#6b4fa0;--purplel:#e7defa;
+  --green:#267a48;--greenl:#d2edde;--red:#b83228;--redl:#f8e4e2;--purple:#7c3aed;--purplel:#ede9fe;
   --ff:'Plus Jakarta Sans',sans-serif;
 }
 body{font-family:var(--ff);background:var(--ink);color:var(--ink2);line-height:1.75;-webkit-font-smoothing:antialiased}
@@ -57,6 +57,14 @@ a:hover{border-bottom-color:var(--gold-d)}
 
 .highlight{background:var(--goldl);border-radius:12px;padding:18px 22px;margin:18px 0;font-size:14px;color:var(--ink2)}
 .highlight strong{color:var(--gold-d)}
+.highlight.danger{background:var(--redl);border:1px solid rgba(184,50,40,.3)}
+.highlight.danger strong{color:var(--red)}
+
+ol.steps{margin:0 0 16px;padding:0 0 0 4px;list-style:none;counter-reset:s}
+ol.steps li{counter-increment:s;font-size:14.5px;color:var(--ink2);padding-left:38px;position:relative;margin-bottom:11px}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:24px;height:24px;border-radius:8px;
+  background:var(--gold);color:var(--paper);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+code{font-family:Consolas,monospace;font-size:.88em;background:var(--paper2);border:1px solid var(--paper3);border-radius:4px;padding:.1em .35em}
 
 /* TELA SIMULADA */
 .mock{background:var(--paper2);border:1px solid var(--paper3);border-radius:14px;overflow:hidden;margin-top:8px}
@@ -104,7 +112,7 @@ a:hover{border-bottom-color:var(--gold-d)}
   <img src="logo-192.png" alt="North Finances" class="badge">
   <div class="brand">North<span> Finances</span></div>
   <div class="doc-title">Manual do Usuário</div>
-  <div class="doc-date">Um guia rápido de cada menu do app</div>
+  <div class="doc-date">Um guia rápido de cada menu do app · Atualizado em 17 de agosto de 2026</div>
 </div>
 
 <div class="wrap">
@@ -135,19 +143,34 @@ a:hover{border-bottom-color:var(--gold-d)}
       <ol>
         <li><a href="#importar"><span>08</span>Importar Extrato</a></li>
         <li><a href="#config"><span>09</span>Configurações</a></li>
+        <li><a href="#perfil"><span>10</span>Seu Perfil</a></li>
       </ol>
     </div>
   </div>
+
+  <div class="group-label">Comece aqui</div>
+
+  <h2 id="comece"><span class="num">★</span> Os primeiros cinco minutos</h2>
+  <p>Se você acabou de criar a conta, faça estes cinco passos na ordem. Depois deles o app já trabalha sozinho.</p>
+  <ol class="steps">
+    <li><strong>Guarde a chave de recuperação.</strong> Logo após o cadastro o app mostra uma sequência de letras e números e oferece o download de um arquivo <code>.txt</code>. <strong>Guarde esse arquivo</strong> — é o assunto do quadro abaixo e o passo mais importante de todos.</li>
+    <li><strong>Importe seu extrato.</strong> Vá em <strong>Importar Extrato</strong>, exporte o OFX ou CSV do seu banco e arraste aqui. É o jeito mais rápido de encher o app com meses de histórico de uma vez.</li>
+    <li><strong>Confira as categorias sugeridas.</strong> A categorização é automática, por regras. Corrija o que ficou torto — o resto do app depende dela para os gráficos fazerem sentido.</li>
+    <li><strong>Cadastre suas contas fixas.</strong> Em <strong>Contas a Pagar</strong>, lance aluguel, luz, internet. O painel passa a te avisar quando o vencimento chegar.</li>
+    <li><strong>Crie uma meta.</strong> Em <strong>Metas &amp; Reserva</strong>, defina um objetivo (a reserva de emergência é o clássico) e vincule a um investimento. A barra passa a andar sozinha.</li>
+  </ol>
+  <div class="highlight danger">🔑 <strong>Sobre a chave de recuperação — leia antes de seguir.</strong> Seus dados são cifrados no seu próprio aparelho, com uma chave que nasce da sua senha. Isso é o que permite dizer que <strong>nem nós conseguimos ler o que você escreve</strong>. O outro lado da moeda: se você esquecer a senha e não tiver a chave de recuperação, <strong>não existe "esqueci minha senha" que traga seus dados de volta</strong> — nem por nós, nem por ninguém. Não é falha, é o preço de ninguém mais poder abrir. Guarde o arquivo em dois lugares: no gerenciador de senhas e num pendrive ou na nuvem pessoal.</div>
 
   <div class="group-label">Principal</div>
 
   <h2 id="dashboard"><span class="num">1</span> Dashboard</h2>
   <p>A visão geral do mês assim que você entra no app.</p>
   <ul>
-    <li>Cartões de <strong>receitas, despesas e saldo</strong> atualizados na hora.</li>
+    <li>Quatro cartões no topo: <strong>receitas, despesas, cartão de crédito e saldo</strong> — todos com o total geral, atualizados na hora. (O cartão de crédito só aparece se o módulo estiver ligado.)</li>
     <li>Gráfico de receitas × despesas ao longo dos meses — escolha entre <strong>linhas</strong> ou <strong>barras</strong> no seletor ao lado do período.</li>
     <li><strong>"Pra onde foi seu dinheiro"</strong> — ranking de gastos por categoria, comparado ao mês anterior.</li>
     <li>Aviso automático quando alguma <strong>conta a pagar</strong> está vencendo nos próximos dias.</li>
+    <li>Uma vez por mês, um lembrete para exportar o extrato do banco. Dá para dispensar por hoje no ✕, ou desligar de vez em Configurações.</li>
   </ul>
   <div class="mock">
     <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
@@ -183,6 +206,7 @@ a:hover{border-bottom-color:var(--gold-d)}
     <li>Filtre por tipo, categoria, mês, ou busque por texto.</li>
     <li>Edite ou exclua qualquer lançamento com um toque.</li>
     <li>A categoria é sugerida automaticamente <strong>por regras</strong> — nenhuma IA lê os seus gastos.</li>
+    <li><strong>Recorrentes:</strong> o botão no topo da página guarda receitas e despesas que se repetem todo mês (salário, aluguel, assinaturas). Cadastre uma vez e o app lança sozinho, marcando a transação como "(recorrente)".</li>
   </ul>
   <div class="mock">
     <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
@@ -198,9 +222,10 @@ a:hover{border-bottom-color:var(--gold-d)}
   <p>Suas contas fixas, com lembrete antes do vencimento.</p>
   <ul>
     <li>Cadastre nome, valor, categoria e o <strong>dia do vencimento</strong> — ela se repete todo mês.</li>
-    <li>Um e-mail avisa até <strong>3 dias antes</strong> de vencer, enquanto estiver em aberto.</li>
+    <li>O <strong>painel destaca</strong> as contas que estão perto de vencer ou já vencidas, assim que você abre o app: "Vence em 2 dias", "Vence hoje", "Venceu há 3 dias".</li>
     <li>Marcar como paga já lança a despesa correspondente nas Transações.</li>
   </ul>
+  <div class="highlight">🔒 <strong>Por que o aviso não vem por e-mail?</strong> Porque para mandar esse e-mail o nosso servidor precisaria <strong>ler quais contas você tem e quando elas vencem</strong> — e ele não consegue. Seus dados sobem cifrados, e a chave fica no seu aparelho. O lembrete por e-mail existiu até julho de 2026 e foi desligado justamente quando a criptografia de ponta a ponta entrou no ar. Trocamos uma comodidade pequena por uma garantia grande: nem nós vemos o que você deve.</div>
   <div class="mock">
     <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
     <div class="mock-body">
@@ -246,16 +271,24 @@ a:hover{border-bottom-color:var(--gold-d)}
   <ul>
     <li>Ative em <strong>Configurações</strong> se você quiser acompanhar a fatura à parte.</li>
     <li>Mesmo padrão de categoria e lançamento das Transações comuns.</li>
+    <li><strong>Compras parceladas:</strong> informe o <strong>valor total</strong> e o <strong>número de parcelas</strong> (até 72). O app divide, distribui uma parcela por mês a partir da data da compra e mostra o andamento — "Parcela 3/10 · R$ 41,25/mês".</li>
+    <li><strong>Dois "em aberto", e a diferença importa:</strong> o do <strong>mês</strong> é o que cai nesta fatura; o <strong>total</strong> é tudo que você ainda deve, somando todas as parcelas futuras. É a diferença entre o que você paga agora e o que você já se comprometeu a pagar.</li>
+    <li>Cada parcela é quitada no botão <strong>"Pagar parcela"</strong>. Errou? <strong>"Estornar"</strong> volta uma.</li>
     <li>O total do cartão aparece como mais um cartão no Dashboard.</li>
   </ul>
   <div class="mock">
     <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
     <div class="mock-body">
-      <div class="mcard" style="margin-bottom:14px"><span class="l">Fatura do mês</span><span class="v" style="color:var(--purple)">R$ 890,40</span></div>
+      <div class="cards3">
+        <div class="mcard"><span class="l">Fatura do mês</span><span class="v" style="color:var(--purple)">R$ 131,40</span></div>
+        <div class="mcard"><span class="l">Em aberto (total)</span><span class="v" style="color:var(--red)">R$ 442,00</span></div>
+        <div class="mcard"><span class="l">Já pago</span><span class="v" style="color:var(--green)">R$ 288,60</span></div>
+      </div>
       <div class="m-row"><span class="m-ic" style="background:var(--purplel)">🎬</span><div class="m-info"><b>Netflix</b><small>Lazer · 03/07</small></div><span class="m-amt" style="color:var(--purple)">R$ 39,90</span></div>
-      <div class="m-row"><span class="m-ic" style="background:var(--purplel)">🍔</span><div class="m-info"><b>Supermercado</b><small>Alimentação · 09/07</small></div><span class="m-amt" style="color:var(--purple)">R$ 412,50</span></div>
+      <div class="m-row"><span class="m-ic" style="background:var(--purplel)">💻</span><div class="m-info"><b>Notebook</b><small>Parcela <strong>3/10</strong> · R$ 91,50/mês</small></div><span class="m-amt" style="color:var(--purple)">R$ 915,00</span></div>
     </div>
   </div>
+  <div class="highlight">💡 <strong>Por que os dois números.</strong> A fatura diz R$ 131,40, mas você deve R$ 442,00. O primeiro número é o do mês; o segundo é a soma de tudo que já foi parcelado e ainda vai chegar. Ver os dois lado a lado é o que evita a surpresa de dezembro.</div>
 
   <div class="group-label">Patrimônio</div>
 
@@ -265,19 +298,32 @@ a:hover{border-bottom-color:var(--gold-d)}
     <li><strong>Caixinhas</strong> com rendimento vinculado ao CDI (ex.: 100% ou 115% do CDI).</li>
     <li><strong>Ativos com ticker</strong> — ETFs, FIIs, cripto — com cotação atualizada sozinha.</li>
     <li>Preço médio e rentabilidade calculados automaticamente por dias úteis.</li>
+    <li><strong>Proventos:</strong> o botão 💰 em cada ativo registra dividendos e rendimentos recebidos, com data e valor. O app soma tudo e mostra o total no topo da página — é a sua <strong>renda passiva acumulada</strong>, separada da valorização do ativo.</li>
+    <li><strong>Alocação da carteira:</strong> um gráfico de rosca mostra quanto do seu patrimônio está em cada tipo de investimento. É o jeito rápido de ver se você está concentrado demais em uma coisa só.</li>
   </ul>
   <div class="mock">
     <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
     <div class="mock-body">
+      <div style="background:var(--greenl);border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:12.5px;color:var(--ink2)">
+        💰 <strong style="color:var(--ink)">Proventos recebidos:</strong> <strong style="color:var(--green)">R$ 486,20</strong> no total · <strong style="color:var(--green)">R$ 38,40</strong> neste mês
+      </div>
       <div class="mcard" style="margin-bottom:12px">
         <span class="l">Caixinha Turbo · 115% CDI</span>
         <span class="v">R$ 3.180,40</span>
         <div style="color:var(--green);font-size:11.5px;font-weight:600;margin-top:3px">+ R$ 24,10 este mês</div>
       </div>
-      <div class="mcard">
+      <div class="mcard" style="margin-bottom:14px">
         <span class="l">BOVA11 · 12 cotas</span>
         <span class="v">R$ 1.540,00</span>
-        <div style="color:var(--green);font-size:11.5px;font-weight:600;margin-top:3px">+ 6,4% desde a compra</div>
+        <div style="color:var(--green);font-size:11.5px;font-weight:600;margin-top:3px">+ 6,4% desde a compra · 💰 R$ 82,10 em proventos</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:20px">
+        <div style="width:74px;height:74px;border-radius:50%;flex:none;background:conic-gradient(var(--gold) 0 55%, var(--green) 55% 82%, var(--paper3) 82% 100%)"></div>
+        <div style="display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:var(--ink2)">
+          <span>🟡 Renda fixa · 55%</span>
+          <span>🟢 Ações e ETFs · 27%</span>
+          <span>⚪ Cripto · 18%</span>
+        </div>
       </div>
     </div>
   </div>
@@ -322,11 +368,19 @@ a:hover{border-bottom-color:var(--gold-d)}
   <h2 id="config"><span class="num">9</span> Configurações</h2>
   <p>Preferências, segurança e assinatura, tudo aqui.</p>
   <ul>
-    <li>Ligue ou desligue módulos, como o <strong>Cartão de Crédito</strong>.</li>
-    <li>Ative a <strong>verificação em duas etapas (2FA)</strong> pra uma camada extra de segurança.</li>
-    <li>Veja e encerre sessões abertas em outros dispositivos.</li>
+    <li>Ligue ou desligue módulos, como o <strong>Cartão de Crédito</strong>. Desligar não apaga nada — só esconde.</li>
+    <li><strong>Notificações por e-mail:</strong> o único e-mail recorrente que enviamos é o lembrete mensal, no dia 1º, para você exportar o extrato do banco. Desmarque aqui se não quiser receber.</li>
+    <li>Ative a <strong>verificação em duas etapas (2FA)</strong> pra uma camada extra de segurança — o app mostra o QR code para escanear no Google Authenticator.</li>
+    <li><strong>Dispositivos conectados:</strong> encerre a sessão em todos os aparelhos de uma vez, inclusive neste. Útil se você usou um computador público.</li>
     <li>Gerencie sua assinatura e fale com o <strong>suporte</strong> quando precisar.</li>
   </ul>
+  <h3>Sincronização — use com cuidado</h3>
+  <p>Se este aparelho e a nuvem ficarem diferentes, você decide qual lado vale. São dois botões, e <strong>os dois sobrescrevem por inteiro</strong>, sem misturar:</p>
+  <ul>
+    <li><strong>Baixar da nuvem</strong> — o que está neste aparelho é substituído pelo que está na nuvem.</li>
+    <li><strong>Enviar este aparelho</strong> — o que está na nuvem é substituído pelo que está aqui.</li>
+  </ul>
+  <div class="highlight danger">⚠️ <strong>Não há desfazer.</strong> O lado sobrescrito é perdido. No uso normal você nunca precisa desses botões — a sincronização acontece sozinha. Use só quando souber exatamente qual dos dois lados está certo.</div>
   <div class="mock">
     <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
     <div class="mock-body">
@@ -335,6 +389,24 @@ a:hover{border-bottom-color:var(--gold-d)}
       <div class="m-row"><div class="m-info"><b>Assinatura</b><small>R$ 9,90/mês</small></div><span class="pill" style="background:var(--greenl);color:var(--green)">Ativa</span></div>
     </div>
   </div>
+
+  <h2 id="perfil"><span class="num">10</span> Seu Perfil</h2>
+  <p>Clique no seu e-mail, no topo da barra lateral, para abrir o perfil.</p>
+  <ul>
+    <li>Seu <strong>e-mail</strong>, a data em que a conta foi criada e o <strong>status da assinatura</strong>.</li>
+    <li>É também onde fica a <strong>exclusão da conta</strong>, na zona de risco no fim do quadro.</li>
+  </ul>
+  <p>Ao pedir a exclusão você tem <strong>15 dias para se arrepender</strong>: nesse período o acesso fica bloqueado, mas basta entrar de novo com e-mail e senha para reativar tudo. Passados os 15 dias, os dados são apagados definitivamente — e, como eles estão cifrados, o que se apaga é justamente o texto embaralhado que só você poderia abrir.</p>
+
+  <div class="group-label">Barra lateral</div>
+
+  <h2><span class="num">↔</span> O que fica sempre à mão</h2>
+  <ul>
+    <li><strong>Seu e-mail</strong>, no topo — clique para abrir o perfil.</li>
+    <li><strong>Status da sincronização</strong>, logo abaixo: mostra quando os dados subiram pela última vez.</li>
+    <li><strong>O olhinho</strong>, que esconde ou revela todos os valores em R$ de uma vez.</li>
+    <li>No rodapé: <strong>Visitar o site</strong> e <strong>Sair da conta</strong>.</li>
+  </ul>
 
   <div class="group-label">Privacidade na tela</div>
 
