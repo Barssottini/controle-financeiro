@@ -1,0 +1,25 @@
+# Normalização de fim de linha — regra explícita, criada em 21/08/2026.
+#
+# Antes disto o repositório dependia só de core.autocrlf=true, com blobs gravados
+# em convenções diferentes. O resultado: uma edição por ferramenta que não preserva
+# CRLF reescrevia o arquivo inteiro, o diff virava "4025 linhas alteradas" e a
+# revisão ficava impossível. Aconteceu de verdade.
+* text=auto
+
+# Binários — nunca converter, nunca tentar diff de texto
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.bmp   binary
+*.pdf   binary
+*.exe   binary
+*.mp4   binary
+*.woff  binary
+*.woff2 binary
+*.sig   binary
+*.blockmap binary
+
+# Scripts do Windows: CRLF por convenção da plataforma
+*.ps1 text eol=crlf
