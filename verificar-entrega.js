@@ -63,7 +63,8 @@ function trecho(buf, pos) {
   } catch (e) {
     console.error('Não deu para comparar: ' + e.message);
     console.error('(sem rede, ou a referência "' + ref + '" não existe no GitHub)');
-    process.exit(2);
+    process.exitCode = 2;
+    return;
   }
 
   const hServido = sha256(servido);
@@ -82,7 +83,8 @@ function trecho(buf, pos) {
     console.log('O navegador de quem usa o app não faz esta verificação — o item 1 do');
     console.log('THREAT_MODEL.md continua aberto. O que você acabou de ganhar é a');
     console.log('capacidade de detectar adulteração, não de impedi-la.');
-    process.exit(0);
+    process.exitCode = 0;
+    return;
   }
 
   const pos = primeiraDivergencia(servido, github);
@@ -99,5 +101,6 @@ function trecho(buf, pos) {
   console.log('');
   console.log('Se as duas pontas deveriam ser a mesma versão e mesmo assim divergem,');
   console.log('trate como incidente: não faça login, e abra uma issue no repositório.');
-  process.exit(1);
+  process.exitCode = 1;
+  return;
 })();
