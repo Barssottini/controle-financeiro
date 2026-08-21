@@ -76,7 +76,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
   <img src="logo-192.png" alt="North Finances" class="badge">
   <div class="brand">North<span> Finances</span></div>
   <div class="doc-title">Termos de Uso &amp; Privacidade</div>
-  <div class="doc-date">Última atualização: 17 de agosto de 2026</div>
+  <div class="doc-date">Última atualização: 21 de agosto de 2026</div>
 </div>
 
 <div class="wrap">
@@ -151,7 +151,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
     <li><strong>Cloudflare Turnstile</strong> — verificação anti-robô nas telas de login e cadastro; processa dados técnicos do navegador (como o IP) apenas para distinguir pessoas de robôs.</li>
     <li><strong>brapi.dev</strong> e <strong>CoinGecko</strong> — fornecem apenas <strong>cotações públicas</strong> de ativos e criptomoedas. Enviamos a eles somente o código do ativo (ex.: "BOVA11"); <strong>nenhum dado seu, saldo ou informação pessoal é compartilhado</strong>.</li>
     <li><strong>GitHub Pages</strong> — hospeda o código do aplicativo (não seus dados).</li>
-    <li><strong>Meta (Facebook/Instagram)</strong> — medição de publicidade <strong>apenas no site institucional</strong> (northfinances.com.br) e <strong>somente se você aceitar o aviso de cookies</strong>. Recebe dados de navegação (IP, navegador, página visitada); <strong>nunca recebe dados do seu aplicativo</strong>. Veja a seção 9.</li>
+    <li><strong>Meta (Facebook/Instagram)</strong> — medição de publicidade, e <strong>somente se você aceitou o aviso de cookies</strong> no site northfinances.com.br. No site, a medição é por cookie. No aplicativo <strong>não há cookie nem script da Meta</strong>: se você chegou pelo site tendo aceitado o aviso, no momento em que o teste grátis começa o nosso servidor informa à Meta que houve um cadastro, enviando o seu e-mail de forma embaralhada (hash), o endereço IP e o navegador usado. Quem entra direto no aplicativo, ou recusou o aviso, <strong>não é informado à Meta em momento nenhum</strong>. A Meta <strong>nunca recebe dado financeiro seu</strong> e não tem acesso ao conteúdo do aplicativo. Veja a seção 9.</li>
   </ul>
   <h3>Transferência internacional de dados</h3>
   <p>Seus dados financeiros ficam armazenados <strong>no Brasil</strong>, na região de São Paulo. Ainda assim, alguns fornecedores acima são empresas sediadas no exterior e podem tratar dados a partir de fora do país — é o caso de <strong>Supabase</strong>, <strong>Resend</strong>, <strong>Cloudflare</strong>, <strong>GitHub</strong> e <strong>Meta</strong>.</p>
@@ -187,6 +187,8 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
   <p>Aqui é preciso separar duas coisas, porque elas funcionam de formas diferentes:</p>
   <h3>No aplicativo (app.northfinances.com.br)</h3>
   <p>O aplicativo utiliza o <strong>armazenamento local do navegador</strong> (localStorage) para guardar sua sessão e uma cópia cifrada dos seus dados no dispositivo. <strong>Dentro do aplicativo não há cookies de rastreamento, pixel de publicidade nem ferramenta de análise de terceiros.</strong> Seus dados financeiros não passam por nenhuma dessas ferramentas — eles são cifrados no seu aparelho e nunca saem em texto aberto.</p>
+  <p>Há uma exceção, e ela merece ser dita por inteiro em vez de escondida numa lista: <strong>se você chegou ao aplicativo pelo nosso site tendo aceitado o aviso de cookies</strong>, no momento em que o seu teste grátis começa o nosso servidor avisa à Meta que houve um cadastro. Nesse aviso vão <strong>o seu e-mail embaralhado por hash</strong> (a Meta não consegue lê-lo, só comparar), o endereço IP e o navegador usado. É como sabemos quais anúncios funcionaram.</p>
+  <p>O que isso <em>não</em> é: não é um pixel, não roda script da Meta no aplicativo, não grava cookie no domínio dele, não acompanha o que você faz lá dentro e não envia nenhum dado financeiro. E não acontece com quem entrou direto no aplicativo ou recusou o aviso — nesses casos <strong>nada é enviado</strong>, porque a autorização é a própria condição técnica para o envio existir.</p>
   <h3>No site institucional (northfinances.com.br)</h3>
   <p>O site de apresentação — a página que fala sobre o produto, antes de você entrar no aplicativo — utiliza o <strong>Meta Pixel</strong>, uma ferramenta de medição de publicidade da Meta (Facebook e Instagram). Ela nos permite saber de onde vêm nossos visitantes e medir o resultado dos anúncios.</p>
   <ul>
@@ -194,7 +196,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
     <li><strong>O que a Meta recebe:</strong> endereço IP, informações do navegador, a página visitada e o evento de clique no botão de acesso ao aplicativo. <strong>Nenhum dado financeiro, nenhum saldo, nenhuma transação</strong> — essas informações só existem dentro do aplicativo, cifradas.</li>
     <li><strong>Como mudar de ideia:</strong> use o link "Preferências de cookies" no rodapé do site, ou limpe os dados do site no seu navegador. O aviso volta a aparecer e você pode recusar.</li>
   </ul>
-  <div class="highlight">🔒 <strong>Resumo:</strong> a medição de publicidade acontece apenas na vitrine, nunca dentro do aplicativo — e sempre depende do seu consentimento.</div>
+  <div class="highlight">🔒 <strong>Resumo:</strong> a medição de publicidade <strong>sempre depende do seu consentimento</strong>. Ela acontece por cookie na vitrine e, para quem veio de lá tendo aceitado, por um aviso de cadastro que o nosso servidor manda à Meta com o e-mail embaralhado. Dentro do aplicativo não roda nada da Meta, e nenhum dado financeiro seu chega até ela — nunca.</div>
 
   <h2><span class="num">10</span> Menores de idade</h2>
   <p>O serviço é destinado a maiores de 18 anos. Não coletamos intencionalmente dados de menores de idade.</p>
