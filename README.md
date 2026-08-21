@@ -41,6 +41,23 @@ Os dados (transações, cartão, investimentos, metas, orçamentos, contas a pag
 
 Detalhes do que é e do que não é protegido: [THREAT_MODEL.md](THREAT_MODEL.md).
 
+## Conferir se o site está entregando o código público
+
+Você não precisa acreditar na nossa palavra. Este comando compara, byte a byte, o
+que `app.northfinances.com.br` está servindo agora com o `index.html` deste
+repositório:
+
+```
+node verificar-entrega.js          # compara com o main
+node verificar-entrega.js v1.5.0   # compara com uma versão específica
+```
+
+Não instala nada e funciona para qualquer pessoa, não só para quem desenvolve.
+
+Sendo honesto sobre o alcance: isso detecta adulteração, não impede. O navegador
+de quem usa o app não faz essa conferência sozinho — é o item 1 do
+[THREAT_MODEL.md](THREAT_MODEL.md), que continua aberto.
+
 ## Funcionalidades
 
 - Dashboard com gráfico receitas × despesas
