@@ -14,6 +14,13 @@ const REPO = 'Barssottini/controle-financeiro';
 const UPDATE_PUBKEYS = [
 `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAbiFyUnJs1frO4PtYMc+aAcJGdEkhfoxQO9MuUZE0+SU=
+-----END PUBLIC KEY-----`,
+// Chave 2 (rotacao, 21/08/2026). A chave 1 esteve num diretorio sincronizado com o OneDrive
+// e passa a ser considerada exposta. Sequencia: publicar uma versao assinada com a chave 1
+// contendo ESTA lista (para os clientes instalados aceitarem a chave 2), e so na versao
+// seguinte assinar com a chave 2 e remover a chave 1 daqui.
+`-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAQ+LcTreHNoDpk9P08GQ7U1GjHEkWEWmEVzB90Gne+5k=
 -----END PUBLIC KEY-----`
 ];
 

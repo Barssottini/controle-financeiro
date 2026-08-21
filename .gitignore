@@ -4,7 +4,10 @@ exportar-informacoes/
 meu-assessor/
 backup*.json
 
-# Chaves de assinatura do auto-update — a PRIVADA jamais pode vazar
+# Chaves de assinatura do auto-update — a PRIVADA jamais pode vazar.
+# Desde 21/08/2026 elas nem moram mais aqui: o canônico é %USERPROFILE%\.north-keys\,
+# fora do OneDrive. Esta regra fica como rede de segurança, não como o mecanismo.
+# O .gitignore nunca protegeu contra o OneDrive — ver item 11 do THREAT_MODEL.md.
 *.pem
 
 # Configuração local do Claude Code
@@ -12,4 +15,5 @@ backup*.json
 
 # Node / Electron
 node_modules/
+# dist/ é um junction para fora do OneDrive desde 21/08/2026 (ver README)
 dist/
