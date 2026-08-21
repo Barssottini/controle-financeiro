@@ -1296,6 +1296,23 @@ const IS_ELECTRON=/Electron/i.test(navigator.userAgent);
 if('serviceWorker' in navigator && location.protocol==='https:' && !IS_ELECTRON)navigator.serviceWorker.register('sw.js').catch(()=>{});
 if('serviceWorker' in navigator && IS_ELECTRON)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
 
+// ═══ ATRIBUIÇÃO DE ANÚNCIO (Meta) ═══
+// O site institucional repassa _fbc/_fbp na querystring quando — e somente quando —
+// o usuário aceitou o aviso de cookies. Guardamos e limpamos a URL. Nenhum script
+// da Meta roda neste domínio e nenhum cookie dela é gravado aqui: quem conversa
+// com a Meta é a edge function meta-capi, no servidor.
+(function(){
+  try{
+    const q=new URLSearchParams(location.search);
+    const fbc=q.get('nfbc'),fbp=q.get('nfbp');
+    if(!fbc&&!fbp)return;
+    if(fbc)localStorage.setItem('nf_fbc',fbc);
+    if(fbp)localStorage.setItem('nf_fbp',fbp);
+    q.delete('nfbc');q.delete('nfbp');
+    const qs=q.toString();
+    history.replaceState(null,'',location.pathname+(qs?'?'+qs:'')+location.hash);
+  }catch(e){}
+})();
 // ═══ NUVEM (Supabase) ═══
 const SUPA_URL='https://uipywjbcjzhqueyrfwef.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcHl3amJjanpocXVleXJmd2VmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3ODI3NTUsImV4cCI6MjA5OTM1ODc1NX0.fSSocZhCBOoRRcfMD-VRCg7ZTyiItd23xkUNYBnwbXw';
@@ -1491,6 +1508,7 @@ async function onSignedIn(session,fresh){
   document.getElementById('udisp').textContent=session.user.email;
   renderTrialBanner(acc);
   renderSubPanel(sub,acc);
+  if(acc.reason==='trialing')reportTrialStart(session.user.id);
   await loadCloud(session.user.id);
   cloudReady=true;
   initApp();
@@ -1535,6 +1553,24 @@ function showPaywall(acc){
   document.getElementById('paywall-screen').style.display='flex';
 }
 
+// Conversão "iniciou o teste grátis" — uma vez por conta, nunca de novo.
+// Só sai se houver sinal de consentimento vindo do site; sem ele a função marca
+// como dispensado e nunca mais tenta. Falha de medição jamais atrapalha o uso.
+async function reportTrialStart(uid){
+  try{
+    const key='nf_capi_'+uid;
+    if(localStorage.getItem(key))return;
+    const fbc=localStorage.getItem('nf_fbc'),fbp=localStorage.getItem('nf_fbp');
+    if(!fbc&&!fbp){localStorage.setItem(key,'skip');return;}
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session)return;
+    const r=await fetch(FN_BASE+'/meta-capi',{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'},body:JSON.stringify({event:'StartTrial',fbc,fbp})});
+    // fetch não lança em 4xx/5xx. Sem conferir o status, uma função ainda não
+    // implantada marcaria a conversão como enviada e ela se perderia para sempre.
+    if(!r.ok)return;
+    localStorage.setItem(key,'1');
+  }catch(e){}
+}
 // ═══ CHECKOUT TRANSPARENTE (Mercado Pago Secure Fields) ═══
 const MP_PUBLIC_KEY='APP_USR-d1b9a81d-499b-44a8-a7d1-03da8583765c';
 let mpInstance=null,mpFieldsReady=false;
