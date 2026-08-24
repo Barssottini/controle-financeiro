@@ -1568,6 +1568,12 @@ async function reportTrialStart(uid){
     // fetch não lança em 4xx/5xx. Sem conferir o status, uma função ainda não
     // implantada marcaria a conversão como enviada e ela se perderia para sempre.
     if(!r.ok)return;
+    // E ela tambem responde 200 quando NAO enviou nada. Distinguir importa:
+    // 'no_consent_signal' e definitivo (sem cookie nao ha o que tentar de novo),
+    // mas 'not_configured' e temporario — marcar aqui perderia a conversao para
+    // sempre, justo na janela em que os segredos ainda nao foram definidos.
+    const j=await r.json().catch(()=>({}));
+    if(j.skipped==='not_configured')return;
     localStorage.setItem(key,'1');
   }catch(e){}
 }
