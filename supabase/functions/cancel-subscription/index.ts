@@ -23,6 +23,12 @@ const cors = {
 const json = (o: unknown, status = 200) =>
   new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
+const ms = (v?: string | null): number => {
+  if (!v) return 0;
+  const t = new Date(v).getTime();
+  return isNaN(t) ? 0 : t;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -34,26 +40,49 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "unauthorized" }, 401);
 
     const admin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data: sub } = await admin.from("subscriptions").select("mp_preapproval_id").eq("user_id", user.id).single();
+    const { data: sub } = await admin.from("subscriptions")
+      .select("mp_preapproval_id,current_period_end,trial_ends_at")
+      .eq("user_id", user.id).single();
 
+    // Cancela a recorrencia no Mercado Pago. A resposta traz next_payment_date,
+    // que e a data ate a qual o mes ja pago vale — melhor fonte que qualquer
+    // calculo local.
+    let mpNextPayment: string | null = null;
     if (sub?.mp_preapproval_id && MP_TOKEN) {
-      await fetch(`https://api.mercadopago.com/preapproval/${sub.mp_preapproval_id}`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${MP_TOKEN}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "cancelled" }),
-      });
+      try {
+        const r = await fetch(`https://api.mercadopago.com/preapproval/${sub.mp_preapproval_id}`, {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${MP_TOKEN}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "cancelled" }),
+        });
+        const pa = await r.json().catch(() => null);
+        if (pa && typeof pa.next_payment_date === "string") mpNextPayment = pa.next_payment_date;
+      } catch (e) {
+        console.error("CANCEL_SUB: falha ao cancelar no Mercado Pago", String(e));
+      }
     }
 
-    // NOTA (21/08/2026): aqui existe um defeito conhecido, deixado de proposito para
-    // decisao. So o status e gravado; current_period_end nao. Em subAccess, 'canceled'
-    // so mantem o acesso de cortesia enquanto current_period_end estiver no futuro —
-    // entao quem cancela DURANTE o teste gratis, que nunca teve esse campo, perde o
-    // acesso na hora, logo depois de ler "voce continua com acesso ate o fim do
-    // periodo ja pago". A correcao seria preencher current_period_end com o que for
-    // maior entre ele mesmo e trial_ends_at. Mexer em regra de cobranca sem aval
-    // explicito seria pior que o bug.
-    await admin.from("subscriptions").update({ status: "canceled" }).eq("user_id", user.id);
-    return json({ ok: true });
+    // QUEM PAGOU O MES, USA O MES.
+    //
+    // O acesso de cortesia depois do cancelamento depende de current_period_end
+    // estar no futuro (ver subAccess no app). Antes de 24/08/2026 esta funcao
+    // gravava so o status e deixava o campo como estava — o que funcionava na
+    // pratica, porque create-subscription e mp-webhook ja o preenchiam, mas
+    // deixava a garantia na mao de outro codigo. Se por qualquer motivo o campo
+    // estivesse vazio, alguem que pagou perderia o acesso no instante do clique,
+    // logo depois de ler na tela que manteria.
+    //
+    // Agora a garantia e desta funcao: fica a data mais distante entre o que ja
+    // havia, o next_payment_date do Mercado Pago e o fim do teste. Nunca encurta
+    // o que o usuario ja tinha.
+    const candidatos = [ms(sub?.current_period_end), ms(mpNextPayment), ms(sub?.trial_ends_at)];
+    const maior = Math.max(...candidatos);
+
+    const patch: Record<string, unknown> = { status: "canceled" };
+    if (maior > Date.now()) patch.current_period_end = new Date(maior).toISOString();
+
+    await admin.from("subscriptions").update(patch).eq("user_id", user.id);
+    return json({ ok: true, access_until: patch.current_period_end ?? null });
   } catch (e) {
     return json({ error: String(e) }, 500);
   }

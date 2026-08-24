@@ -55,10 +55,26 @@ supabase functions deploy <nome> --project-ref uipywjbcjzhqueyrfwef
    chamá-lo e forçar re-sincronizações — e disparar e-mails de boas-vindas. O
    conteúdo não é forjável, porque a função consulta o Mercado Pago antes de
    gravar; ninguém se autopromove a pagante. Mas é vetor de abuso.
-2. **`cancel-subscription` não preenche `current_period_end`.** Quem cancela
-   durante o teste grátis perde o acesso na hora, depois de ler na tela que
-   manteria o acesso até o fim do período. Ver o comentário no arquivo.
-3. **`bill-reminders` e `notify-migrate` são no-op.** Podem ser removidas de vez,
+2. **`bill-reminders` e `notify-migrate` são no-op.** Podem ser removidas de vez,
    junto com o agendamento `bill-reminders-daily` no painel.
-4. **`purge-deleted-accounts` tem uma lista fixa de tabelas.** Tabela nova com
+3. **`purge-deleted-accounts` tem uma lista fixa de tabelas.** Tabela nova com
    `user_id` que não entre nela deixa dado de conta excluída para trás.
+
+## Quem pagou o mês, usa o mês
+
+Decisão do Pedro em 24/08/2026, agora garantida no código.
+
+O acesso de cortesia depois de um cancelamento depende de `current_period_end`
+estar no futuro — é o que o `subAccess` do app consulta. Antes, `cancel-subscription`
+e `request-deletion` gravavam só o `status` e deixavam esse campo como estava.
+Na prática funcionava, porque `create-subscription` e `mp-webhook` já o
+preenchiam, e o botão de cancelar só aparece para quem está `active`. Mas a
+garantia morava em outro arquivo.
+
+Agora as duas calculam o campo elas mesmas: fica a data mais distante entre o que
+já havia, o `next_payment_date` que o Mercado Pago devolve no cancelamento, e o
+fim do teste. **Nunca encurta o que o usuário já tinha.**
+
+No `request-deletion` isso importa por um caminho fácil de esquecer: quem pede
+exclusão e depois clica em "Quero reativar minha conta" voltava com status
+`canceled` e, sem o campo, caía direto no paywall — mesmo tendo pago o mês.
