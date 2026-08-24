@@ -2476,12 +2476,48 @@ const S={
 };
 const CDI=0.1065;
 let dashChart=null;
+// Dias úteis pela convenção da B3/ANBIMA (252/ano), que desconta FERIADO.
+// Antes daqui só o fim de semana era descontado, o que dava ~260 dias por ano e
+// inflava todo rendimento de CDI em 0,35 a 0,51 ponto percentual ao ano —
+// sempre para cima, que é o pior lado para errar num app de finanças.
+// Tudo em horário LOCAL: quem chama passa 'data'+'T00:00:00' e new Date().
+function _pascoa(ano){
+  const a=ano%19,b=Math.floor(ano/100),c=ano%100;
+  const d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25);
+  const g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30;
+  const i=Math.floor(c/4),k=c%4;
+  const l=(32+2*e+2*i-h-k)%7;
+  const m=Math.floor((a+11*h+22*l)/451);
+  const mes=Math.floor((h+l-7*m+114)/31);
+  return new Date(ano,mes-1,((h+l-7*m+114)%31)+1);
+}
+function _diaChave(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+const _feriadosCache={};
+function _feriados(ano){
+  if(_feriadosCache[ano])return _feriadosCache[ano];
+  const p=_pascoa(ano),mov=n=>_diaChave(new Date(ano,p.getMonth(),p.getDate()+n));
+  _feriadosCache[ano]=new Set([
+    ano+'-01-01',ano+'-04-21',ano+'-05-01',ano+'-09-07',
+    ano+'-10-12',ano+'-11-02',ano+'-11-15',ano+'-11-20',ano+'-12-25',
+    mov(-48),mov(-47),   // carnaval, segunda e terça
+    mov(-2),             // sexta-feira santa
+    mov(60)              // corpus christi
+  ]);
+  return _feriadosCache[ano];
+}
 function bizDays(start,end){
-  const ms=86400000,s=new Date(start),e=new Date(end);
-  const total=Math.round((e-s)/ms);if(total<=0)return 0;
-  const weeks=Math.floor(total/7),rem=total%7,dow=s.getDay();
-  let extra=0;for(let i=0;i<rem;i++){const d=(dow+i)%7;if(d===0||d===6)extra++;}
-  return weeks*5+(rem-extra);
+  const s=new Date(start),e=new Date(end);
+  if(isNaN(s)||isNaN(e))return 0;
+  const d=new Date(s.getFullYear(),s.getMonth(),s.getDate());
+  const fim=new Date(e.getFullYear(),e.getMonth(),e.getDate());
+  if(!(fim>d))return 0;
+  let n=0;
+  while(d<fim){
+    const dow=d.getDay();
+    if(dow!==0&&dow!==6&&!_feriados(d.getFullYear()).has(_diaChave(d)))n++;
+    d.setDate(d.getDate()+1);
+  }
+  return n;
 }
 function newId(){
   const all=[...S.transactions,...S.ccItems,...S.investments,...S.goals,...S.budgets,...S.bills,...S.recurring];
@@ -2666,7 +2702,9 @@ function checkReminder(){
 }
 function dismissReminder(e){
   e.stopPropagation();
-  localStorage.setItem('bf_rem',new Date().toDateString());
+  // preferência de interface, não dado do usuário: não vai para a nuvem.
+  // Protegido mesmo assim — sem isto, cota cheia faz o ✕ parar de fechar a barra.
+  try{localStorage.setItem('bf_rem',new Date().toDateString());}catch(e){}
   document.getElementById('reminder-bar').classList.add('hidden');
 }
 
@@ -3607,11 +3645,26 @@ function finishParse(text,filename){
   parsedRows=ext.endsWith('.ofx')||ext.endsWith('.qfx')?parseOFX(text):parseCSV(text);
   renderImportPreview(filename);
 }
+// Normaliza valor monetário. O decimal é o ÚLTIMO separador que aparece:
+// em "1.234,56" a vírgula vem depois, então os pontos são milhar; em
+// "1,234.56" é o contrário. Antes daqui o código fazia replace(',','.') e
+// parseFloat, o que transformava R$ 1.234,56 em R$ 1,23 — erro de mil vezes,
+// silencioso, em todo valor a partir de mil reais em formato brasileiro.
+function parseValor(s){
+  const limpo=String(s==null?'':s).replace(/[^\d,.-]/g,'').trim();
+  if(!limpo)return NaN;
+  const v=limpo.lastIndexOf(','),p=limpo.lastIndexOf('.');
+  let n;
+  if(v>p)n=limpo.replace(/\./g,'').replace(',','.');   // decimal é a vírgula
+  else if(p>v)n=limpo.replace(/,/g,'');                 // decimal é o ponto
+  else n=limpo;                                         // sem separador decimal
+  return parseFloat(n);
+}
 function parseOFX(text){
   // Saldo final oficial do extrato (tag LEDGERBAL) — usado para conciliação automática
   const balM=/<LEDGERBAL>[\s\S]*?<BALAMT>([-\d.,]+)/i.exec(text);
   if(balM){
-    const amt=parseFloat(balM[1].replace(',','.'));
+    const amt=parseValor(balM[1]);
     const dtM=/<LEDGERBAL>[\s\S]*?<DTASOF>(\d{8})/i.exec(text);
     const bd=dtM?dtM[1].substring(0,4)+'-'+dtM[1].substring(4,6)+'-'+dtM[1].substring(6,8):new Date().toISOString().split('T')[0];
     if(!isNaN(amt))parsedBal={amt:amt,date:bd};
@@ -3624,7 +3677,7 @@ function parseOFX(text){
     const blk=m[1];
     const get=tag=>{const r=new RegExp('<'+tag+'>([^<\r\n]+)','i').exec(blk);return r?r[1].trim():'';};
     const dt=get('DTPOSTED');
-    const amt=parseFloat((get('TRNAMT')||'0').replace(',','.'));
+    const amt=parseValor(get('TRNAMT'));
     const memo=get('MEMO')||get('NAME')||'Sem descrição';
     if(!dt||isNaN(amt))continue;
     const date=dt.substring(0,4)+'-'+dt.substring(4,6)+'-'+dt.substring(6,8);
@@ -3647,8 +3700,7 @@ function parseCSV(text){
     const cols=splitCSV(lines[i]);if(cols.length<3)continue;
     const dateRaw=cols[0]?.trim()||'';
     const desc=cols[1]?.trim()||'Sem descrição';
-    const rawAmt=(cols[cols.length-1]||'').trim().replace(/[^\d,.-]/g,'').replace(',','.');
-    const amt=parseFloat(rawAmt);if(isNaN(amt))continue;
+    const amt=parseValor(cols[cols.length-1]);if(isNaN(amt))continue;
     const date=normalizeDate(dateRaw);if(!date)continue;
     const dc=cleanDesc(desc);
     const cat=PIX_IN_RE.test(desc.toLowerCase())?'Outros':(known[dc]||guessCategory(desc));
@@ -3814,14 +3866,32 @@ function buildBankGuide(){
 }
 
 // ═══ PERSISTENCE ═══
-function persist(){localStorage.setItem('bf_tx',JSON.stringify(S.transactions));scheduleCloudSave();}
-function persistCC(){localStorage.setItem('bf_cc',JSON.stringify(S.ccItems));scheduleCloudSave();}
-function persistInv(){localStorage.setItem('bf_inv',JSON.stringify(S.investments));scheduleCloudSave();}
-function persistGoals(){localStorage.setItem('bf_goals',JSON.stringify(S.goals));scheduleCloudSave();}
-function persistSettings(){localStorage.setItem('bf_settings',JSON.stringify(S.settings));scheduleCloudSave();}
-function persistBudgets(){localStorage.setItem('bf_budgets',JSON.stringify(S.budgets));scheduleCloudSave();}
-function persistBills(){localStorage.setItem('bf_bills',JSON.stringify(S.bills));scheduleCloudSave();}
-function persistRecurring(){localStorage.setItem('bf_recurring',JSON.stringify(S.recurring));scheduleCloudSave();}
+// O localStorage é só CACHE — a nuvem é a cópia que importa. Antes daqui o
+// setItem não era protegido e o scheduleCloudSave() vinha DEPOIS dele: com a
+// cota estourada a exceção subia, a nuvem nunca era agendada, e a alteração
+// se perdia nas duas pontas ao mesmo tempo, sem nenhum aviso.
+// Agora a nuvem é agendada SEMPRE, e a falha local vira um aviso único.
+let _avisouCota=false;
+function _guardar(chave,valor){
+  try{
+    localStorage.setItem(chave,JSON.stringify(valor));
+  }catch(e){
+    if(!_avisouCota){
+      _avisouCota=true;
+      try{toast('Armazenamento local cheio — seus dados seguem salvos na nuvem.');}catch(_){}
+      console.warn('localStorage cheio ao gravar '+chave,e);
+    }
+  }
+  scheduleCloudSave();
+}
+function persist(){_guardar('bf_tx',S.transactions);}
+function persistCC(){_guardar('bf_cc',S.ccItems);}
+function persistInv(){_guardar('bf_inv',S.investments);}
+function persistGoals(){_guardar('bf_goals',S.goals);}
+function persistSettings(){_guardar('bf_settings',S.settings);}
+function persistBudgets(){_guardar('bf_budgets',S.budgets);}
+function persistBills(){_guardar('bf_bills',S.bills);}
+function persistRecurring(){_guardar('bf_recurring',S.recurring);}
 function loadData(){
   const parse=(key,fb)=>{try{const v=localStorage.getItem(key);return v?JSON.parse(v):fb;}catch(e){console.warn('Erro ao carregar '+key,e);return fb;}};
   S.transactions=parse('bf_tx',[]);
