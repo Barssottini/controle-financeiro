@@ -1949,7 +1949,12 @@ function toggleShowValues(){
 
 // ═══ BLOQUEIO POR INATIVIDADE ═══
 let inactivityTimer=null;
-const INACTIVITY_MS=5*60*1000;
+// 15 min, subido de 5 em 26/08/2026. Cinco minutos pegava quem chegou de
+// anuncio ainda lendo o manual, e levar um "Voce ainda esta ai?" no primeiro
+// contato e um susto justamente quando a pessoa decide se confia no produto.
+// A tela so borra e pede um clique — nao desloga, nao pede senha —, entao o
+// custo de esperar mais e baixo e o de assustar cedo demais e alto.
+const INACTIVITY_MS=15*60*1000;
 function resetInactivityTimer(){
   if(document.getElementById('inactivity-screen').style.display==='flex')return;
   clearTimeout(inactivityTimer);
