@@ -3,28 +3,66 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // O token vem SO do ambiente. Ate 21/08/2026 havia um token de teste do Mercado
 // Pago escrito aqui como ultimo recurso — credencial no fonte, num repositorio
 // que e publico. Removido.
-//
-// A cadeia de fallback com o nome errado (MP_ACESS_TOKEN, sem o C) fica por
-// enquanto, de proposito: nao da para saber daqui qual dos dois esta definido, e
-// remover o errado sem conferir quebraria a sincronizacao. Os avisos abaixo
-// resolvem isso — o proximo disparo do webhook diz nos logs qual nome respondeu.
 const MP_TOKEN_CORRETO = Deno.env.get("MP_ACCESS_TOKEN");
 const MP_TOKEN_TYPO = Deno.env.get("MP_ACESS_TOKEN");
 const MP_TOKEN = MP_TOKEN_CORRETO ?? MP_TOKEN_TYPO ?? "";
 
 if (!MP_TOKEN) {
-  console.error("MP_WEBHOOK: nenhum token definido (nem MP_ACCESS_TOKEN nem MP_ACESS_TOKEN). Nenhuma assinatura sera sincronizada.");
+  console.error("MP_WEBHOOK: nenhum token definido (nem MP_ACCESS_TOKEN nem MP_ACESS_TOKEN).");
 } else if (!MP_TOKEN_CORRETO) {
-  console.warn("MP_WEBHOOK: em uso o nome com erro de digitacao MP_ACESS_TOKEN. Renomeie o segredo para MP_ACCESS_TOKEN e remova o fallback desta funcao.");
+  console.warn("MP_WEBHOOK: em uso o nome com erro de digitacao MP_ACESS_TOKEN. Renomeie e remova o fallback.");
 }
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const WEBHOOK_SECRET = Deno.env.get("MP_WEBHOOK_SECRET") ?? "";
 
-// PENDENTE: este endpoint nao verifica a assinatura do webhook do Mercado Pago.
-// Qualquer um pode chama-lo e forcar re-sincronizacoes (e disparar e-mails de
-// boas-vindas). O conteudo nao e forjavel — a funcao consulta o MP antes de
-// gravar —, entao ninguem se autopromove a pagante; mas e vetor de abuso e
-// queima cota de API. Fechar validando o header x-signature do MP.
+// ── VERIFICACAO DE ASSINATURA, EM DUAS ETAPAS DE PROPOSITO ──
+//
+// Ate 27/08/2026 este endpoint aceitava qualquer chamada: e publico por
+// necessidade (o Mercado Pago precisa alcanca-lo) e nao conferia nada. Qualquer
+// um podia forcar ressincronizacoes e disparar e-mails de boas-vindas.
+//
+// O MP assina cada notificacao com HMAC-SHA256 sobre o manifesto
+//   id:<data.id>;request-id:<x-request-id>;ts:<ts>;
+// usando a chave secreta do painel, e manda o resultado no cabecalho x-signature
+// no formato "ts=...,v1=...".
+//
+// O QUE AINDA NAO SABEMOS: as notificacoes que chegam pelo notification_url
+// gravado em cada assinatura (que e como o North recebe hoje) vem assinadas, ou
+// so as que passam pelo webhook do painel? A documentacao nao e clara, e chutar
+// aqui significaria ou deixar o furo aberto ou derrubar cobranca legitima.
+//
+// Entao esta versao OBSERVA antes de barrar:
+//   - assinatura presente e valida   -> processa
+//   - assinatura presente e invalida -> REJEITA (isso e ataque ou erro de chave)
+//   - assinatura ausente             -> processa, mas registra no log
+// Depois de alguns dias o log responde a pergunta, e a decisao de barrar as nao
+// assinadas vem de dado observado.
+
+function parseSignature(header: string): { ts: string; v1: string } | null {
+  const out: Record<string, string> = {};
+  for (const parte of header.split(",")) {
+    const i = parte.indexOf("=");
+    if (i < 0) continue;
+    out[parte.slice(0, i).trim()] = parte.slice(i + 1).trim();
+  }
+  return out.ts && out.v1 ? { ts: out.ts, v1: out.v1 } : null;
+}
+
+async function hmacHex(chave: string, msg: string): Promise<string> {
+  const enc = new TextEncoder();
+  const k = await crypto.subtle.importKey("raw", enc.encode(chave), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", k, enc.encode(msg));
+  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Comparacao em tempo constante: comparar hash com === vaza informacao pelo tempo.
+function igual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
 
 function mapStatus(mp: string): string {
   switch (mp) {
@@ -104,6 +142,29 @@ Deno.serve(async (req) => {
       id = id || body?.data?.id || body?.id || "";
     }
     if (!id) return new Response("ok");
+
+    // ── assinatura ──
+    const cabecalho = req.headers.get("x-signature") ?? "";
+    const requestId = req.headers.get("x-request-id") ?? "";
+    if (!WEBHOOK_SECRET) {
+      console.warn("MP_WEBHOOK: MP_WEBHOOK_SECRET nao definido — nenhuma notificacao e verificada.");
+    } else if (!cabecalho) {
+      // Este e o caso que precisamos observar: notificacao legitima sem assinatura.
+      console.warn("MP_WEBHOOK_SEM_ASSINATURA topic=" + topic + " request_id=" + (requestId || "(ausente)"));
+    } else {
+      const partes = parseSignature(cabecalho);
+      if (!partes) {
+        console.error("MP_WEBHOOK_ASSINATURA_ILEGIVEL topic=" + topic);
+        return new Response(JSON.stringify({ error: "invalid_signature" }), { status: 401, headers: { "Content-Type": "application/json" } });
+      }
+      const manifesto = `id:${String(id).toLowerCase()};request-id:${requestId};ts:${partes.ts};`;
+      const esperado = await hmacHex(WEBHOOK_SECRET, manifesto);
+      if (!igual(esperado, partes.v1.toLowerCase())) {
+        console.error("MP_WEBHOOK_ASSINATURA_INVALIDA topic=" + topic + " request_id=" + requestId);
+        return new Response(JSON.stringify({ error: "invalid_signature" }), { status: 401, headers: { "Content-Type": "application/json" } });
+      }
+      console.log("MP_WEBHOOK_ASSINATURA_OK topic=" + topic);
+    }
 
     const admin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
