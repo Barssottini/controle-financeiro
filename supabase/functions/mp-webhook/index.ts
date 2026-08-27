@@ -1,43 +1,41 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-// O token vem SO do ambiente. Ate 21/08/2026 havia um token de teste do Mercado
-// Pago escrito aqui como ultimo recurso — credencial no fonte, num repositorio
-// que e publico. Removido.
 const MP_TOKEN_CORRETO = Deno.env.get("MP_ACCESS_TOKEN");
 const MP_TOKEN_TYPO = Deno.env.get("MP_ACESS_TOKEN");
 const MP_TOKEN = MP_TOKEN_CORRETO ?? MP_TOKEN_TYPO ?? "";
-
-if (!MP_TOKEN) {
-  console.error("MP_WEBHOOK: nenhum token definido (nem MP_ACCESS_TOKEN nem MP_ACESS_TOKEN).");
-} else if (!MP_TOKEN_CORRETO) {
-  console.warn("MP_WEBHOOK: em uso o nome com erro de digitacao MP_ACESS_TOKEN. Renomeie e remova o fallback.");
-}
+if (!MP_TOKEN) console.error("MP_WEBHOOK: nenhum token definido.");
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const WEBHOOK_SECRET = Deno.env.get("MP_WEBHOOK_SECRET") ?? "";
 
-// ── VERIFICACAO DE ASSINATURA, EM DUAS ETAPAS DE PROPOSITO ──
+// ── VERIFICACAO DE ASSINATURA — FASE DE OBSERVACAO ──
 //
-// Ate 27/08/2026 este endpoint aceitava qualquer chamada: e publico por
-// necessidade (o Mercado Pago precisa alcanca-lo) e nao conferia nada. Qualquer
-// um podia forcar ressincronizacoes e disparar e-mails de boas-vindas.
+// Esta funcao NAO REJEITA NADA por enquanto, e isso e deliberado.
 //
-// O MP assina cada notificacao com HMAC-SHA256 sobre o manifesto
-//   id:<data.id>;request-id:<x-request-id>;ts:<ts>;
-// usando a chave secreta do painel, e manda o resultado no cabecalho x-signature
-// no formato "ts=...,v1=...".
+// O MP assina as notificacoes com HMAC-SHA256 e manda no cabecalho x-signature,
+// no formato "ts=...,v1=...". Mas a documentacao publica NAO traz o template do
+// manifesto assinado. O formato usado aqui
+//     id:<data.id>;request-id:<x-request-id>;ts:<ts>;
+// e o mais citado, e nao esta confirmado em fonte oficial.
 //
-// O QUE AINDA NAO SABEMOS: as notificacoes que chegam pelo notification_url
-// gravado em cada assinatura (que e como o North recebe hoje) vem assinadas, ou
-// so as que passam pelo webhook do painel? A documentacao nao e clara, e chutar
-// aqui significaria ou deixar o furo aberto ou derrubar cobranca legitima.
+// Isso importa muito: se o template estiver errado, o HMAC nunca bate. Uma
+// versao que rejeitasse por divergencia recusaria RENOVACOES LEGITIMAS, e o
+// efeito seria alguem pagando sem acesso — o oposto do que a protecao serve.
+// Divergencia aqui e evidencia ambigua: pode ser ataque, pode ser eu ter errado
+// o manifesto. Rejeitar com base em ambiguidade e pior que nao rejeitar.
 //
-// Entao esta versao OBSERVA antes de barrar:
-//   - assinatura presente e valida   -> processa
-//   - assinatura presente e invalida -> REJEITA (isso e ataque ou erro de chave)
-//   - assinatura ausente             -> processa, mas registra no log
-// Depois de alguns dias o log responde a pergunta, e a decisao de barrar as nao
-// assinadas vem de dado observado.
+// (A v17 rejeitava. Foi corrigida no mesmo dia, antes de ver trafego real.)
+//
+// Entao a fase 1 so mede. O log dira:
+//   ASSINATURA_OK          -> o template esta certo. So depois de ver isto e que
+//                             faz sentido passar a rejeitar.
+//   ASSINATURA_DIVERGENTE  -> ou template errado, ou chamada forjada. Enquanto
+//                             nao houver um OK, a leitura mais provavel e a
+//                             primeira, e por isso a notificacao segue processada.
+//   SEM_ASSINATURA         -> o notification_url nao e assinado; a protecao
+//                             precisa ser outra (token secreto na propria URL).
+//
+// A fase 2 — barrar de verdade — entra quando o log responder, e nao antes.
 
 function parseSignature(header: string): { ts: string; v1: string } | null {
   const out: Record<string, string> = {};
@@ -56,12 +54,25 @@ async function hmacHex(chave: string, msg: string): Promise<string> {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// Comparacao em tempo constante: comparar hash com === vaza informacao pelo tempo.
 function igual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let d = 0;
   for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return d === 0;
+}
+
+// Testa alguns templates plausiveis de uma vez. Se algum bater, o log diz QUAL —
+// e ai paramos de adivinhar: e so fixar esse e passar a rejeitar o resto.
+async function conferir(id: string, requestId: string, ts: string, v1: string) {
+  const candidatos: Record<string, string> = {
+    "padrao": `id:${id.toLowerCase()};request-id:${requestId};ts:${ts};`,
+    "id-original": `id:${id};request-id:${requestId};ts:${ts};`,
+    "sem-request-id": `id:${id.toLowerCase()};ts:${ts};`,
+  };
+  for (const [nome, manifesto] of Object.entries(candidatos)) {
+    if (igual(await hmacHex(WEBHOOK_SECRET, manifesto), v1.toLowerCase())) return nome;
+  }
+  return null;
 }
 
 function mapStatus(mp: string): string {
@@ -143,27 +154,22 @@ Deno.serve(async (req) => {
     }
     if (!id) return new Response("ok");
 
-    // ── assinatura ──
+    // ── fase de observacao: mede e registra, nunca barra ──
     const cabecalho = req.headers.get("x-signature") ?? "";
     const requestId = req.headers.get("x-request-id") ?? "";
     if (!WEBHOOK_SECRET) {
-      console.warn("MP_WEBHOOK: MP_WEBHOOK_SECRET nao definido — nenhuma notificacao e verificada.");
+      console.warn("MP_WEBHOOK_SEM_SEGREDO topic=" + topic);
     } else if (!cabecalho) {
-      // Este e o caso que precisamos observar: notificacao legitima sem assinatura.
       console.warn("MP_WEBHOOK_SEM_ASSINATURA topic=" + topic + " request_id=" + (requestId || "(ausente)"));
     } else {
       const partes = parseSignature(cabecalho);
       if (!partes) {
-        console.error("MP_WEBHOOK_ASSINATURA_ILEGIVEL topic=" + topic);
-        return new Response(JSON.stringify({ error: "invalid_signature" }), { status: 401, headers: { "Content-Type": "application/json" } });
+        console.warn("MP_WEBHOOK_ASSINATURA_ILEGIVEL topic=" + topic + " header=" + cabecalho.slice(0, 60));
+      } else {
+        const qual = await conferir(id, requestId, partes.ts, partes.v1);
+        if (qual) console.log("MP_WEBHOOK_ASSINATURA_OK template=" + qual + " topic=" + topic);
+        else console.warn("MP_WEBHOOK_ASSINATURA_DIVERGENTE topic=" + topic + " request_id=" + requestId + " — nenhum template bateu; a notificacao SEGUIU processada de proposito");
       }
-      const manifesto = `id:${String(id).toLowerCase()};request-id:${requestId};ts:${partes.ts};`;
-      const esperado = await hmacHex(WEBHOOK_SECRET, manifesto);
-      if (!igual(esperado, partes.v1.toLowerCase())) {
-        console.error("MP_WEBHOOK_ASSINATURA_INVALIDA topic=" + topic + " request_id=" + requestId);
-        return new Response(JSON.stringify({ error: "invalid_signature" }), { status: 401, headers: { "Content-Type": "application/json" } });
-      }
-      console.log("MP_WEBHOOK_ASSINATURA_OK topic=" + topic);
     }
 
     const admin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
