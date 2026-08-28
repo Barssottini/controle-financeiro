@@ -217,7 +217,17 @@ function createWindow() {
   win.maximize();
   win.show();
 
-  win.webContents.on('did-fail-load', (e, code, desc, url) => {
+  // did-fail-load dispara para QUALQUER frame, não só o principal. O checkout do
+  // Mercado Pago é feito de iframes (Secure Fields — o número do cartão vive num
+  // iframe da MP e nunca toca o nosso domínio), então um iframe falhando trocava
+  // a janela inteira pela tela de offline. No meio do pagamento, com o formulário
+  // já preenchido. Foi exatamente o que aconteceu no teste de 28/08/2026.
+  //
+  // O código do erro também importa: -3 é ERR_ABORTED, que acontece em navegação
+  // normal (redirect cancelado, iframe substituído) e não é queda de conexão.
+  win.webContents.on('did-fail-load', (e, code, desc, url, isMainFrame) => {
+    if (!isMainFrame) return;
+    if (code === -3) return;
     if (url && url.startsWith('http')) win.loadURL(OFFLINE_HTML);
   });
 
