@@ -17,7 +17,9 @@
 // (UPDATE_PUBKEYS) antes de executar qualquer instalador.
 const crypto = require('crypto'), fs = require('fs'), path = require('path'), os = require('os');
 
-const DEFAULT_KEY = path.join(os.homedir(), '.north-keys', 'nf-update-private.pem');
+// Chave 2 desde a 1.5.2: a chave 1 saiu do UPDATE_PUBKEYS e assinar com ela agora produziria
+// um release que TODO app instalado recusaria — falha silenciosa no canal de atualização.
+const DEFAULT_KEY = path.join(os.homedir(), '.north-keys', 'nf-update-private-2.pem');
 const PRIV = process.env.NF_UPDATE_KEY || DEFAULT_KEY;
 if (!fs.existsSync(PRIV)) {
   console.error('ERRO: chave privada não encontrada em "' + PRIV + '".');

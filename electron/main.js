@@ -17,17 +17,18 @@ function ehNosso(u) {
 }
 const REPO = 'Barssottini/controle-financeiro';
 
-// Chaves PÚBLICAS (Ed25519) aceitas para verificar o update. Lista p/ permitir ROTAÇÃO: ao trocar,
-// adicione a nova mantendo a antiga por um tempo (a antiga assina um release que embute a nova).
-// A privada correspondente fica OFFLINE com o Pedro e assina cada release (sign-release.js).
+// Chaves PÚBLICAS (Ed25519) aceitas para verificar o update. A privada correspondente fica
+// OFFLINE em %USERPROFILE%.north-keys e assina cada release (sign-release.js).
+//
+// ROTAÇÃO CONCLUÍDA na 1.5.2 (28/08/2026). A chave 1 esteve num diretório sincronizado com o
+// OneDrive e foi descartada. A sequência foi: a 1.5.1, assinada com a chave 1, já trouxe as
+// DUAS chaves — é por isso que os apps instalados aceitam uma atualização assinada só com a
+// chave 2, que é o que esta versão faz. Quem estiver numa versão ANTERIOR à 1.5.1 não conhece
+// esta chave e precisa baixar o instalador à mão.
+//
+// Para rotacionar de novo: acrescente a nova aqui mantendo a atual, publique uma versão
+// assinada com a ATUAL, e só na versão seguinte assine com a nova e remova a antiga.
 const UPDATE_PUBKEYS = [
-`-----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEAbiFyUnJs1frO4PtYMc+aAcJGdEkhfoxQO9MuUZE0+SU=
------END PUBLIC KEY-----`,
-// Chave 2 (rotacao, 21/08/2026). A chave 1 esteve num diretorio sincronizado com o OneDrive
-// e passa a ser considerada exposta. Sequencia: publicar uma versao assinada com a chave 1
-// contendo ESTA lista (para os clientes instalados aceitarem a chave 2), e so na versao
-// seguinte assinar com a chave 2 e remover a chave 1 daqui.
 `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAQ+LcTreHNoDpk9P08GQ7U1GjHEkWEWmEVzB90Gne+5k=
 -----END PUBLIC KEY-----`
