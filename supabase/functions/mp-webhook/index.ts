@@ -75,12 +75,17 @@ async function conferir(id: string, requestId: string, ts: string, v1: string) {
   return null;
 }
 
-function mapStatus(mp: string): string {
+function mapStatus(mp: string): string | null {
   switch (mp) {
     case "authorized": return "active";
     case "paused": return "past_due";
     case "cancelled": return "canceled";
-    default: return "trialing";
+    // "pending" — e qualquer status que o MP venha a criar — caia aqui. Antes
+    // viravam "trialing", que LIBERA acesso: um preapproval nao pago concedia uso
+    // do app, e ainda sobrescrevia um "canceled" ou "active" que estava correto.
+    // Foi assim que uma conta cancelada voltou sozinha para "trialing" em
+    // 28/08/2026. O que nao entendemos nao muda o acesso de ninguem.
+    default: return null;
   }
 }
 
@@ -121,6 +126,10 @@ async function syncPreapproval(preapprovalId: string, admin: any) {
   const userId = pa?.external_reference;
   if (!userId) return;
   const newStatus = mapStatus(pa.status);
+  if (!newStatus) {
+    console.log("MP_WEBHOOK_STATUS_IGNORADO status=" + pa.status + " user=" + userId);
+    return;
+  }
 
   const { data: prevRow } = await admin.from("subscriptions").select("status").eq("user_id", userId).maybeSingle();
   const wasActive = prevRow?.status === "active";

@@ -100,6 +100,25 @@ Deno.serve(async (req) => {
       body.status = "pending";
     }
 
+    // Antes de criar um preapproval novo, encerra o que ja existir. Sem isto cada
+    // clique em "Reativar" cria mais uma assinatura no Mercado Pago e o campo
+    // mp_preapproval_id passa a apontar para a ultima — as anteriores viram orfas
+    // e o app perde qualquer forma de cancela-las, porque so conhece o id novo.
+    // Aconteceu no teste de 28/08/2026: cancelar e reativar deixou duas.
+    const adminPrev = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: rowPrev } = await adminPrev.from("subscriptions")
+      .select("mp_preapproval_id").eq("user_id", user.id).maybeSingle();
+    if (rowPrev?.mp_preapproval_id && MP_TOKEN) {
+      try {
+        const rc = await fetch(`https://api.mercadopago.com/preapproval/${rowPrev.mp_preapproval_id}`, {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${MP_TOKEN}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "cancelled" }),
+        });
+        if (!rc.ok) console.warn("PREAPPROVAL_ANTERIOR_NAO_CANCELADO", rc.status, "user=", user.id);
+      } catch (e) { console.error("PREAPPROVAL_ANTERIOR_ERRO", String(e)); }
+    }
+
     const mpResp = await fetch("https://api.mercadopago.com/preapproval", {
       method: "POST",
       headers: { Authorization: `Bearer ${MP_TOKEN}`, "Content-Type": "application/json" },

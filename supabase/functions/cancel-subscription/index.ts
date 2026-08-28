@@ -56,9 +56,21 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ status: "cancelled" }),
         });
         const pa = await r.json().catch(() => null);
+        // Conferir a resposta e o que separa "cancelado" de "achamos que cancelou".
+        // Antes desta guarda, um 400 ou 401 do Mercado Pago virava "Assinatura
+        // cancelada" na tela enquanto a cobranca seguia todo mes — e sem caminho de
+        // volta, porque o app ja se considerava cancelado e nem oferecia o botao.
+        // Falhar em voz alta e melhor: a pessoa tenta de novo e o dinheiro para.
+        const jaEstavaCancelado = r.status === 404 || (pa && pa.status === "cancelled");
+        if (!r.ok && !jaEstavaCancelado) {
+          console.error("CANCEL_SUB_MP_RECUSOU", r.status, "user=", user.id, "resp=", JSON.stringify(pa));
+          return json({ error: "mp_cancel_failed", detail: pa }, 502);
+        }
         if (pa && typeof pa.next_payment_date === "string") mpNextPayment = pa.next_payment_date;
       } catch (e) {
+        // Nao alcancar o Mercado Pago tambem nao autoriza gravar "cancelado".
         console.error("CANCEL_SUB: falha ao cancelar no Mercado Pago", String(e));
+        return json({ error: "mp_unreachable" }, 502);
       }
     }
 
