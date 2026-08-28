@@ -8,34 +8,33 @@ if (!MP_TOKEN) console.error("MP_WEBHOOK: nenhum token definido.");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const WEBHOOK_SECRET = Deno.env.get("MP_WEBHOOK_SECRET") ?? "";
 
-// ── VERIFICACAO DE ASSINATURA — FASE DE OBSERVACAO ──
+// ── VERIFICACAO DE ASSINATURA — ATIVA desde 28/08/2026 ──
 //
-// Esta funcao NAO REJEITA NADA por enquanto, e isso e deliberado.
+// O MP assina as notificacoes com HMAC-SHA256 no cabecalho x-signature, no
+// formato "ts=...,v1=...". A documentacao publica nao traz o template do
+// manifesto assinado, entao ele foi determinado por observacao: a funcao passou
+// por uma fase que so media, testando candidatos e registrando qual batia.
 //
-// O MP assina as notificacoes com HMAC-SHA256 e manda no cabecalho x-signature,
-// no formato "ts=...,v1=...". Mas a documentacao publica NAO traz o template do
-// manifesto assinado. O formato usado aqui
-//     id:<data.id>;request-id:<x-request-id>;ts:<ts>;
-// e o mais citado, e nao esta confirmado em fonte oficial.
+// Resultado, contra notificacoes reais de 28/08/2026:
+//     id:<data.id em minusculas>;request-id:<x-request-id>;ts:<ts>;
+// Confirmado nos DOIS canais que chegam aqui — o webhook configurado no painel
+// e o notification_url que create-subscription manda em cada preapproval. Os
+// dois assinam igual, o que nao era obvio.
 //
-// Isso importa muito: se o template estiver errado, o HMAC nunca bate. Uma
-// versao que rejeitasse por divergencia recusaria RENOVACOES LEGITIMAS, e o
-// efeito seria alguem pagando sem acesso — o oposto do que a protecao serve.
-// Divergencia aqui e evidencia ambigua: pode ser ataque, pode ser eu ter errado
-// o manifesto. Rejeitar com base em ambiguidade e pior que nao rejeitar.
+// O que fazia o HMAC nunca bater ate entao nao era o template: era o segredo.
+// O painel tem chaves separadas para teste e producao, e a de teste estava
+// gravada em MP_WEBHOOK_SECRET enquanto o MP_ACCESS_TOKEN era de producao.
 //
-// (A v17 rejeitava. Foi corrigida no mesmo dia, antes de ver trafego real.)
+// Agora divergencia e motivo para RECUSAR. Duas notas sobre o desenho:
 //
-// Entao a fase 1 so mede. O log dira:
-//   ASSINATURA_OK          -> o template esta certo. So depois de ver isto e que
-//                             faz sentido passar a rejeitar.
-//   ASSINATURA_DIVERGENTE  -> ou template errado, ou chamada forjada. Enquanto
-//                             nao houver um OK, a leitura mais provavel e a
-//                             primeira, e por isso a notificacao segue processada.
-//   SEM_ASSINATURA         -> o notification_url nao e assinado; a protecao
-//                             precisa ser outra (token secreto na propria URL).
-//
-// A fase 2 — barrar de verdade — entra quando o log responder, e nao antes.
+// - Segredo ausente NAO barra. Isso e erro de configuracao, nao trafego
+//   suspeito, e barrar transformaria um deslize de deploy em renovacoes
+//   perdidas em silencio — alguem pagando e perdendo acesso. Registra alto e
+//   segue.
+// - O corpo da notificacao nunca foi fonte de verdade: o status vem de uma
+//   consulta NOSSA a API do MP (syncPreapproval). Por isso mesmo uma chamada
+//   forjada nao conseguiria inventar um "active". A assinatura fecha a porta
+//   antes disso, mas nao era a unica tranca.
 
 function parseSignature(header: string): { ts: string; v1: string } | null {
   const out: Record<string, string> = {};
@@ -61,18 +60,10 @@ function igual(a: string, b: string): boolean {
   return d === 0;
 }
 
-// Testa alguns templates plausiveis de uma vez. Se algum bater, o log diz QUAL —
-// e ai paramos de adivinhar: e so fixar esse e passar a rejeitar o resto.
-async function conferir(id: string, requestId: string, ts: string, v1: string) {
-  const candidatos: Record<string, string> = {
-    "padrao": `id:${id.toLowerCase()};request-id:${requestId};ts:${ts};`,
-    "id-original": `id:${id};request-id:${requestId};ts:${ts};`,
-    "sem-request-id": `id:${id.toLowerCase()};ts:${ts};`,
-  };
-  for (const [nome, manifesto] of Object.entries(candidatos)) {
-    if (igual(await hmacHex(WEBHOOK_SECRET, manifesto), v1.toLowerCase())) return nome;
-  }
-  return null;
+// O template confirmado. A comparacao e em tempo constante (ver igual).
+async function confere(id: string, requestId: string, ts: string, v1: string): Promise<boolean> {
+  const manifesto = `id:${id.toLowerCase()};request-id:${requestId};ts:${ts};`;
+  return igual(await hmacHex(WEBHOOK_SECRET, manifesto), v1.toLowerCase());
 }
 
 function mapStatus(mp: string): string | null {
@@ -163,21 +154,17 @@ Deno.serve(async (req) => {
     }
     if (!id) return new Response("ok");
 
-    // ── fase de observacao: mede e registra, nunca barra ──
     const cabecalho = req.headers.get("x-signature") ?? "";
     const requestId = req.headers.get("x-request-id") ?? "";
     if (!WEBHOOK_SECRET) {
-      console.warn("MP_WEBHOOK_SEM_SEGREDO topic=" + topic);
-    } else if (!cabecalho) {
-      console.warn("MP_WEBHOOK_SEM_ASSINATURA topic=" + topic + " request_id=" + (requestId || "(ausente)"));
+      console.error("MP_WEBHOOK_SEM_SEGREDO — defina MP_WEBHOOK_SECRET (chave de PRODUCAO do painel). topic=" + topic);
     } else {
       const partes = parseSignature(cabecalho);
-      if (!partes) {
-        console.warn("MP_WEBHOOK_ASSINATURA_ILEGIVEL topic=" + topic + " header=" + cabecalho.slice(0, 60));
-      } else {
-        const qual = await conferir(id, requestId, partes.ts, partes.v1);
-        if (qual) console.log("MP_WEBHOOK_ASSINATURA_OK template=" + qual + " topic=" + topic);
-        else console.warn("MP_WEBHOOK_ASSINATURA_DIVERGENTE topic=" + topic + " request_id=" + requestId + " — nenhum template bateu; a notificacao SEGUIU processada de proposito");
+      const ok = partes ? await confere(id, requestId, partes.ts, partes.v1) : false;
+      if (!ok) {
+        console.warn("MP_WEBHOOK_RECUSADO topic=" + topic + " request_id=" + (requestId || "(ausente)") +
+          (cabecalho ? (partes ? " — assinatura nao confere" : " — cabecalho ilegivel") : " — sem x-signature"));
+        return new Response("invalid signature", { status: 401 });
       }
     }
 
