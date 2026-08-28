@@ -1575,6 +1575,31 @@ function showPaywall(acc){
   document.getElementById('paywall-screen').style.display='flex';
 }
 
+// Se a assinatura for paga FORA desta janela — no navegador do sistema (é para
+// onde o app de desktop manda o checkout hospedado), no celular, em outra aba —
+// esta tela não fica sabendo: a assinatura só era lida uma vez, na carga. O
+// efeito era a pessoa pagar e continuar diante do paywall, achando que o
+// pagamento não passou. O contrário também valia: assinatura encerrada em outro
+// lugar seguia com acesso liberado aqui até alguém recarregar a página.
+// Ao voltar o foco, reconfere — e só recarrega se a DECISÃO de acesso mudou.
+let _nfUltimaRevalida=0;
+async function revalidarAssinatura(){
+  if(document.visibilityState!=='visible')return;
+  if(Date.now()-_nfUltimaRevalida<10000)return;   // foco vai e volta o tempo todo
+  _nfUltimaRevalida=Date.now();
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session)return;
+    const sub=await getSubscription(session.user.id);
+    if(!sub)return;   // falha de rede devolve null: não é motivo para mexer na tela
+    const antes=subAccess(_nfSub).ok,agora=subAccess(sub).ok;
+    _nfSub=sub;
+    if(agora!==antes)location.reload();
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',revalidarAssinatura);
+window.addEventListener('focus',revalidarAssinatura);
+
 // Conversão "iniciou o teste grátis" — uma vez por conta, nunca de novo.
 // Só sai se houver sinal de consentimento vindo do site; sem ele a função marca
 // como dispensado e nunca mais tenta. Falha de medição jamais atrapalha o uso.

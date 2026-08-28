@@ -6,6 +6,15 @@ const crypto = require('crypto');
 const { spawn } = require('child_process');
 
 const SITE = 'https://app.northfinances.com.br/';
+// O que continua dentro da janela do app. Qualquer outra coisa abre no navegador.
+// O Supabase entra porque a autenticação e as funções respondem no domínio dele.
+const HOSTS_NOSSOS = ['app.northfinances.com.br', 'northfinances.com.br', 'www.northfinances.com.br'];
+function ehNosso(u) {
+  try {
+    const h = new URL(u).hostname;
+    return HOSTS_NOSSOS.includes(h) || h.endsWith('.supabase.co');
+  } catch (e) { return false; }
+}
 const REPO = 'Barssottini/controle-financeiro';
 
 // Chaves PÚBLICAS (Ed25519) aceitas para verificar o update. Lista p/ permitir ROTAÇÃO: ao trocar,
@@ -231,12 +240,23 @@ function createWindow() {
     if (url && url.startsWith('http')) win.loadURL(OFFLINE_HTML);
   });
 
-  // Ações da tela de atualização
+  // Ações da tela de atualização + saída para fora do nosso domínio
   win.webContents.on('will-navigate', (e, url) => {
     if (url.startsWith('bfapp://')) {
       e.preventDefault();
       if (url === 'bfapp://skip') loadSite(win);
       if (url === 'bfapp://update') downloadAndInstall(win, currentUpdateInfo);
+      return;
+    }
+    // Navegar para um site de terceiro DENTRO desta janela é ruim de duas formas:
+    // a pessoa digita dados sensíveis sem barra de endereço para conferir onde
+    // está — a forma exata de um phishing — e, no caso do checkout hospedado do
+    // Mercado Pago, não existe caminho de volta para o app depois de pagar.
+    // Então tudo que sai do nosso domínio vai para o navegador do sistema, onde
+    // há URL, cadeado e o preenchimento de cartão que a pessoa já usa.
+    if (/^https?:/i.test(url) && !ehNosso(url)) {
+      e.preventDefault();
+      shell.openExternal(url);
     }
   });
 
