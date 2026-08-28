@@ -1430,8 +1430,30 @@ function applyCloud(d){
   migrateData();
   persistAllLocal();
 }
+// ── DONO DO CACHE LOCAL ──
+// As chaves bf_* nao carregam o id do usuario, e o logout nao as apagava. Numa
+// maquina onde outra conta ja tinha entrado, o loadCloud encontrava a nuvem
+// vazia, lia o cache do usuario ANTERIOR e o subia para a conta nova — que
+// entao herdava as financas de outra pessoa, de forma permanente e cifrada com
+// a propria chave. Num computador de familia, isso e o pior bug possivel para
+// um produto que promete que nem nos lemos os dados.
+//
+// A guarda abaixo grava de quem e o cache e o apaga quando quem entra e outro.
+// Ela vale mesmo sem logout — navegador fechado, sessao derrubada, conta apagada.
+const NF_DONO='bf_owner';
+const NF_CHAVES=['bf_tx','bf_cc','bf_inv','bf_goals','bf_settings','bf_budgets','bf_bills','bf_recurring'];
+function nfLimparCacheLocal(){
+  NF_CHAVES.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});
+  S.transactions=[];S.ccItems=[];S.investments=[];S.goals=[];S.budgets=[];S.bills=[];S.recurring=[];
+}
+function nfGarantirDono(uid){
+  let dono=null;try{dono=localStorage.getItem(NF_DONO);}catch(e){}
+  if(dono&&dono!==uid)nfLimparCacheLocal();
+  try{localStorage.setItem(NF_DONO,uid);}catch(e){}
+}
 async function loadCloud(uid){
   try{
+    nfGarantirDono(uid);   // antes de qualquer leitura local
     const {data,error}=await sb.from('user_data').select('enc_data').eq('user_id',uid).maybeSingle();
     if(error)throw error;
     let cloud=null;
@@ -2229,6 +2251,9 @@ async function doLogout(){
     if(user)await sb.from('active_sessions').delete().eq('user_id',user.id);
   }catch(e){}
   nfClearMK();
+  // Sair da conta nao deve deixar financas no aparelho. A nuvem e a copia que
+  // importa, e ela e restaurada no proximo login.
+  try{nfLimparCacheLocal();localStorage.removeItem('bf_owner');}catch(e){}
   try{await sb.auth.signOut();}catch(e){}
   location.reload();
 }
