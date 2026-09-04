@@ -3,7 +3,10 @@
 // v3: o DOCUMENTO (app) NUNCA é servido de uma versão antiga em cache — crítico para a
 // criptografia client-side (código velho gravaria dados em texto puro). Só assets estáticos
 // (logos, manifest) usam cache de reserva offline.
-const CACHE = 'bf-v12';
+// v13: os scripts e a fonte passaram a ser servidos do proprio dominio. Trocar o
+// nome do cache descarta as entradas antigas, que apontavam para o jsDelivr e para
+// o Google e nunca mais serao pedidas.
+const CACHE = 'bf-v13';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./index.html', './manifest.json', './logo-192.png', './logo-512.png'])));

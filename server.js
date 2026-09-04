@@ -20,7 +20,12 @@ const MIME = {
   '.png': 'image/png',
   '.ico': 'image/x-icon',
   '.svg': 'image/svg+xml',
-  '.css': 'text/css; charset=utf-8'
+  '.css': 'text/css; charset=utf-8',
+  // A fonte passou a ser servida daqui (vendor/fonts). Sem esta entrada o preview
+  // local entrega application/octet-stream e deixa de refletir a producao, onde o
+  // GitHub Pages manda font/woff2.
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff'
 };
 
 // ROOT com separador no fim. Sem ele, startsWith(ROOT) aceita um diretório IRMÃO
