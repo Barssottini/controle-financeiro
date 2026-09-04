@@ -18,8 +18,29 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="North Finances">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- Versao EXATA + integrity + crossorigin. Os tres andam juntos: sem crossorigin
+     o navegador nao consegue verificar o hash e bloqueia o script.
+
+     O supabase-js estava como "@2" — nao uma versao, e sim "a 2.x mais nova que
+     existir no instante em que alguem abrir o app". Sem integrity, o navegador
+     executava o que viesse. Isso importa mais aqui do que num app comum: este
+     script roda na MESMA pagina que deriva a chave e cifra os dados, e carrega
+     antes disso. Quem controla esse arquivo le a senha e o texto em claro.
+     Na pratica a promessa "nem nos lemos seus dados" dependia tambem do CDN e de
+     toda futura publicacao 2.x, sem ninguem decidir nada.
+
+     Com o hash, conteudo diferente do esperado nao executa — o navegador recusa.
+     O custo e que atualizar versao passa a exigir recalcular o hash de proposito,
+     que e exatamente a intencao.
+
+     Recalcular:
+       curl -sL <url> | openssl dgst -sha384 -binary | openssl base64 -A -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+        integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.min.js"
+        integrity="sha384-EyR2P0dlmjnEGcm9xcjdAn0VedZpRHEwDLP9oSS6wYMvzHBHkUrvgonveazJ/sSx"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
