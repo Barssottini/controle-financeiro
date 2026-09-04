@@ -1,5 +1,11 @@
-// Servidor estático mínimo — usado pelo Railway (npm start).
-// O app desktop usa `npm run electron`; este arquivo só serve o site.
+// Servidor estático mínimo para PRÉ-VISUALIZAÇÃO LOCAL (npm start).
+//
+// Não serve a produção: app.northfinances.com.br é entregue pelo GitHub Pages
+// (ver o arquivo CNAME). O comentário anterior dizia "usado pelo Railway", o que
+// deixou de ser verdade e não havia sequer configuração do Railway no repositório
+// — comentário obsoleto sobre o que roda em produção é pior que nenhum.
+//
+// O app desktop usa `npm run electron`.
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -17,11 +23,27 @@ const MIME = {
   '.css': 'text/css; charset=utf-8'
 };
 
+// ROOT com separador no fim. Sem ele, startsWith(ROOT) aceita um diretório IRMÃO
+// cujo nome comece igual: com ROOT = .../controle-financeiro, o caminho
+// /../controle-financeiro-privado/x normaliza para fora da pasta e mesmo assim
+// passa no teste. É estreito, mas é escapar da raiz — que é justamente o que a
+// verificação existe para impedir.
+const ROOT_SEP = ROOT.endsWith(path.sep) ? ROOT : ROOT + path.sep;
+
 http.createServer((req, res) => {
-  let urlPath = decodeURIComponent(req.url.split('?')[0]);
+  let urlPath;
+  try {
+    urlPath = decodeURIComponent(req.url.split('?')[0]);
+  } catch (e) {
+    // decodeURIComponent lança em sequência inválida — um único "%" na URL basta.
+    // Sem este try, a exceção sobe do callback e DERRUBA O PROCESSO: qualquer um
+    // que alcance a porta mata o servidor com uma requisição. O scanner não
+    // apontou isto; é mais grave que a travessia de caminho que ele apontou.
+    res.writeHead(400); res.end('400'); return;
+  }
   if (urlPath === '/') urlPath = '/index.html';
   const file = path.normalize(path.join(ROOT, urlPath));
-  if (!file.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }
+  if (!file.startsWith(ROOT_SEP)) { res.writeHead(403); res.end(); return; }
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); res.end('404'); return; }
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream' });
