@@ -23,3 +23,14 @@
 
 # Scripts do Windows: CRLF por convenção da plataforma
 *.ps1 text eol=crlf
+
+# vendor/ — bytes EXATOS, sem exceção.
+#
+# O index.html declara o sha384 destes arquivos e o navegador RECUSA o script se
+# um único byte mudar. Aqui a normalização de fim de linha não produziria só um
+# diff sujo: produziria um app que não abre, para todo mundo, de uma vez.
+#
+# No commit de 04/09/2026 o git avisou "LF will be replaced by CRLF" para estes
+# dois arquivos. Não houve estrago — minificado não tinha o que normalizar — mas
+# a garantia era o conteúdo, não a regra. Agora é a regra.
+vendor/*.js binary
