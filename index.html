@@ -796,6 +796,25 @@ body.values-hidden #dash-chart{filter:blur(6px)}
       </div>
 
       <div class="panel">
+        <div class="panel-head"><span class="panel-title">Seus dados</span></div>
+        <p style="font-size:12.5px;color:var(--ink2);line-height:1.6;margin-bottom:14px">Os arquivos são gerados <strong>no seu aparelho</strong>, a partir dos dados já abertos aqui. Nada passa pelo nosso servidor — ele só guarda texto cifrado e não teria como montar isso.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <select class="field" id="exp-periodo" style="width:auto;padding:8px 12px;font-size:13px">
+            <option value="mes">Este mês</option>
+            <option value="3m">Últimos 3 meses</option>
+            <option value="ano">Este ano</option>
+            <option value="tudo" selected>Todo o histórico</option>
+          </select>
+          <button class="btn btn-secondary" onclick="exportarCSV()">Baixar lançamentos (CSV)</button>
+        </div>
+        <p style="font-size:12px;color:var(--ink3);margin-top:10px">Planilha de transações e gastos do cartão, pronta para abrir no Excel e entregar ao contador. Respeita o bolso que você está visualizando.</p>
+        <div style="border-top:1px solid var(--paper2);margin-top:16px;padding-top:16px">
+          <button class="btn btn-secondary" onclick="exportarTudo()">Baixar tudo em JSON</button>
+          <p style="font-size:12px;color:var(--ink3);margin-top:10px">Uma cópia completa da sua conta — transações, cartão, investimentos, metas, orçamento e contas — para você guardar ou levar para outro serviço. É o seu direito de portabilidade da LGPD.</p>
+        </div>
+      </div>
+
+      <div class="panel">
         <div class="panel-head"><span class="panel-title">Verificação em duas etapas (2FA)</span></div>
         <p style="font-size:13px;color:var(--ink3);margin-bottom:12px">Camada extra de proteção: além da senha, o login pede um código de 6 dígitos gerado no seu celular (Google Authenticator, Authy ou similar). Mesmo que descubram sua senha, ninguém entra sem o seu celular.</p>
         <div id="mfa-status"><span style="font-size:13px;color:var(--ink3)">Carregando...</span></div>
@@ -2843,8 +2862,8 @@ function doReconcile(){
 //
 // Ao mudar os termos: atualize as duas constantes abaixo com a data do topo de
 // termos.html. O sync-termos.ps1 confere se elas batem e falha se divergirem.
-const TERMOS_VERSAO='2026-08-30';
-const TERMOS_RESUMO='Agora esta escrito que o teste gratis dura 31 dias e que ele comeca quando voce confirma o e-mail, nao no cadastro — se demorar a confirmar, voce nao perde prazo. Tambem incluimos o direito de reclamar a ANPD.';
+const TERMOS_VERSAO='2026-09-08';
+const TERMOS_RESUMO='Voce agora baixa os seus dados quando quiser, em Configuracoes → Seus dados: a conta inteira em JSON ou uma planilha dos lancamentos. A secao de portabilidade dizia que isso nao existia, e passou a existir.';
 function renderAvisoTermos(){
   const bar=document.getElementById('termos-bar');if(!bar)return;
   if(S.settings.termosVistos===TERMOS_VERSAO){bar.classList.add('hidden');return;}
@@ -2867,6 +2886,102 @@ function dismissReminder(e){
   // Protegido mesmo assim — sem isto, cota cheia faz o ✕ parar de fechar a barra.
   try{localStorage.setItem('bf_rem',new Date().toDateString());}catch(e){}
   document.getElementById('reminder-bar').classList.add('hidden');
+}
+
+// ═══ EXPORTAR OS SEUS DADOS ═══
+//
+// A LGPD garante portabilidade no art. 18, V. Até 08/09/2026 os termos
+// declaravam a lacuna com honestidade em vez de cumpri-la — o que era melhor
+// que fingir, mas continuava sendo lacuna.
+//
+// São dois usos diferentes com o mesmo mecanismo:
+//   CSV  — o período para o contador. Ponto e vírgula como separador, vírgula
+//          decimal e BOM no começo: é o que o Excel em português abre sem
+//          perguntar nada. Com vírgula ele joga tudo numa coluna só.
+//   JSON — a conta inteira, para levar embora.
+//
+// Gerado NO APARELHO, a partir do estado já decifrado. O servidor não participa
+// e não teria como: o que ele guarda é cifra que ele mesmo não abre.
+function baixarArquivo(nome,texto,mime){
+  const blob=new Blob([texto],{type:mime+';charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=nome;
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1000);
+}
+function csvCampo(v){
+  const s=String(v==null?'':v);
+  return /[";\n\r]/.test(s)?'"'+s.split('"').join('""')+'"':s;
+}
+function csvValor(n){return (Math.round((+n||0)*100)/100).toFixed(2).replace('.',',');}
+function csvData(iso){
+  const p=String(iso||'').split('-');
+  return p.length===3?p[2].slice(0,2)+'/'+p[1]+'/'+p[0]:String(iso||'');
+}
+// Devolve a data mínima do período escolhido, ou '' para todo o histórico.
+function expDesde(){
+  const v=(document.getElementById('exp-periodo')||{}).value||'tudo';
+  const h=new Date();
+  if(v==='mes')return h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0')+'-01';
+  if(v==='ano')return h.getFullYear()+'-01-01';
+  if(v==='3m'){const d=new Date(h.getFullYear(),h.getMonth()-2,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';}
+  return '';
+}
+function exportarCSV(){
+  const desde=expDesde();
+  const dentro=x=>!desde||String(x.date||'')>=desde;
+  const emp=!!S.settings.empresarial;
+  const nome=x=>emp?(ctxDe(x)==='pj'?'Empresa':'Pessoal'):'';
+  const linhas=[];
+  txVis().filter(dentro).forEach(x=>linhas.push([
+    csvData(x.date),
+    x.type==='income'?'Receita':'Despesa',
+    csvCampo(x.description),
+    csvCampo(x.category||'Sem categoria'),
+    csvValor(x.amount),
+    'Conta',
+    nome(x)
+  ]));
+  ccVis().filter(dentro).forEach(x=>linhas.push([
+    csvData(x.date),
+    'Despesa',
+    csvCampo(x.description),
+    csvCampo(x.category||'Sem categoria'),
+    csvValor(x.amount),
+    'Cartão de crédito',
+    nome(x)
+  ]));
+  if(!linhas.length){showAlert('Não há lançamentos no período escolhido.');return;}
+  linhas.sort((a,b)=>{
+    const da=a[0].split('/').reverse().join(''),db=b[0].split('/').reverse().join('');
+    return da<db?-1:da>db?1:0;
+  });
+  const cab=['Data','Tipo','Descrição','Categoria','Valor','Origem'];
+  if(emp)cab.push('Bolso');
+  const corpo=linhas.map(l=>(emp?l:l.slice(0,6)).join(';')).join('\r\n');
+  // O BOM é o que faz o Excel reconhecer UTF-8. Sem ele, todo acento vira lixo.
+  const csv='\ufeff'+cab.join(';')+'\r\n'+corpo+'\r\n';
+  const hoje=new Date().toISOString().slice(0,10);
+  baixarArquivo('north-lancamentos-'+hoje+'.csv',csv,'text/csv');
+  toast(linhas.length+(linhas.length===1?' lançamento exportado':' lançamentos exportados'));
+}
+function exportarTudo(){
+  const pacote={
+    aplicativo:'North Finances',
+    formato:1,
+    exportado_em:new Date().toISOString(),
+    transacoes:S.transactions||[],
+    cartao:S.ccItems||[],
+    investimentos:S.investments||[],
+    metas:S.goals||[],
+    orcamentos:S.budgets||[],
+    contas_a_pagar:S.bills||[],
+    recorrentes:S.recurring||[],
+    preferencias:S.settings||{}
+  };
+  const hoje=new Date().toISOString().slice(0,10);
+  baixarArquivo('north-meus-dados-'+hoje+'.json',JSON.stringify(pacote,null,2),'application/json');
+  toast('Cópia completa baixada');
 }
 
 // ═══ BOLSO: PESSOAL OU EMPRESA ═══
