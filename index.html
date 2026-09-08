@@ -1168,6 +1168,13 @@ body.values-hidden #dash-chart{filter:blur(6px)}
             <label class="topt"><input type="radio" name="rtype" value="expense"><span>Despesa</span></label>
           </div>
         </div>
+        <div class="fgrp" id="r-ctx-grp" style="display:none">
+          <label class="flbl">Bolso</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <label class="topt"><input type="radio" name="rctx" value="pf" checked><span>Pessoal</span></label>
+            <label class="topt"><input type="radio" name="rctx" value="pj"><span>Empresa</span></label>
+          </div>
+        </div>
         <div class="frow">
           <div class="fgrp"><label class="flbl">Descrição</label><input class="field" id="r-desc" placeholder="Ex: Aluguel, Salário..."></div>
           <div class="fgrp"><label class="flbl">Valor (R$)</label><input class="field" type="number" id="r-amt" placeholder="0,00" step="0.01" min="0.01"></div>
@@ -2707,7 +2714,7 @@ function openModal(id){
       '100% CDI ≈ '+cdiNow.toFixed(2).replace('.',',')+'% a.a. &nbsp;·&nbsp; 115% CDI ≈ '+(cdiNow*1.15).toFixed(2).replace('.',',')+'% a.a.<br>'+
       '<span style="color:var(--ink3)">Rendimento calculado por dias úteis (252/ano).</span>';
   }
-  if(id==='recurring-modal')renderRecurringList();
+  if(id==='recurring-modal'){renderRecurringList();resetTxCtx('rctx');}
   if(id==='goal-modal')onGoalLinkChange();
 }
 function closeModal(id){
@@ -2814,7 +2821,11 @@ function doReconcile(){
     description:'Ajuste de conciliação de saldo',
     amount:Math.abs(diff),
     date:new Date().toISOString().split('T')[0],
-    category:'Outros'
+    category:'Outros',
+    // O appBalance() usado acima já filtra pelo bolso em exibição: conciliar
+    // vendo "Empresa" compara o saldo da empresa, então o ajuste tem de cair
+    // lá. Sem esta linha ele nasceria pessoal e desequilibraria os dois lados.
+    ctx:(S.settings.ctxView==='pj'?'pj':'pf')
   });
   persist();closeModal('reconcile-modal');updateDashboard();renderTxList();populateMonthFilter();
   showAlert('Ajuste de '+fmtCur(Math.abs(diff))+' criado. O Saldo agora bate com o banco.');
@@ -2905,7 +2916,7 @@ function renderCtxSwitch(){
     const v=S.settings.ctxView||'all';
     box.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.ctx===v));
   }
-  ['tx-ctx-grp','bl-ctx-grp','cc-ctx-grp'].forEach(id=>{
+  ['tx-ctx-grp','bl-ctx-grp','cc-ctx-grp','r-ctx-grp'].forEach(id=>{
     const g=document.getElementById(id);
     if(g)g.style.display=lig?'':'none';
   });
@@ -4009,6 +4020,13 @@ function renderImportPreview(filename){
     '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
     '<button class="btn btn-secondary btn-sm" onclick="toggleAllImport(true)">Selecionar tudo</button>'+
     '<button class="btn btn-secondary btn-sm" onclick="toggleAllImport(false)">Desmarcar tudo</button>'+
+    (S.settings.empresarial
+      ?'<label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink2)">Importar para:'+
+       '<select class="field" id="imp-ctx" style="width:auto;padding:6px 10px;font-size:12px">'+
+       '<option value="pf"'+(S.settings.ctxView==='pj'?'':' selected')+'>Pessoal</option>'+
+       '<option value="pj"'+(S.settings.ctxView==='pj'?' selected':'')+'>Empresa</option>'+
+       '</select></label>'
+      :'')+
     '<button class="btn btn-gold" onclick="confirmImport()">Importar selecionadas</button></div></div>'+
     summary+
     '<div id="imp-rows">'+rows.map(({t,i,exact,maybe})=>{
@@ -4042,11 +4060,14 @@ async function confirmImport(){
       :maybeChecked+' transações selecionadas têm a mesma data e valor de lançamentos que já existem. Quer importar mesmo assim?';
     if(!(await showConfirm(msg,{title:'Possíveis duplicatas',confirmLabel:'Importar mesmo assim'})))return;
   }
+  // lido UMA vez: o lote inteiro vai para o mesmo bolso, inclusive o ajuste de
+  // conciliação criado logo abaixo.
+  const bolsoLote=(document.getElementById('imp-ctx')||{}).value==='pj'?'pj':'pf';
   let added=0,dup=0;
   sel.forEach(i=>{
     const t=parsedRows[i];
     if(S.transactions.some(x=>x.description===t.description&&x.amount===t.amount&&x.date===t.date)){dup++;return;}
-    S.transactions.push({id:newId(),...t});added++;
+    S.transactions.push({id:newId(),...t,ctx:bolsoLote});added++;
   });
   persist();updateDashboard();populateMonthFilter();
   // Conciliação automática com o saldo final do extrato (LEDGERBAL)
@@ -4056,7 +4077,7 @@ async function confirmImport(){
     if(Math.abs(diff)<0.01){
       balMsg='<br>Saldo conferido: bate com o extrato ('+fmtCur(parsedBal.amt)+')';
     }else if(await showConfirm('O extrato informa saldo final de '+fmtCur(parsedBal.amt)+'.\nO app calculou '+fmtCur(appBalance())+'.\n\nCriar ajuste automático de '+fmtCur(Math.abs(diff))+' para conciliar?',{title:'Conciliar saldo',confirmLabel:'Criar ajuste'})){
-      S.transactions.push({id:newId(),type:diff>0?'income':'expense',description:'Ajuste de conciliação (saldo do extrato)',amount:Math.abs(diff),date:parsedBal.date,category:'Outros'});
+      S.transactions.push({id:newId(),type:diff>0?'income':'expense',description:'Ajuste de conciliação (saldo do extrato)',amount:Math.abs(diff),date:parsedBal.date,category:'Outros',ctx:bolsoLote});
       persist();updateDashboard();populateMonthFilter();
       balMsg='<br>Saldo conciliado automaticamente com o extrato ('+fmtCur(parsedBal.amt)+')';
     }else{
@@ -4206,7 +4227,7 @@ function saveRecurring(){
   const day=parseInt(document.getElementById('r-day').value)||5;
   if(!desc||!amt||!cat){showAlert('Preencha todos os campos.');return;}
   if(day<1||day>28){showAlert('Dia deve ser entre 1 e 28.');return;}
-  S.recurring.push({id:Date.now(),type,description:desc,amount:amt,category:cat,day,active:true,lastGenerated:''});
+  S.recurring.push({id:Date.now(),type,description:desc,amount:amt,category:cat,day,active:true,lastGenerated:'',ctx:bolsoEscolhido('rctx')});
   persistRecurring();renderRecurringList();
   toast('Recorrência adicionada');
   document.getElementById('r-desc').value='';
@@ -4251,7 +4272,7 @@ function checkRecurring(){
     const day=Math.min(r.day,maxDay);
     const date=month+'-'+String(day).padStart(2,'0');
     const dup=S.transactions.some(t=>t.description===r.description+' (recorrente)'&&t.date===date);
-    if(!dup)S.transactions.push({id:newId(),type:r.type,description:r.description+' (recorrente)',amount:r.amount,date,category:r.category});
+    if(!dup)S.transactions.push({id:newId(),type:r.type,description:r.description+' (recorrente)',amount:r.amount,date,category:r.category,ctx:ctxDe(r)});
     r.lastGenerated=month;
     changed=true;
   });
