@@ -138,6 +138,11 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .reminder-text strong{display:block;font-size:14px;font-weight:700;color:var(--ink);margin-bottom:2px}
 .rdismiss{background:none;border:none;cursor:pointer;font-size:17px;color:var(--ink3);padding:3px 7px;border-radius:6px}
 .rdismiss:hover{background:rgba(0,0,0,.07)}
+/* BOLSO — alternador na barra lateral, que é escura */
+.ctx-seg{display:flex;margin-top:10px;border:1px solid rgba(250,249,247,.16);border-radius:7px;overflow:hidden}
+.ctx-seg button{flex:1;border:none;background:none;font-family:var(--ff);font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:6px 2px;color:var(--ink4);cursor:pointer}
+.ctx-seg button:hover{background:rgba(250,249,247,.08)}
+.ctx-seg button.on{background:var(--gold);color:#0d0d0d}
 
 /* CARDS */
 .cards-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
@@ -541,6 +546,13 @@ body.values-hidden #dash-chart{filter:blur(6px)}
       <button class="sb-user sb-user-btn" onclick="openPerfil()" title="Ver seu perfil">Logado como<strong id="udisp"></strong><span class="sb-user-more">Ver perfil ›</span></button>
       <div id="sync-status" style="font-size:10px;margin-top:6px;color:var(--ink4)"></div>
       <button id="eye-toggle" onclick="toggleShowValues()" style="background:none;border:none;color:var(--ink4);cursor:pointer;padding:5px 0 0;margin:0;display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--ff)"></button>
+      <div id="ctx-switch" style="display:none">
+        <div class="ctx-seg">
+          <button type="button" data-ctx="pf" onclick="setCtxView('pf')">Pessoal</button>
+          <button type="button" data-ctx="pj" onclick="setCtxView('pj')">Empresa</button>
+          <button type="button" data-ctx="all" onclick="setCtxView('all')">Tudo</button>
+        </div>
+      </div>
       <div id="trial-banner" style="display:none"></div>
     </div>
     <nav class="sb-nav">
@@ -771,6 +783,8 @@ body.values-hidden #dash-chart{filter:blur(6px)}
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Módulos</span></div>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="set-show-cc" class="chk"> Exibir módulo Cartão de Crédito</label>
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-top:12px"><input type="checkbox" id="set-empresarial" class="chk"> Separar finanças pessoais das da empresa</label>
+        <p style="font-size:12px;color:var(--ink3);margin-top:10px">Para quem é MEI ou autônomo e mistura os dois bolsos na mesma conta. Ativa um seletor em cada lançamento e um filtro no menu lateral. <strong>O que já existe continua como pessoal</strong> — nada é reclassificado nem apagado.</p>
         <p style="font-size:12px;color:var(--ink3);margin-top:10px">Desative se você não usa cartão de crédito, para deixar o app mais limpo. Os dados não são apagados — só ficam ocultos.</p>
         <button class="btn btn-primary" style="margin-top:14px" onclick="saveSettings()">Salvar</button>
       </div>
@@ -853,6 +867,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
           <label class="topt"><input type="radio" name="txtype" value="expense"><span>Despesa</span></label>
         </div>
       </div>
+      <div class="fgrp" id="tx-ctx-grp" style="display:none"><label class="flbl">Bolso</label><div class="trow"><label class="topt"><input type="radio" name="txctx" value="pf" checked><span>Pessoal</span></label><label class="topt"><input type="radio" name="txctx" value="pj"><span>Empresa</span></label></div></div>
       <div class="fgrp"><label class="flbl">Descrição</label><input class="field" type="text" id="tx-desc" placeholder="Ex: Salário, Aluguel..."></div>
       <div class="frow">
         <div class="fgrp"><label class="flbl">Valor</label><input class="field" type="number" id="tx-amt" placeholder="0,00" step="0.01" min="0.01"></div>
@@ -884,6 +899,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
   <div class="modal">
     <div class="mhead"><h3>Lançamento no Crédito</h3><button class="xbtn" onclick="closeModal('cc-modal')">✕</button></div>
     <div class="mbody">
+      <div class="fgrp" id="cc-ctx-grp" style="display:none"><label class="flbl">Bolso</label><div class="trow"><label class="topt"><input type="radio" name="ccctx" value="pf" checked><span>Pessoal</span></label><label class="topt"><input type="radio" name="ccctx" value="pj"><span>Empresa</span></label></div></div>
       <div class="fgrp"><label class="flbl">Descrição</label><input class="field" type="text" id="cc-desc" placeholder="Ex: Compra na Sephora..."></div>
       <div class="frow">
         <div class="fgrp"><label class="flbl">Valor total</label><input class="field" type="number" id="cc-amt" placeholder="0,00" step="0.01" min="0.01" oninput="updateCCParcelaHint()"></div>
@@ -1216,6 +1232,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
   <div class="modal">
     <div class="mhead"><h3 id="bill-modal-title">Nova Conta</h3><button class="xbtn" onclick="closeModal('bill-modal')">✕</button></div>
     <div class="mbody">
+      <div class="fgrp" id="bl-ctx-grp" style="display:none"><label class="flbl">Bolso</label><div class="trow"><label class="topt"><input type="radio" name="blctx" value="pf" checked><span>Pessoal</span></label><label class="topt"><input type="radio" name="blctx" value="pj"><span>Empresa</span></label></div></div>
       <div class="fgrp"><label class="flbl">Nome da conta</label><input class="field" type="text" id="bl-name" placeholder="Ex: Aluguel, Luz, Internet..."></div>
       <div class="frow">
         <div class="fgrp"><label class="flbl">Valor (R$)</label><input class="field" type="number" id="bl-amt" placeholder="0,00" step="0.01" min="0.01"></div>
@@ -1573,6 +1590,7 @@ async function onSignedIn(session,fresh){
   initApp();
   renderMFAStatus();
   renderEyeToggle();
+  renderCtxSwitch();   // sem isto o alternador some para quem já ativou o modo
   resetInactivityTimer();
   if(est.showRecovery){
     // Quem acabou de se cadastrar aceitou ESTA versao ha um minuto. Avisar que
@@ -2672,8 +2690,15 @@ function showPage(id){
 // ═══ MODAL ═══
 function openModal(id){
   document.getElementById(id).classList.add('open');
-  if(id==='tx-modal')document.getElementById('tx-date').valueAsDate=new Date();
-  if(id==='cc-modal')document.getElementById('cc-date').valueAsDate=new Date();
+  if(id==='tx-modal'){
+    document.getElementById('tx-date').valueAsDate=new Date();
+    if(!S.editId)resetTxCtx();
+  }
+  if(id==='cc-modal'){
+    document.getElementById('cc-date').valueAsDate=new Date();
+    resetTxCtx('ccctx');
+  }
+  if(id==='bill-modal'&&!S.billEditId)resetTxCtx('blctx');
   if(id==='inv-modal'){
     document.getElementById('inv-date').valueAsDate=new Date();
     const cdiNow=S.settings.cdi||10.65;
@@ -2768,8 +2793,9 @@ async function clearAllTx(){
 
 // ═══ CONCILIAÇÃO DE SALDO ═══
 function appBalance(){
-  const income=S.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const expense=S.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const v=txVis();
+  const income=v.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const expense=v.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   return income-expense;
 }
 function openReconcile(){
@@ -2832,6 +2858,65 @@ function dismissReminder(e){
   document.getElementById('reminder-bar').classList.add('hidden');
 }
 
+// ═══ BOLSO: PESSOAL OU EMPRESA ═══
+//
+// Nasce DESLIGADO. Quem usa o app para as próprias finanças não deve ganhar um
+// seletor a mais na tela por causa de um recurso que não pediu — o manual de marca
+// pede sóbrio e sem distração, e isso vale para a interface, não só para as peças.
+//
+// Lançamento SEM ctx é pessoal. É o que torna a mudança retroativa sem migração
+// nenhuma: tudo que existe hoje continua exatamente onde estava, e ninguém precisa
+// reclassificar nada para o app seguir funcionando igual ao de ontem.
+//
+// Só o que é FLUXO DE DINHEIRO tem bolso: transações, cartão e contas a pagar.
+// Investimentos e metas ficam de fora de propósito — são patrimônio, e patrimônio
+// de MEI é pessoal mesmo quando o dinheiro veio do trabalho.
+function ctxDe(x){return x&&x.ctx==='pj'?'pj':'pf';}
+// Lê o radio de um formulário. Com o modo desligado o radio está escondido e
+// continua em "pf" — o que grava pessoal, que é o certo para quem não usa o recurso.
+function bolsoEscolhido(nome){
+  const r=document.querySelector('input[name="'+nome+'"]:checked');
+  return (r&&r.value==='pj')?'pj':'pf';
+}
+function noCtx(x){
+  if(!S.settings.empresarial)return true;
+  const v=S.settings.ctxView||'all';
+  return v==='all'||ctxDe(x)===v;
+}
+function txVis(){return S.transactions.filter(noCtx);}
+function ccVis(){return (S.ccItems||[]).filter(noCtx);}
+function billsVis(){return (S.bills||[]).filter(noCtx);}
+
+function setCtxView(v){
+  S.settings.ctxView=v;persistSettings();
+  renderCtxSwitch();
+  try{updateDashboard();}catch(e){}
+  try{renderTxList();}catch(e){}
+  try{renderChart();}catch(e){}
+  try{renderBillsPage();}catch(e){}
+  try{renderCCPage();}catch(e){}
+  try{renderBudgetPage();}catch(e){}
+}
+function renderCtxSwitch(){
+  const lig=!!S.settings.empresarial;
+  const box=document.getElementById('ctx-switch');
+  if(box){
+    box.style.display=lig?'':'none';
+    const v=S.settings.ctxView||'all';
+    box.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.ctx===v));
+  }
+  ['tx-ctx-grp','bl-ctx-grp','cc-ctx-grp'].forEach(id=>{
+    const g=document.getElementById(id);
+    if(g)g.style.display=lig?'':'none';
+  });
+}
+// Lançamento novo nasce no bolso que você está olhando. Estando em "Tudo", nasce pessoal.
+function resetTxCtx(nome){
+  const alvo=(S.settings.ctxView==='pj')?'pj':'pf';
+  const r=document.querySelector('input[name="'+(nome||'txctx')+'"][value="'+alvo+'"]');
+  if(r)r.checked=true;
+}
+
 // ═══ TRANSACTIONS ═══
 function saveTx(){
   const desc=document.getElementById('tx-desc').value.trim();
@@ -2841,6 +2926,15 @@ function saveTx(){
   const type=document.querySelector('input[name="txtype"]:checked').value;
   if(!desc||!amt||!date||!cat){showAlert('Preencha todos os campos.');return;}
   const tx={id:S.editId||Date.now(),type,description:desc,amount:amt,date,category:cat};
+  if(S.settings.empresarial){
+    const rc=document.querySelector('input[name="txctx"]:checked');
+    tx.ctx=(rc&&rc.value==='pj')?'pj':'pf';
+  }else if(S.editId){
+    // Modo desligado não pode APAGAR a classificação de quem já usou o recurso:
+    // editar uma despesa da empresa com o modo off a devolveria para o pessoal.
+    const ant=S.transactions.find(x=>x.id===S.editId);
+    if(ant&&ant.ctx)tx.ctx=ant.ctx;
+  }
   if(S.editId){const i=S.transactions.findIndex(t=>t.id===S.editId);if(S.transactions[i]&&S.transactions[i].time)tx.time=S.transactions[i].time;S.transactions[i]=tx;}
   else S.transactions.push(tx);
   persist();closeModal('tx-modal');updateDashboard();renderTxList();populateMonthFilter();
@@ -2857,6 +2951,8 @@ function editTx(id){
   document.getElementById('tx-amt').value=t.amount;
   document.getElementById('tx-date').value=t.date;
   document.getElementById('tx-cat').value=t.category;
+  const rc=document.querySelector('input[name="txctx"][value="'+ctxDe(t)+'"]');
+  if(rc)rc.checked=true;
   openModal('tx-modal');
 }
 function delTx(id){
@@ -2885,7 +2981,7 @@ function saveCC(){
   const cat=document.getElementById('cc-cat').value;
   const parcelas=Math.max(1,parseInt(document.getElementById('cc-parcelas').value)||1);
   if(!desc||!amt||!date||!cat){showAlert('Preencha descrição, valor, data e categoria.');return;}
-  S.ccItems.push({id:Date.now(),description:desc,amount:amt,date,category:cat,parcelas,paidCount:0});
+  S.ccItems.push({id:Date.now(),description:desc,amount:amt,date,category:cat,parcelas,paidCount:0,ctx:bolsoEscolhido('ccctx')});
   persistCC();closeModal('cc-modal');
   ['cc-desc','cc-amt','cc-cat'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('cc-parcelas').value='1';updateCCParcelaHint();
@@ -2910,7 +3006,7 @@ function renderCCPage(){
   setCurAnimated('cc-open-month',ccOpenMonth(ccCurMonth()));
   setCurAnimated('cc-open-total',ccOpenTotal());
   setCurAnimated('cc-paid',ccPaidTotal());
-  const sorted=[...S.ccItems].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const sorted=[...ccVis()].sort((a,b)=>new Date(b.date)-new Date(a.date));
   document.getElementById('cc-list').innerHTML=sorted.length?sorted.map(function(c){
     const n=ccParcelas(c),paid=ccPaid(c),vp=ccValorParcela(c),full=paid>=n;
     const meta=n>1
@@ -3514,15 +3610,16 @@ function flashItem(id){
 }
 
 function updateDashboard(){
-  const income=S.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const expense=S.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  const cc=S.ccItems.reduce((s,c)=>s+c.amount,0);
+  const vis=txVis();
+  const income=vis.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const expense=vis.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const cc=ccVis().reduce((s,c)=>s+c.amount,0);
   setCurAnimated('total-income',income);
   setCurAnimated('total-expense',expense);
   setCurAnimated('total-cc',cc);
   setCurAnimated('total-balance',income-expense);
 
-  const recent=[...S.transactions].sort(txCompare).slice(0,5);
+  const recent=[...txVis()].sort(txCompare).slice(0,5);
   document.getElementById('recent-list').innerHTML=recent.length?recent.map(t=>txHTML(t)).join(''):emptyHTML('Nenhuma transação cadastrada');
 
   populateCatMonths();
@@ -3537,9 +3634,9 @@ function prevMonthOf(key){const[y,m]=key.split('-').map(Number);return monthKeyO
 function monthLabel(key){const[y,m]=key.split('-');return new Date(y,parseInt(m)-1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});}
 function spentByCat(month){
   const out={};
-  S.transactions.filter(t=>(t.date||'').startsWith(month)&&t.type==='expense')
+  txVis().filter(t=>(t.date||'').startsWith(month)&&t.type==='expense')
     .forEach(t=>{const c=t.category||'Sem categoria';out[c]=(out[c]||0)+t.amount;});
-  S.ccItems.filter(c=>(c.date||'').startsWith(month))
+  ccVis().filter(c=>(c.date||'').startsWith(month))
     .forEach(c=>{const k=c.category||'Sem categoria';out[k]=(out[k]||0)+c.amount;});
   return out;
 }
@@ -3640,7 +3737,7 @@ function renderTxList(){
   const ft=document.getElementById('ftype')?.value||'';
   const fc=document.getElementById('fcat')?.value||'';
   const fm=document.getElementById('fmonth')?.value||'';
-  const filtered=S.transactions.filter(t=>
+  const filtered=txVis().filter(t=>
     (!q||t.description.toLowerCase().includes(q))&&
     (!ft||t.type===ft)&&(!fc||t.category===fc)&&(!fm||t.date.substring(0,7)===fm)
   ).sort(txCompare);
@@ -3691,8 +3788,8 @@ function renderChart(){
       const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i);
       const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
       labels.push(d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}));
-      incData.push(S.transactions.filter(t=>t.type==='income'&&t.date===key).reduce((s,t)=>s+t.amount,0));
-      expData.push(S.transactions.filter(t=>t.type==='expense'&&t.date===key).reduce((s,t)=>s+t.amount,0));
+      incData.push(txVis().filter(t=>t.type==='income'&&t.date===key).reduce((s,t)=>s+t.amount,0));
+      expData.push(txVis().filter(t=>t.type==='expense'&&t.date===key).reduce((s,t)=>s+t.amount,0));
     }
   }else{
     const months=parseInt(periodVal);
@@ -3700,8 +3797,8 @@ function renderChart(){
       const d=new Date(now.getFullYear(),now.getMonth()-i,1);
       const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
       labels.push(d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}));
-      incData.push(S.transactions.filter(t=>t.type==='income'&&t.date.startsWith(key)).reduce((s,t)=>s+t.amount,0));
-      expData.push(S.transactions.filter(t=>t.type==='expense'&&t.date.startsWith(key)).reduce((s,t)=>s+t.amount,0));
+      incData.push(txVis().filter(t=>t.type==='income'&&t.date.startsWith(key)).reduce((s,t)=>s+t.amount,0));
+      expData.push(txVis().filter(t=>t.type==='expense'&&t.date.startsWith(key)).reduce((s,t)=>s+t.amount,0));
     }
   }
   const ctx=document.getElementById('dash-chart').getContext('2d');
@@ -4063,6 +4160,7 @@ function migrateData(){
 // ═══ SETTINGS ═══
 function renderSettings(){
   const cc=document.getElementById('set-show-cc');if(cc)cc.checked=!!S.settings.showCC;
+  const emp=document.getElementById('set-empresarial');if(emp)emp.checked=!!S.settings.empresarial;
   loadEmailPrefs();
 }
 // Preferência do lembrete mensal por e-mail — mora na tabela email_prefs (não no blob),
@@ -4088,6 +4186,12 @@ async function saveMonthlyReminder(el){
 
 function saveSettings(){
   const cc=document.getElementById('set-show-cc');if(cc)S.settings.showCC=cc.checked;
+  const emp=document.getElementById('set-empresarial');
+  if(emp){
+    S.settings.empresarial=emp.checked;
+    if(!emp.checked)S.settings.ctxView='all';   // desligar volta a mostrar tudo
+  }
+  renderCtxSwitch();
   persistSettings();
   applyModules();
   toast('Configurações salvas');
@@ -4281,6 +4385,8 @@ function editBill(id){
   document.getElementById('bl-amt').value=b.amount;
   document.getElementById('bl-day').value=b.day;
   document.getElementById('bl-cat').value=b.category;
+  const rb=document.querySelector('input[name="blctx"][value="'+ctxDe(b)+'"]');
+  if(rb)rb.checked=true;
   openModal('bill-modal');
 }
 function saveBill(){
@@ -4293,9 +4399,9 @@ function saveBill(){
   if(!day||day<1||day>31){showAlert('O dia do vencimento deve ser entre 1 e 31.');return;}
   if(S.billEditId){
     const b=S.bills.find(x=>x.id===S.billEditId);
-    if(b){b.name=name;b.amount=amt;b.day=day;b.category=cat;}
+    if(b){b.name=name;b.amount=amt;b.day=day;b.category=cat;if(S.settings.empresarial)b.ctx=bolsoEscolhido('blctx');}
   }else{
-    S.bills.push({id:newId(),name:name,amount:amt,day:day,category:cat,paidMonths:[]});
+    S.bills.push({id:newId(),name:name,amount:amt,day:day,category:cat,paidMonths:[],ctx:bolsoEscolhido('blctx')});
   }
   S.billEditId=null;
   persistBills();
@@ -4332,16 +4438,16 @@ async function unmarkBillPaid(id){
 function renderBillsPage(){
   const el=document.getElementById('bills-list');if(!el)return;
   const month=monthKeyOf(new Date());
-  const total=S.bills.reduce((s,b)=>s+b.amount,0);
-  const paid=S.bills.filter(b=>billPaidThisMonth(b,month)).reduce((s,b)=>s+b.amount,0);
+  const total=billsVis().reduce((s,b)=>s+b.amount,0);
+  const paid=billsVis().filter(b=>billPaidThisMonth(b,month)).reduce((s,b)=>s+b.amount,0);
   setCurAnimated('bills-total',total);
   setCurAnimated('bills-paid',paid);
   setCurAnimated('bills-open',total-paid);
-  if(!S.bills.length){
+  if(!billsVis().length){
     el.innerHTML=emptyHTML('Nenhuma conta cadastrada. Clique em "+ Nova Conta" para receber lembretes de vencimento.');
     return;
   }
-  el.innerHTML=[...S.bills].sort((a,b)=>a.day-b.day).map(b=>{
+  el.innerHTML=[...billsVis()].sort((a,b)=>a.day-b.day).map(b=>{
     const st=billStatus(b);
     const isPaid=st.k==='paid';
     return '<div class="tx-item"'+(isPaid?' style="opacity:.55"':'')+'>'+
@@ -4360,7 +4466,7 @@ function renderBillsPage(){
 }
 function renderBillsAlert(){
   const el=document.getElementById('bills-alert');if(!el)return;
-  const urgent=S.bills.map(b=>({b:b,st:billStatus(b)})).filter(x=>x.st.k==='late'||x.st.k==='today'||x.st.k==='soon');
+  const urgent=billsVis().map(b=>({b:b,st:billStatus(b)})).filter(x=>x.st.k==='late'||x.st.k==='today'||x.st.k==='soon');
   if(!urgent.length){el.innerHTML='';return;}
   const late=urgent.filter(x=>x.st.k==='late').length;
   const txt=late
