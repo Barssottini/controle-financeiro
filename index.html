@@ -148,6 +148,11 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .bl-tabs button{border:none;background:none;font-family:var(--ff);font-size:13px;font-weight:700;padding:9px 20px;color:var(--ink3);cursor:pointer}
 .bl-tabs button:hover{background:var(--paper2)}
 .bl-tabs button.on{background:var(--ink);color:var(--paper)}
+/* Escolha do tipo de conta */
+.tipo-opt{display:block;width:100%;text-align:left;border:1.5px solid var(--paper3);background:var(--paper);border-radius:12px;padding:16px 18px;margin-bottom:10px;cursor:pointer;font-family:var(--ff);transition:border-color .12s,background .12s}
+.tipo-opt:hover{border-color:var(--gold);background:var(--goldl)}
+.tipo-opt b{display:block;font-size:15px;font-weight:700;color:var(--ink);margin-bottom:3px}
+.tipo-opt span{display:block;font-size:12.5px;color:var(--ink3);line-height:1.5}
 
 /* CARDS */
 .cards-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
@@ -792,7 +797,13 @@ body.values-hidden #dash-chart{filter:blur(6px)}
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Módulos</span></div>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="set-show-cc" class="chk"> Exibir módulo Cartão de Crédito</label>
-        <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-top:12px"><input type="checkbox" id="set-empresarial" class="chk"> Separar finanças pessoais das da empresa</label>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--paper2)">
+          <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:4px">Tipo desta conta</div>
+          <p style="font-size:12px;color:var(--ink3);margin-bottom:10px">Define as categorias oferecidas. Trocar não apaga nada — as categorias que você já usou continuam disponíveis.</p>
+          <button class="btn btn-secondary btn-sm" onclick="openModal('tipo-modal')">Mudar tipo de conta</button>
+          <span id="tipo-atual" style="font-size:12px;color:var(--ink3);margin-left:10px"></span>
+        </div>
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-top:16px"><input type="checkbox" id="set-empresarial" class="chk"> Separar finanças pessoais das da empresa</label>
         <p style="font-size:12px;color:var(--ink3);margin-top:10px">Para quem é MEI ou autônomo e mistura os dois bolsos na mesma conta. Ativa um seletor em cada lançamento e um filtro no menu lateral. <strong>O que já existe continua como pessoal</strong> — nada é reclassificado nem apagado.</p>
         <p style="font-size:12px;color:var(--ink3);margin-top:10px">Desative se você não usa cartão de crédito, para deixar o app mais limpo. Os dados não são apagados — só ficam ocultos.</p>
         <button class="btn btn-primary" style="margin-top:14px" onclick="saveSettings()">Salvar</button>
@@ -884,6 +895,18 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 </div>
 
 <!-- MODAL: TRANSAÇÃO -->
+<div class="overlay" id="tipo-modal">
+  <div class="modal" style="max-width:460px">
+    <div class="mhead"><h3>Como você vai usar o North?</h3></div>
+    <div class="mbody">
+      <p style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:16px">Isso define as categorias e o que aparece na tela. Dá para mudar depois em Configurações.</p>
+      <button class="tipo-opt" onclick="escolherTipo('pf')"><b>Pessoal</b><span>As minhas finanças: salário, contas de casa, cartão, investimentos.</span></button>
+      <button class="tipo-opt" onclick="escolherTipo('pj')"><b>Empresa</b><span>As finanças do meu negócio: faturamento, fornecedores, impostos, pró-labore.</span></button>
+      <button class="tipo-opt" onclick="escolherTipo('both')"><b>As duas coisas</b><span>Sou MEI ou autônomo e misturo o dinheiro pessoal com o do trabalho na mesma conta. Cada lançamento ganha um bolso.</span></button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="tx-modal">
   <div class="modal">
     <div class="mhead"><h3 id="modal-title">Nova Transação</h3><button class="xbtn" onclick="closeModal('tx-modal')">✕</button></div>
@@ -1518,6 +1541,11 @@ function applyCloud(d){
   S.settings={...S.settings,...(d.settings||{})};
   migrateData();
   persistAllLocal();
+  // Os selects de categoria incluem as categorias JÁ USADAS, e elas só são
+  // conhecidas depois que os dados da nuvem chegam. Sem repovoar aqui, quem
+  // abre num aparelho novo veria a lista do tipo da conta e mais nada — e
+  // editar um lançamento antigo apagaria a categoria dele em silêncio.
+  try{renderCatSelects();}catch(e){}
 }
 // ── DONO DO CACHE LOCAL ──
 // As chaves bf_* nao carregam o id do usuario, e o logout nao as apagava. Numa
@@ -1626,6 +1654,7 @@ async function onSignedIn(session,fresh){
   renderMFAStatus();
   renderEyeToggle();
   renderCtxSwitch();   // sem isto o alternador some para quem já ativou o modo
+  renderCatSelects();
   resetInactivityTimer();
   if(est.showRecovery){
     // Quem acabou de se cadastrar aceitou ESTA versao ha um minuto. Avisar que
@@ -1633,6 +1662,7 @@ async function onSignedIn(session,fresh){
     S.settings.termosVistos=TERMOS_VERSAO;persistSettings();
     showRecoveryDisplay(est.showRecovery);
   }
+  else if(!S.settings.accountType)openModal('tipo-modal');
   else if(!S.settings.manualSeen)openModal('welcome-modal');
   renderAvisoTermos();
 }
@@ -2460,6 +2490,7 @@ function reckeyGate(){
   const b=document.getElementById('reckey-continue');b.disabled=!ok;b.style.opacity=ok?'1':'.5';
 }
 function reckeyContinue(){
+  setTimeout(talvezPedirTipo,400);
   document.getElementById('reckey-screen').style.display='none';
   if(!S.settings.manualSeen)openModal('welcome-modal');
 }
@@ -2895,6 +2926,87 @@ function dismissReminder(e){
   // Protegido mesmo assim — sem isto, cota cheia faz o ✕ parar de fechar a barra.
   try{localStorage.setItem('bf_rem',new Date().toDateString());}catch(e){}
   document.getElementById('reminder-bar').classList.add('hidden');
+}
+
+// ═══ TIPO DA CONTA ═══
+//
+// Escolhido no primeiro acesso. Nao e so um rotulo: define as CATEGORIAS, que
+// e onde "conta de empresa" deixa de ser etiqueta e vira produto. Um negocio
+// nao lanca "Alimentacao" — lanca Fornecedores, Impostos, Pro-labore.
+//
+//   pf    → o app como sempre foi
+//   pj    → categorias de negocio; a conta INTEIRA e da empresa
+//   both  → MEI que mistura os dois na mesma conta bancaria: liga o bolso,
+//           e as categorias sao a uniao das duas listas
+//
+// Conta sem tipo definido cai em 'pf' ate a pessoa responder. Nada quebra.
+const CATS_PF={
+  receitas:['Salário','Investimentos'],
+  despesas:['Alimentação','Transporte','Moradia','Contas','Cartão de Crédito','Lazer','Saúde','Outros']
+};
+const CATS_PJ={
+  receitas:['Vendas','Serviços','Outras receitas'],
+  despesas:['Fornecedores','Impostos','Folha e pró-labore','Aluguel e estrutura','Marketing','Ferramentas e software','Taxas e tarifas','Outros']
+};
+function tipoConta(){
+  const v=S.settings.accountType;
+  return (v==='pj'||v==='both')?v:'pf';
+}
+// As categorias JA USADAS entram sempre, mesmo fora da lista do tipo. Sem isto,
+// trocar de tipo faria a categoria de um lancamento antigo sumir do select — e
+// editar esse lancamento a apagaria em silencio.
+function catsEmUso(){
+  const s=new Set();
+  [...(S.transactions||[]),...(S.ccItems||[]),...(S.bills||[]),...(S.recurring||[])]
+    .forEach(x=>{if(x&&x.category)s.add(x.category);});
+  return s;
+}
+function catsDaConta(){
+  const tp=tipoConta();
+  const base=tp==='pj'?CATS_PJ:tp==='both'
+    ?{receitas:[...CATS_PF.receitas,...CATS_PJ.receitas],despesas:[...new Set([...CATS_PF.despesas,...CATS_PJ.despesas])]}
+    :CATS_PF;
+  const usadas=catsEmUso();
+  const conhecidas=new Set([...base.receitas,...base.despesas]);
+  const extras=[...usadas].filter(c=>!conhecidas.has(c)).sort();
+  return {receitas:base.receitas,despesas:base.despesas,outras:extras};
+}
+function optsHTML(lista){return lista.map(c=>'<option>'+esc(c)+'</option>').join('');}
+function renderCatSelects(){
+  const c=catsDaConta();
+  const grupo=(rot,lista)=>lista.length?'<optgroup label="'+rot+'">'+optsHTML(lista)+'</optgroup>':'';
+  const comGrupos=grupo('Receitas',c.receitas)+grupo('Despesas',c.despesas)+grupo('Já usadas',c.outras);
+  const planas=optsHTML([...c.receitas,...c.despesas,...c.outras]);
+  const planasDespesa=optsHTML([...c.despesas,...c.outras]);
+  const alvos=[
+    ['tx-cat','<option value="">Selecione...</option>'+comGrupos],
+    ['r-cat','<option value="">Selecione...</option>'+comGrupos],
+    ['bl-cat',planas],
+    ['cc-cat','<option value="">Selecione...</option>'+planasDespesa],
+    ['fcat','<option value="">Todas categorias</option>'+planas]
+  ];
+  alvos.forEach(([id,html])=>{
+    const el=document.getElementById(id);if(!el)return;
+    const antes=el.value;
+    el.innerHTML=html;
+    // so restaura se a opcao ainda existir; senao deixa no primeiro item
+    if(antes&&[...el.options].some(o=>o.value===antes||o.text===antes))el.value=antes;
+  });
+}
+function escolherTipo(tp){
+  S.settings.accountType=tp;
+  S.settings.empresarial=(tp==='both');
+  if(tp==='pj')S.settings.billsTab='receive';   // negocio olha primeiro o que entra
+  persistSettings();
+  closeModal('tipo-modal');
+  renderCatSelects();
+  renderCtxSwitch();
+  try{renderSettings();}catch(e){}
+  try{renderBillsPage();}catch(e){}
+  toast(tp==='pj'?'Conta configurada para o seu negócio':tp==='both'?'Pessoal e empresa separados':'Conta pessoal configurada');
+}
+function talvezPedirTipo(){
+  if(!S.settings.accountType)openModal('tipo-modal');
 }
 
 // ═══ EXPORTAR OS SEUS DADOS ═══
@@ -3763,7 +3875,9 @@ function updateDashboard(){
 }
 
 // ═══ GASTOS POR CATEGORIA ═══
-const CAT_ICONS={'Salário':'💼','Investimentos':'📈','Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Contas':'💡','Cartão de Crédito':'💳','Lazer':'🎬','Saúde':'💊','Outros':'📦','Sem categoria':'🏷️'};
+const CAT_ICONS={'Salário':'💼','Investimentos':'📈','Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Contas':'💡','Cartão de Crédito':'💳','Lazer':'🎬','Saúde':'💊','Outros':'📦','Sem categoria':'🏷️',
+  'Vendas':'🧾','Serviços':'🛠️','Outras receitas':'💰','Fornecedores':'📦','Impostos':'🏛️',
+  'Folha e pró-labore':'👥','Aluguel e estrutura':'🏢','Marketing':'📣','Ferramentas e software':'💻','Taxas e tarifas':'🏦'};
 function monthKeyOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function prevMonthOf(key){const[y,m]=key.split('-').map(Number);return monthKeyOf(new Date(y,m-2,1));}
 function monthLabel(key){const[y,m]=key.split('-');return new Date(y,parseInt(m)-1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});}
@@ -4306,6 +4420,8 @@ function migrateData(){
 function renderSettings(){
   const cc=document.getElementById('set-show-cc');if(cc)cc.checked=!!S.settings.showCC;
   const emp=document.getElementById('set-empresarial');if(emp)emp.checked=!!S.settings.empresarial;
+  const ta=document.getElementById('tipo-atual');
+  if(ta)ta.textContent={pf:'Hoje: pessoal',pj:'Hoje: empresa',both:'Hoje: as duas coisas'}[tipoConta()];
   loadEmailPrefs();
 }
 // Preferência do lembrete mensal por e-mail — mora na tabela email_prefs (não no blob),
@@ -4335,6 +4451,10 @@ function saveSettings(){
   if(emp){
     S.settings.empresarial=emp.checked;
     if(!emp.checked)S.settings.ctxView='all';   // desligar volta a mostrar tudo
+    // a chave e o tipo descrevem a mesma coisa: nao podem discordar
+    if(emp.checked)S.settings.accountType='both';
+    else if(S.settings.accountType==='both')S.settings.accountType='pf';
+    renderCatSelects();
   }
   renderCtxSwitch();
   persistSettings();
