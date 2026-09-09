@@ -143,6 +143,11 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .ctx-seg button{flex:1;border:none;background:none;font-family:var(--ff);font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:6px 2px;color:var(--ink4);cursor:pointer}
 .ctx-seg button:hover{background:rgba(250,249,247,.08)}
 .ctx-seg button.on{background:var(--gold);color:#0d0d0d}
+/* Abas de A pagar / A receber */
+.bl-tabs{display:inline-flex;border:1px solid var(--paper3);border-radius:9px;overflow:hidden;margin-bottom:18px}
+.bl-tabs button{border:none;background:none;font-family:var(--ff);font-size:13px;font-weight:700;padding:9px 20px;color:var(--ink3);cursor:pointer}
+.bl-tabs button:hover{background:var(--paper2)}
+.bl-tabs button.on{background:var(--ink);color:var(--paper)}
 
 /* CARDS */
 .cards-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
@@ -559,7 +564,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
       <div class="sb-section">Principal</div>
       <div class="navi active" onclick="showPage('dashboard')">Dashboard</div>
       <div class="navi" onclick="showPage('transactions')">Transações</div>
-      <div class="navi" onclick="showPage('bills')">Contas a Pagar</div>
+      <div class="navi" onclick="showPage('bills')">Contas</div>
       <div class="navi" onclick="showPage('budget')">Orçamento</div>
       <div class="navi" id="nav-cc" onclick="showPage('credit-card')">Cartão de Crédito</div>
       <div class="sb-section">Patrimônio</div>
@@ -759,13 +764,17 @@ body.values-hidden #dash-chart{filter:blur(6px)}
     <!-- CONTAS A PAGAR -->
     <div class="page" id="bills">
       <div class="ph">
-        <div><h1 class="pt">Contas a Pagar</h1><p class="ps">Vencimentos do mês, com aviso no painel</p></div>
-        <button class="btn btn-primary" onclick="openBillModal()">+ Nova Conta</button>
+        <div><h1 class="pt" id="bills-title">Contas a Pagar</h1><p class="ps" id="bills-sub">Vencimentos do mês, com aviso no painel</p></div>
+        <button class="btn btn-primary" id="bills-new-btn" onclick="openBillModal()">+ Nova Conta</button>
+      </div>
+      <div class="bl-tabs">
+        <button type="button" data-bk="pay" onclick="setBillsTab('pay')">A pagar</button>
+        <button type="button" data-bk="receive" onclick="setBillsTab('receive')">A receber</button>
       </div>
       <div class="cards-row" style="grid-template-columns:repeat(3,1fr)">
         <div class="sum-card balance"><div class="sc-label">Total do Mês</div><div class="sc-val" id="bills-total">R$ 0,00</div><div class="sc-sub">todas as contas</div></div>
-        <div class="sum-card income"><div class="sc-label">Pagas</div><div class="sc-val" id="bills-paid">R$ 0,00</div><div class="sc-sub">neste mês</div></div>
-        <div class="sum-card expense"><div class="sc-label">Em Aberto</div><div class="sc-val" id="bills-open">R$ 0,00</div><div class="sc-sub">ainda por pagar</div></div>
+        <div class="sum-card income"><div class="sc-label" id="bills-paid-lbl">Pagas</div><div class="sc-val" id="bills-paid">R$ 0,00</div><div class="sc-sub">neste mês</div></div>
+        <div class="sum-card expense"><div class="sc-label" id="bills-open-lbl">Em Aberto</div><div class="sc-val" id="bills-open">R$ 0,00</div><div class="sc-sub" id="bills-open-sub">ainda por pagar</div></div>
       </div>
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Contas do mês</span></div>
@@ -4493,22 +4502,40 @@ function renderBudgetPage(){
 
 // ═══ CONTAS A PAGAR ═══
 function billPaidThisMonth(b,month){return (b.paidMonths||[]).includes(month);}
+
+// ═══ A PAGAR E A RECEBER ═══
+//
+// Mesmo modelo de dados: nome, valor, dia do mês, categoria e os meses já
+// quitados. A única diferença é a DIREÇÃO do dinheiro. Por isso é um campo, e
+// não um módulo separado — duplicar a página, o modal, o status e o alerta
+// seria manutenção dobrada para guardar exatamente os mesmos campos.
+//
+// Conta sem kind é "a pagar". Retroativo sem migração, como o bolso.
+function billKind(b){return b&&b.kind==='receive'?'receive':'pay';}
+function billsTab(){return S.settings.billsTab==='receive'?'receive':'pay';}
+function billsDaAba(){const k=billsTab();return billsVis().filter(b=>billKind(b)===k);}
+function setBillsTab(k){
+  S.settings.billsTab=(k==='receive')?'receive':'pay';
+  persistSettings();
+  renderBillsPage();
+}
 function billStatus(b){
   const month=monthKeyOf(new Date());
-  if(billPaidThisMonth(b,month))return{k:'paid',label:'Paga',color:'var(--green)'};
+  const rec=billKind(b)==='receive';
+  if(billPaidThisMonth(b,month))return{k:'paid',label:rec?'Recebida':'Paga',color:'var(--green)'};
   const now=new Date();
   const maxDay=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
   const due=new Date(now.getFullYear(),now.getMonth(),Math.min(b.day,maxDay));
   const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   const diff=Math.round((due-today)/86400000);
-  if(diff<0)return{k:'late',label:'Venceu há '+(-diff)+(diff===-1?' dia':' dias'),color:'var(--red)'};
-  if(diff===0)return{k:'today',label:'Vence hoje',color:'var(--red)'};
-  if(diff<=3)return{k:'soon',label:'Vence em '+diff+(diff===1?' dia':' dias'),color:'var(--gold)'};
-  return{k:'open',label:'Vence dia '+b.day,color:'var(--ink3)'};
+  if(diff<0)return{k:'late',label:(rec?'Atrasada há ':'Venceu há ')+(-diff)+(diff===-1?' dia':' dias'),color:'var(--red)'};
+  if(diff===0)return{k:'today',label:rec?'Cai hoje':'Vence hoje',color:'var(--red)'};
+  if(diff<=3)return{k:'soon',label:(rec?'Cai em ':'Vence em ')+diff+(diff===1?' dia':' dias'),color:'var(--gold)'};
+  return{k:'open',label:(rec?'Cai dia ':'Vence dia ')+b.day,color:'var(--ink3)'};
 }
 function openBillModal(){
   S.billEditId=null;
-  document.getElementById('bill-modal-title').textContent='Nova Conta';
+  document.getElementById('bill-modal-title').textContent=billsTab()==='receive'?'Novo Recebimento':'Nova Conta';
   ['bl-name','bl-amt','bl-day'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('bl-cat').value='Contas';
   openModal('bill-modal');
@@ -4537,7 +4564,7 @@ function saveBill(){
     const b=S.bills.find(x=>x.id===S.billEditId);
     if(b){b.name=name;b.amount=amt;b.day=day;b.category=cat;if(S.settings.empresarial)b.ctx=bolsoEscolhido('blctx');}
   }else{
-    S.bills.push({id:newId(),name:name,amount:amt,day:day,category:cat,paidMonths:[],ctx:bolsoEscolhido('blctx')});
+    S.bills.push({id:newId(),name:name,amount:amt,day:day,category:cat,paidMonths:[],ctx:bolsoEscolhido('blctx'),kind:billsTab()});
   }
   S.billEditId=null;
   persistBills();
@@ -4554,12 +4581,24 @@ function markBillPaid(id){
   const month=monthKeyOf(new Date());
   if(billPaidThisMonth(b,month))return;
   b.paidMonths=[...(b.paidMonths||[]),month].sort().slice(-12); // guarda só o último ano
-  S.transactions.push({id:newId(),type:'expense',description:b.name+' (conta)',amount:b.amount,date:new Date().toISOString().split('T')[0],category:b.category});
+  // A direção do lançamento vem da conta, não da tela: marcar um recebimento
+  // como quitado tem de gerar RECEITA. Herda tambem o bolso, senão o recebimento
+  // da empresa viraria uma receita pessoal.
+  const rec=billKind(b)==='receive';
+  S.transactions.push({
+    id:newId(),
+    type:rec?'income':'expense',
+    description:b.name+(rec?' (recebimento)':' (conta)'),
+    amount:b.amount,
+    date:new Date().toISOString().split('T')[0],
+    category:b.category,
+    ctx:ctxDe(b)
+  });
   persistBills();persist();
   renderBillsPage();
   populateMonthFilter();
   updateDashboard();
-  toast('Conta paga · despesa lançada');
+  toast(rec?'Recebimento confirmado · receita lançada':'Conta paga · despesa lançada');
 }
 async function unmarkBillPaid(id){
   const b=S.bills.find(x=>x.id===id);if(!b)return;
@@ -4574,27 +4613,39 @@ async function unmarkBillPaid(id){
 function renderBillsPage(){
   const el=document.getElementById('bills-list');if(!el)return;
   const month=monthKeyOf(new Date());
-  const total=billsVis().reduce((s,b)=>s+b.amount,0);
-  const paid=billsVis().filter(b=>billPaidThisMonth(b,month)).reduce((s,b)=>s+b.amount,0);
+  const rec=billsTab()==='receive';
+  const lista=billsDaAba();
+  // rótulos, título e botão trocam com a aba
+  document.querySelectorAll('.bl-tabs button').forEach(x=>x.classList.toggle('on',x.dataset.bk===billsTab()));
+  const tit=document.getElementById('bills-title');if(tit)tit.textContent=rec?'Contas a Receber':'Contas a Pagar';
+  const sub=document.getElementById('bills-sub');if(sub)sub.textContent=rec?'O que entra no mês, com aviso de atraso':'Vencimentos do mês, com aviso no painel';
+  const nb=document.getElementById('bills-new-btn');if(nb)nb.textContent=rec?'+ Novo Recebimento':'+ Nova Conta';
+  const lp=document.getElementById('bills-paid-lbl');if(lp)lp.textContent=rec?'Recebidas':'Pagas';
+  const lo=document.getElementById('bills-open-lbl');if(lo)lo.textContent=rec?'A receber':'Em Aberto';
+  const so=document.getElementById('bills-open-sub');if(so)so.textContent=rec?'ainda não caíram':'ainda por pagar';
+  const total=lista.reduce((s,b)=>s+b.amount,0);
+  const paid=lista.filter(b=>billPaidThisMonth(b,month)).reduce((s,b)=>s+b.amount,0);
   setCurAnimated('bills-total',total);
   setCurAnimated('bills-paid',paid);
   setCurAnimated('bills-open',total-paid);
-  if(!billsVis().length){
-    el.innerHTML=emptyHTML('Nenhuma conta cadastrada. Clique em "+ Nova Conta" para receber lembretes de vencimento.');
+  if(!lista.length){
+    el.innerHTML=emptyHTML(rec
+      ?'Nada a receber cadastrado. Clique em "+ Novo Recebimento" para acompanhar o que entra todo mês.'
+      :'Nenhuma conta cadastrada. Clique em "+ Nova Conta" para receber lembretes de vencimento.');
     return;
   }
-  el.innerHTML=[...billsVis()].sort((a,b)=>a.day-b.day).map(b=>{
+  el.innerHTML=[...lista].sort((a,b)=>a.day-b.day).map(b=>{
     const st=billStatus(b);
     const isPaid=st.k==='paid';
     return '<div class="tx-item"'+(isPaid?' style="opacity:.55"':'')+'>'+
-      '<div class="tx-icon expense">'+(CAT_ICONS[b.category]||CAT_ICONS['Contas'])+'</div>'+
+      '<div class="tx-icon '+(rec?'income':'expense')+'">'+(CAT_ICONS[b.category]||CAT_ICONS['Contas'])+'</div>'+
       '<div class="tx-info"><div class="tx-desc">'+esc(b.name)+'</div>'+
       '<div class="tx-meta">'+esc(b.category)+' · Todo dia '+b.day+' · <span style="color:'+st.color+';font-weight:700">'+st.label+'</span></div></div>'+
-      '<div class="tx-amount expense">'+fmtCur(b.amount)+'</div>'+
+      '<div class="tx-amount '+(rec?'income':'expense')+'">'+fmtCur(b.amount)+'</div>'+
       '<div class="tx-actions" style="opacity:1;display:flex;gap:6px;align-items:center">'+
         (isPaid
           ?'<button class="btn btn-secondary btn-sm" onclick="unmarkBillPaid('+b.id+')">Desfazer</button>'
-          :'<button class="btn btn-green btn-sm" onclick="markBillPaid('+b.id+')">Marcar paga</button>')+
+          :'<button class="btn btn-green btn-sm" onclick="markBillPaid('+b.id+')">'+(rec?'Marcar recebida':'Marcar paga')+'</button>')+
         '<button class="ibt" onclick="editBill('+b.id+')">✏️</button>'+
         '<button class="ibt del" onclick="delBill('+b.id+')">🗑️</button>'+
       '</div></div>';
@@ -4602,8 +4653,23 @@ function renderBillsPage(){
 }
 function renderBillsAlert(){
   const el=document.getElementById('bills-alert');if(!el)return;
-  const urgent=billsVis().map(b=>({b:b,st:billStatus(b)})).filter(x=>x.st.k==='late'||x.st.k==='today'||x.st.k==='soon');
-  if(!urgent.length){el.innerHTML='';return;}
+  const todas=billsVis().map(b=>({b:b,st:billStatus(b)})).filter(x=>x.st.k==='late'||x.st.k==='today'||x.st.k==='soon');
+  // Atrasado a RECEBER é tão urgente quanto vencido a pagar, mas é outro assunto:
+  // um é dívida sua, o outro é dinheiro que alguém te deve. Avisos separados.
+  const aReceber=todas.filter(x=>billKind(x.b)==='receive');
+  const urgent=todas.filter(x=>billKind(x.b)!=='receive');
+  let extra='';
+  if(aReceber.length){
+    const atr=aReceber.filter(x=>x.st.k==='late').length;
+    const t2=atr
+      ?atr+(atr===1?' recebimento atrasado':' recebimentos atrasados')
+      :aReceber.length+(aReceber.length===1?' recebimento cai':' recebimentos caem')+' nos próximos dias';
+    extra='<div onclick="setBillsTab(\'receive\');showPage(\'bills\')" style="background:var(--greenl);border:1px solid var(--green);border-radius:12px;padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer">'+
+      '<div style="font-size:13px;color:var(--ink)"><strong style="color:var(--green)">'+t2+'</strong> — '+aReceber.slice(0,3).map(x=>esc(x.b.name)).join(', ')+(aReceber.length>3?'…':'')+'</div>'+
+      '<span class="btn btn-secondary btn-sm" style="flex:none">Ver recebimentos</span>'+
+    '</div>';
+  }
+  if(!urgent.length){el.innerHTML=extra;return;}
   const late=urgent.filter(x=>x.st.k==='late').length;
   const txt=late
     ?late+(late===1?' conta vencida':' contas vencidas')
@@ -4611,7 +4677,7 @@ function renderBillsAlert(){
   el.innerHTML='<div onclick="showPage(\'bills\')" style="background:var(--redl);border:1px solid var(--red);border-radius:12px;padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer">'+
     '<div style="font-size:13px;color:var(--ink)"><strong style="color:var(--red)">'+txt+'</strong> — '+urgent.slice(0,3).map(x=>esc(x.b.name)).join(', ')+(urgent.length>3?'…':'')+'</div>'+
     '<span class="btn btn-secondary btn-sm" style="flex:none">Ver contas</span>'+
-  '</div>';
+  '</div>'+extra;
 }
 
 </script>

@@ -126,7 +126,7 @@ code{font-family:Consolas,monospace;font-size:.88em;background:var(--paper2);bor
       <ol>
         <li><a href="#dashboard"><span>01</span>Dashboard</a></li>
         <li><a href="#transacoes"><span>02</span>Transações</a></li>
-        <li><a href="#contas"><span>03</span>Contas a Pagar</a></li>
+        <li><a href="#contas"><span>03</span>Contas a Pagar e a Receber</a></li>
         <li><a href="#orcamento"><span>04</span>Orçamento</a></li>
         <li><a href="#cartao"><span>05</span>Cartão de Crédito</a></li>
       </ol>
@@ -218,12 +218,14 @@ code{font-family:Consolas,monospace;font-size:.88em;background:var(--paper2);bor
     </div>
   </div>
 
-  <h2 id="contas"><span class="num">3</span> Contas a Pagar</h2>
-  <p>Suas contas fixas, com lembrete antes do vencimento.</p>
+  <h2 id="contas"><span class="num">3</span> Contas a Pagar e a Receber</h2>
+  <p>Duas abas na mesma página: o que sai e o que entra todo mês.</p>
   <ul>
+    <li><strong>A pagar</strong> são suas contas fixas, com lembrete antes do vencimento. <strong>A receber</strong> é o outro lado — mensalidade de cliente, aluguel que você recebe, o que for. Marcar como recebida lança uma <strong>receita</strong>, não uma despesa.</li>
     <li>Cadastre nome, valor, categoria e o <strong>dia do vencimento</strong> — ela se repete todo mês.</li>
     <li>O <strong>painel destaca</strong> as contas que estão perto de vencer ou já vencidas, assim que você abre o app: "Vence em 2 dias", "Vence hoje", "Venceu há 3 dias".</li>
-    <li>Marcar como paga já lança a despesa correspondente nas Transações.</li>
+    <li>Marcar como paga já lança a despesa correspondente nas Transações — e marcar como recebida lança a receita.</li>
+    <li>O aviso do painel separa os dois: conta vencida é dívida sua, recebimento atrasado é dinheiro que alguém te deve.</li>
   </ul>
   <div class="highlight">🔒 <strong>Por que o aviso não vem por e-mail?</strong> Porque para mandar esse e-mail o nosso servidor precisaria <strong>ler quais contas você tem e quando elas vencem</strong> — e ele não consegue. Seus dados sobem cifrados, e a chave fica no seu aparelho. O lembrete por e-mail existiu até julho de 2026 e foi desligado justamente quando a criptografia de ponta a ponta entrou no ar. Trocamos uma comodidade pequena por uma garantia grande: nem nós vemos o que você deve.</div>
   <div class="mock">
