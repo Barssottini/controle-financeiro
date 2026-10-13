@@ -1098,14 +1098,18 @@ body.values-hidden #dash-chart{filter:blur(6px)}
   <div class="modal" style="max-width:440px">
     <div class="mhead"><h3><span id="aporte-modal-title">Aportes</span> — <span id="aporte-inv-name"></span></h3><button class="xbtn" onclick="closeModal('aporte-modal')">✕</button></div>
     <div class="mbody">
+      <div class="bl-tabs" style="margin-bottom:14px">
+        <button type="button" data-mov="in" onclick="setMovAporte('in')">Aporte</button>
+        <button type="button" data-mov="out" onclick="setMovAporte('out')">Resgate</button>
+      </div>
       <p id="aporte-hint" style="font-size:12.5px;color:var(--ink3);margin-bottom:14px;line-height:1.5"></p>
       <div class="frow">
         <div class="fgrp"><label class="flbl">Data</label><input class="field" type="date" id="aporte-date"></div>
-        <div class="fgrp" id="aporte-cdi-fields"><label class="flbl">Valor aportado (R$)</label><input class="field" type="number" id="aporte-amt" placeholder="Ex: 139,00" step="0.01" min="0.01"></div>
+        <div class="fgrp" id="aporte-cdi-fields"><label class="flbl" id="aporte-amt-lbl">Valor aportado (R$)</label><input class="field" type="number" id="aporte-amt" placeholder="Ex: 139,00" step="0.01" min="0.01"></div>
       </div>
       <div class="frow" id="aporte-asset-fields">
-        <div class="fgrp"><label class="flbl">Quantidade comprada</label><input class="field" type="number" id="aporte-qty" placeholder="Ex: 3" step="0.00000001" min="0"></div>
-        <div class="fgrp"><label class="flbl">Preço pago por unidade (R$)</label><input class="field" type="number" id="aporte-price" placeholder="Ex: 9,48" step="0.01" min="0"></div>
+        <div class="fgrp"><label class="flbl" id="aporte-qty-lbl">Quantidade comprada</label><input class="field" type="number" id="aporte-qty" placeholder="Ex: 3" step="0.00000001" min="0"></div>
+        <div class="fgrp"><label class="flbl" id="aporte-price-lbl">Preço pago por unidade (R$)</label><input class="field" type="number" id="aporte-price" placeholder="Ex: 9,48" step="0.01" min="0"></div>
       </div>
       <button class="btn btn-primary" style="width:100%" id="aporte-btn" onclick="addAporte()">Adicionar aporte</button>
       <div id="aporte-list" style="margin-top:16px"></div>
@@ -3599,18 +3603,52 @@ function renderInvPage(){
 }
 // ── Aportes (caixinha) e Compras (ativo) ──
 let _aporteInvId=null;
+let _aporteMov='in';   // 'in' entra dinheiro, 'out' sai
+
+// ═══ APORTES E RESGATES ═══
+//
+// Um resgate e uma perna NEGATIVA na mesma lista. Nao foi preguica: a formula
+// de rendimento ja faz a conta certa com ela. Cada perna rende de (1+d) elevado
+// aos dias uteis entre a SUA data e hoje, entao uma perna de -500 no dia 50
+// subtrai 500 mais exatamente o rendimento que esses 500 deixaram de render de
+// la para ca — que e o efeito real de ter sacado naquele dia. Guardar resgate
+// numa lista separada exigiria reescrever calcYield para chegar no mesmo numero.
+//
+// Em ativo com ticker, venda e outra coisa: reduz a QUANTIDADE e nao mexe no
+// preco medio. Vender nao muda quanto voce pagou pelo que sobrou.
+function setMovAporte(dir){
+  _aporteMov=(dir==='out')?'out':'in';
+  const inv=S.investments.find(x=>x.id===_aporteInvId);
+  const isCdi=!inv||(inv.kind||'cdi')==='cdi';
+  const saida=_aporteMov==='out';
+  document.querySelectorAll('#aporte-modal .bl-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.mov===_aporteMov));
+  const lblIn=document.getElementById('aporte-amt-lbl');
+  if(lblIn)lblIn.textContent=saida?'Valor resgatado (R$)':'Valor aportado (R$)';
+  const lblQty=document.getElementById('aporte-qty-lbl');
+  if(lblQty)lblQty.textContent=saida?'Quantidade vendida':'Quantidade comprada';
+  const lblPr=document.getElementById('aporte-price-lbl');
+  if(lblPr)lblPr.textContent=saida?'Preço de venda por unidade (R$)':'Preço pago por unidade (R$)';
+  const btn=document.getElementById('aporte-btn');
+  if(btn)btn.textContent=isCdi?(saida?'Registrar resgate':'Adicionar aporte'):(saida?'Registrar venda':'Adicionar compra');
+  const hint=document.getElementById('aporte-hint');
+  if(hint)hint.textContent=isCdi
+    ?(saida?'O valor sai na data informada e para de render a partir dela — o histórico anterior é preservado.'
+           :'Cada aporte rende a partir da sua própria data. O histórico da caixinha é preservado — você não precisa mais recomeçar do zero.')
+    :(saida?'A venda reduz a quantidade em carteira. O preço médio não muda: vender não altera quanto você pagou pelo que sobrou.'
+           :'Informe a nova compra. O preço médio é recalculado automaticamente pela fórmula ponderada.');
+}
 function openAporteModal(id){
   const inv=S.investments.find(x=>x.id===id);if(!inv)return;
   _aporteInvId=id;
   const isCdi=(inv.kind||'cdi')==='cdi';
-  document.getElementById('aporte-modal-title').textContent=isCdi?'Aportes':'Compras';
+  document.getElementById('aporte-modal-title').textContent=isCdi?'Aportes e resgates':'Compras e vendas';
   document.getElementById('aporte-inv-name').textContent=inv.name;
-  document.getElementById('aporte-hint').textContent=isCdi
-    ?'Cada aporte rende a partir da sua própria data. O histórico da caixinha é preservado — você não precisa mais recomeçar do zero.'
-    :'Informe a nova compra. O preço médio é recalculado automaticamente pela fórmula ponderada.';
+  document.querySelectorAll('#aporte-modal .bl-tabs button').forEach(b=>{
+    b.textContent=b.dataset.mov==='out'?(isCdi?'Resgate':'Venda'):(isCdi?'Aporte':'Compra');
+  });
   document.getElementById('aporte-cdi-fields').style.display=isCdi?'':'none';
   document.getElementById('aporte-asset-fields').style.display=isCdi?'none':'';
-  document.getElementById('aporte-btn').textContent=isCdi?'Adicionar aporte':'Adicionar compra';
+  setMovAporte('in');   // reabrir nunca herda "resgate" da vez anterior
   document.getElementById('aporte-date').valueAsDate=new Date();
   document.getElementById('aporte-amt').value='';
   document.getElementById('aporte-qty').value='';
@@ -3628,7 +3666,7 @@ function renderAporteList(){
     box.innerHTML=hd('Total aplicado',fmtCur(tot))+legs.map(l=>
       '<div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid var(--paper2)">'+
       '<span style="color:var(--ink3)">'+fmtDate(l.date)+(l.inicial?' <span style="font-size:11px">(inicial)</span>':'')+'</span>'+
-      '<span style="display:flex;align-items:center;gap:12px"><b style="color:var(--green)">+ '+fmtCur(l.amount)+'</b>'+
+      '<span style="display:flex;align-items:center;gap:12px"><b style="color:var('+((+l.amount||0)<0?'--red':'--green')+')">'+((+l.amount||0)<0?'− ':'+ ')+fmtCur(Math.abs(+l.amount||0))+'</b>'+
       (l.inicial?'':'<button class="ibt del" onclick="delAporte('+l.id+')" title="Excluir">🗑️</button>')+'</span></div>').join('');
   }else{
     const cs=[...invCompras(inv)].sort((a,b)=>new Date(b.date)-new Date(a.date));
@@ -3636,7 +3674,7 @@ function renderAporteList(){
       (cs.length?cs.map(c=>
       '<div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid var(--paper2)">'+
       '<span style="color:var(--ink3)">'+fmtDate(c.date)+'</span>'+
-      '<span style="display:flex;align-items:center;gap:12px"><b>'+(+c.qty)+' un. a '+fmtCur(c.price)+'</b>'+
+      '<span style="display:flex;align-items:center;gap:12px"><b'+((+c.qty||0)<0?' style="color:var(--red)"':'')+'>'+((+c.qty||0)<0?'− ':'')+Math.abs(+c.qty||0)+' un. a '+fmtCur(c.price)+'</b>'+
       '<button class="ibt del" onclick="delAporte('+c.id+')" title="Excluir">🗑️</button></span></div>').join('')
       :'<p style="font-size:12.5px;color:var(--ink3);padding:10px 0">Nenhuma compra registrada aqui ainda — as anteriores já estão embutidas na posição atual.</p>');
   }
@@ -3645,25 +3683,41 @@ function addAporte(){
   const inv=S.investments.find(x=>x.id===_aporteInvId);if(!inv)return;
   const date=document.getElementById('aporte-date').value;
   if(!date){showAlert('Informe a data.');return;}
+  const saida=_aporteMov==='out';
   if((inv.kind||'cdi')==='cdi'){
     const amt=parseFloat(document.getElementById('aporte-amt').value);
-    if(!amt||amt<=0){showAlert('Informe o valor do aporte.');return;}
+    if(!amt||amt<=0){showAlert(saida?'Informe o valor do resgate.':'Informe o valor do aporte.');return;}
+    if(saida){
+      // Resgatar mais do que existe deixaria a caixinha negativa e o rendimento
+      // sem sentido. Melhor recusar com o numero na frente do que aceitar.
+      const atual=calcYield(inv).current;
+      if(amt>atual+0.005){
+        showAlert('Esta caixinha tem '+fmtCur(atual)+' hoje. Não dá para resgatar '+fmtCur(amt)+'.');
+        return;
+      }
+    }
     if(!Array.isArray(inv.aportes))inv.aportes=[];
-    inv.aportes.push({id:Date.now(),date,amount:amt});
+    inv.aportes.push({id:Date.now(),date,amount:saida?-amt:amt});
     document.getElementById('aporte-amt').value='';
-    toast('Aporte registrado');
+    toast(saida?'Resgate registrado':'Aporte registrado');
   }else{
     const q=parseFloat(document.getElementById('aporte-qty').value);
     const p=parseFloat(document.getElementById('aporte-price').value);
-    if(!q||q<=0||isNaN(p)||p<0){showAlert('Informe a quantidade e o preço pago por unidade.');return;}
-    const oq=+inv.qty||0,op=+inv.pm||0,nq=oq+q;
-    inv.pm=(oq*op+q*p)/nq;  // preço médio ponderado
-    inv.qty=nq;
+    if(!q||q<=0||isNaN(p)||p<0){showAlert(saida?'Informe a quantidade e o preço de venda por unidade.':'Informe a quantidade e o preço pago por unidade.');return;}
+    const oq=+inv.qty||0,op=+inv.pm||0;
+    if(saida){
+      if(q>oq+1e-9){showAlert('Você tem '+oq+' un. em carteira. Não dá para vender '+q+'.');return;}
+      inv.qty=oq-q;   // o preço médio NÃO muda numa venda
+    }else{
+      const nq=oq+q;
+      inv.pm=(oq*op+q*p)/nq;  // preço médio ponderado
+      inv.qty=nq;
+    }
     if(!Array.isArray(inv.compras))inv.compras=[];
-    inv.compras.push({id:Date.now(),date,qty:q,price:p});
+    inv.compras.push({id:Date.now(),date,qty:saida?-q:q,price:p});
     document.getElementById('aporte-qty').value='';
     document.getElementById('aporte-price').value='';
-    toast('Compra registrada — PM agora é '+fmtCur(inv.pm));
+    toast(saida?'Venda registrada — restam '+(+inv.qty)+' un.':'Compra registrada — PM agora é '+fmtCur(inv.pm));
   }
   persistInv();renderAporteList();renderInvPage();updateDashboard();
 }
