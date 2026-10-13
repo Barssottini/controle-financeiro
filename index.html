@@ -611,9 +611,9 @@ body.values-hidden #dash-chart{filter:blur(6px)}
       </div>
       <div id="bills-alert"></div>
       <div class="cards-row" id="dash-cards">
-        <div class="sum-card income"><div class="sc-label">Receitas</div><div class="sc-val" id="total-income">R$ 0,00</div><div class="sc-sub">total geral</div></div>
-        <div class="sum-card expense"><div class="sc-label">Despesas</div><div class="sc-val" id="total-expense">R$ 0,00</div><div class="sc-sub">total geral</div></div>
-        <div class="sum-card cc" id="card-cc"><div class="sc-label">Cartão de Crédito</div><div class="sc-val" id="total-cc">R$ 0,00</div><div class="sc-sub">fatura acumulada</div></div>
+        <div class="sum-card income"><div class="sc-label">Receitas</div><div class="sc-val" id="total-income">R$ 0,00</div><div class="sc-sub" id="income-sub">total geral</div></div>
+        <div class="sum-card expense"><div class="sc-label">Despesas</div><div class="sc-val" id="total-expense">R$ 0,00</div><div class="sc-sub" id="expense-sub">total geral</div></div>
+        <div class="sum-card cc" id="card-cc"><div class="sc-label">Cartão de Crédito</div><div class="sc-val" id="total-cc">R$ 0,00</div><div class="sc-sub" id="cc-sub">fatura acumulada</div></div>
         <div class="sum-card balance"><div class="sc-label">Saldo</div><div class="sc-val" id="total-balance">R$ 0,00</div><div class="sc-sub" id="balance-sub">receitas − despesas</div></div>
       </div>
       <div class="panel">
@@ -624,11 +624,14 @@ body.values-hidden #dash-chart{filter:blur(6px)}
               <option value="line">Gráfico de linhas</option>
               <option value="bar">Gráfico de barras</option>
             </select>
-            <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="chart-period" onchange="renderChart()">
+            <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="chart-period" onchange="trocarPeriodo()">
               <option value="7d">Últimos 7 dias</option>
               <option value="30d">Últimos 30 dias</option>
+              <option value="3">Últimos 3 meses</option>
               <option value="6" selected>Últimos 6 meses</option>
+              <option value="9">Últimos 9 meses</option>
               <option value="12">Últimos 12 meses</option>
+              <option value="all">Todo o período</option>
             </select>
           </div>
         </div>
@@ -2928,6 +2931,55 @@ function dismissReminder(e){
   document.getElementById('reminder-bar').classList.add('hidden');
 }
 
+// ═══ PERÍODO DO PAINEL ═══
+//
+// O seletor do gráfico passou a mandar tambem nos cartões de cima. Antes eles
+// diziam "total geral" e mostravam o historico inteiro, enquanto o grafico logo
+// abaixo mostrava seis meses — dois numeros diferentes na mesma tela, sem nada
+// explicando a diferenca.
+//
+// A janela e calculada UMA vez aqui e lida pelos dois. Se cada um calculasse a
+// sua, bastaria uma mudanca em um para os numeros divergirem em silencio.
+//
+// O recorte casa com os baldes do grafico de proposito: em meses ele comeca no
+// dia 1 do mes mais antigo exibido, nao em "N vezes 30 dias atras". Senao a
+// soma dos cartoes nao bateria com a soma das barras.
+function _isoDia(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function periodoDash(){
+  const el=document.getElementById('chart-period');
+  // Põe o select de volta na preferência salva. Isso é o que torna a ORDEM de
+  // desenho irrelevante: sem isto, se o painel fosse desenhado antes do gráfico
+  // na carga, os cartões leriam o valor padrão do HTML e mostrariam um recorte
+  // diferente do que o gráfico logo abaixo desenha.
+  if(el&&S.settings.chartPeriod&&el.value!==S.settings.chartPeriod
+     &&[...el.options].some(o=>o.value===S.settings.chartPeriod))el.value=S.settings.chartPeriod;
+  const v=(el&&el.value)||S.settings.chartPeriod||'6';
+  const hoje=new Date();
+  if(v==='all')return{v:v,desde:'',rotulo:'todo o período'};
+  if(/d$/.test(v)){
+    const n=parseInt(v)||30;
+    return{v:v,desde:_isoDia(new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate()-(n-1))),rotulo:'últimos '+n+' dias'};
+  }
+  const n=parseInt(v)||6;
+  return{v:v,desde:_isoDia(new Date(hoje.getFullYear(),hoje.getMonth()-(n-1),1)),rotulo:'últimos '+n+' meses'};
+}
+function noPeriodo(x,desde){return !desde||String((x&&x.date)||'')>=desde;}
+// Quantos meses cobrir em "todo o período": do lançamento mais antigo até hoje.
+function mesesDoHistorico(){
+  const datas=[...txVis(),...ccVis()].map(x=>x&&x.date).filter(Boolean).sort();
+  if(!datas.length)return 6;
+  const p=datas[0].split('-');
+  const ini=new Date(+p[0],(+p[1]||1)-1,1),hoje=new Date();
+  const n=(hoje.getFullYear()-ini.getFullYear())*12+(hoje.getMonth()-ini.getMonth())+1;
+  return Math.max(1,n);
+}
+function trocarPeriodo(){
+  const el=document.getElementById('chart-period');
+  if(el){S.settings.chartPeriod=el.value;persistSettings();}
+  renderChart();
+  updateDashboard();
+}
+
 // ═══ TIPO DA CONTA ═══
 //
 // Escolhido no primeiro acesso. Nao e so um rotulo: define as CATEGORIAS, que
@@ -3857,16 +3909,21 @@ function flashItem(id){
 }
 
 function updateDashboard(){
-  const vis=txVis();
+  const per=periodoDash();
+  const vis=txVis().filter(x=>noPeriodo(x,per.desde));
   const income=vis.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=vis.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  const cc=ccVis().reduce((s,c)=>s+c.amount,0);
+  const cc=ccVis().filter(x=>noPeriodo(x,per.desde)).reduce((s,c)=>s+c.amount,0);
+  // o rótulo acompanha o número: sem isso o cartão diria "total geral" sobre um recorte
+  const sub1=document.getElementById('income-sub');if(sub1)sub1.textContent=per.rotulo;
+  const sub2=document.getElementById('expense-sub');if(sub2)sub2.textContent=per.rotulo;
+  const sub3=document.getElementById('cc-sub');if(sub3)sub3.textContent=per.v==='all'?'fatura acumulada':per.rotulo;
   setCurAnimated('total-income',income);
   setCurAnimated('total-expense',expense);
   setCurAnimated('total-cc',cc);
   setCurAnimated('total-balance',income-expense);
 
-  const recent=[...txVis()].sort(txCompare).slice(0,5);
+  const recent=[...txVis()].sort(txCompare).slice(0,5);   // sempre as últimas, independente do recorte
   document.getElementById('recent-list').innerHTML=recent.length?recent.map(t=>txHTML(t)).join(''):emptyHTML('Nenhuma transação cadastrada');
 
   populateCatMonths();
@@ -4027,7 +4084,9 @@ function renderChart(){
   const chartType=S.settings.chartType==='bar'?'bar':'line';
   const typeSel=document.getElementById('chart-type');
   if(typeSel)typeSel.value=chartType;
-  const periodVal=document.getElementById('chart-period')?.value||'6';
+  // mesma fonte que os cartões de cima usam — se cada um calculasse a sua,
+  // bastaria uma mudança em um para os dois divergirem em silêncio
+  const periodVal=periodoDash().v;
   const daily=/d$/.test(periodVal);
   const labels=[],incData=[],expData=[];
   const now=new Date();
@@ -4041,7 +4100,7 @@ function renderChart(){
       expData.push(txVis().filter(t=>t.type==='expense'&&t.date===key).reduce((s,t)=>s+t.amount,0));
     }
   }else{
-    const months=parseInt(periodVal);
+    const months=periodVal==='all'?mesesDoHistorico():parseInt(periodVal);
     for(let i=months-1;i>=0;i--){
       const d=new Date(now.getFullYear(),now.getMonth()-i,1);
       const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
