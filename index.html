@@ -632,7 +632,13 @@ body.values-hidden #dash-chart{filter:blur(6px)}
               <option value="9">Últimos 9 meses</option>
               <option value="12">Últimos 12 meses</option>
               <option value="all">Todo o período</option>
+              <option value="custom">Personalizado…</option>
             </select>
+            <span id="per-custom" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--ink3)">
+              <input class="field" type="date" id="per-de" style="width:auto;padding:6px 9px;font-size:12px" onchange="trocarPeriodo()">
+              <span>até</span>
+              <input class="field" type="date" id="per-ate" style="width:auto;padding:6px 9px;font-size:12px" onchange="trocarPeriodo()">
+            </span>
           </div>
         </div>
         <div class="chart-wrap"><canvas id="dash-chart"></canvas></div>
@@ -826,6 +832,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
             <option value="mes">Este mês</option>
             <option value="3m">Últimos 3 meses</option>
             <option value="ano">Este ano</option>
+            <option value="painel">O período que estou vendo no painel</option>
             <option value="tudo" selected>Todo o histórico</option>
           </select>
           <button class="btn btn-secondary" onclick="exportarCSV()">Baixar lançamentos (CSV)</button>
@@ -1658,6 +1665,7 @@ async function onSignedIn(session,fresh){
   renderEyeToggle();
   renderCtxSwitch();   // sem isto o alternador some para quem já ativou o modo
   renderCatSelects();
+  renderCamposPeriodo();
   resetInactivityTimer();
   if(est.showRecovery){
     // Quem acabou de se cadastrar aceitou ESTA versao ha um minuto. Avisar que
@@ -2945,6 +2953,14 @@ function dismissReminder(e){
 // dia 1 do mes mais antigo exibido, nao em "N vezes 30 dias atras". Senao a
 // soma dos cartoes nao bateria com a soma das barras.
 function _isoDia(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function _diasEntre(a,b){
+  const pa=a.split('-'),pb=b.split('-');
+  const da=new Date(+pa[0],+pa[1]-1,+pa[2]),db=new Date(+pb[0],+pb[1]-1,+pb[2]);
+  return Math.round((db-da)/86400000)+1;
+}
+function _ptBR(iso){const p=String(iso||'').split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso;}
+// Acima de ~2 meses, barra por dia vira mancha: 2 anos dariam 730 colunas.
+const DIAS_MAX_DIARIO=62;
 function periodoDash(){
   const el=document.getElementById('chart-period');
   // Põe o select de volta na preferência salva. Isso é o que torna a ORDEM de
@@ -2954,16 +2970,36 @@ function periodoDash(){
   if(el&&S.settings.chartPeriod&&el.value!==S.settings.chartPeriod
      &&[...el.options].some(o=>o.value===S.settings.chartPeriod))el.value=S.settings.chartPeriod;
   const v=(el&&el.value)||S.settings.chartPeriod||'6';
-  const hoje=new Date();
-  if(v==='all')return{v:v,desde:'',rotulo:'todo o período'};
+  const hoje=new Date(),ate=_isoDia(hoje);
+  const faixa=(v,desde,ate,rotulo)=>({v:v,desde:desde,ate:ate,rotulo:rotulo,
+    diario:!!desde&&!!ate&&_diasEntre(desde,ate)<=DIAS_MAX_DIARIO});
+  if(v==='custom'){
+    const de=(document.getElementById('per-de')||{}).value||'';
+    const a=(document.getElementById('per-ate')||{}).value||ate;
+    // Datas invertidas sao erro de digitacao, nao pedido de intervalo vazio:
+    // trocar e mais util que mostrar zero em tudo sem explicar por que.
+    const d1=de&&a&&de>a?a:de, d2=de&&a&&de>a?de:a;
+    if(!d1)return faixa(v,'',a,'até '+_ptBR(a));
+    return faixa(v,d1,d2,_ptBR(d1)+' a '+_ptBR(d2));
+  }
+  if(v==='all')return{v:v,desde:'',ate:'',rotulo:'todo o período',diario:false};
   if(/d$/.test(v)){
     const n=parseInt(v)||30;
-    return{v:v,desde:_isoDia(new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate()-(n-1))),rotulo:'últimos '+n+' dias'};
+    return faixa(v,_isoDia(new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate()-(n-1))),ate,'últimos '+n+' dias');
   }
   const n=parseInt(v)||6;
-  return{v:v,desde:_isoDia(new Date(hoje.getFullYear(),hoje.getMonth()-(n-1),1)),rotulo:'últimos '+n+' meses'};
+  return faixa(v,_isoDia(new Date(hoje.getFullYear(),hoje.getMonth()-(n-1),1)),ate,'últimos '+n+' meses');
 }
-function noPeriodo(x,desde){return !desde||String((x&&x.date)||'')>=desde;}
+// Recebe a FAIXA inteira, nao so o inicio: sem o limite superior, um intervalo
+// fechado do passado somaria tudo que veio depois dele.
+function noPeriodo(x,per){
+  const d=String((x&&x.date)||'');
+  const p=(per&&typeof per==='object')?per:{desde:per,ate:''};
+  if(!d)return !p.desde&&!p.ate;
+  if(p.desde&&d<p.desde)return false;
+  if(p.ate&&d>p.ate)return false;
+  return true;
+}
 // Quantos meses cobrir em "todo o período": do lançamento mais antigo até hoje.
 function mesesDoHistorico(){
   const datas=[...txVis(),...ccVis()].map(x=>x&&x.date).filter(Boolean).sort();
@@ -2973,9 +3009,28 @@ function mesesDoHistorico(){
   const n=(hoje.getFullYear()-ini.getFullYear())*12+(hoje.getMonth()-ini.getMonth())+1;
   return Math.max(1,n);
 }
+function renderCamposPeriodo(){
+  const el=document.getElementById('chart-period');
+  const box=document.getElementById('per-custom');
+  if(box)box.style.display=(el&&el.value==='custom')?'inline-flex':'none';
+  const de=document.getElementById('per-de'),ate=document.getElementById('per-ate');
+  // primeira abertura: ultimos 30 dias ja preenchidos, para a pessoa so ajustar
+  if(de&&ate&&el&&el.value==='custom'&&!de.value&&!ate.value){
+    const h=new Date();
+    ate.value=_isoDia(h);
+    de.value=_isoDia(new Date(h.getFullYear(),h.getMonth(),h.getDate()-29));
+  }
+  if(de&&S.settings.periodoDe&&!de.value)de.value=S.settings.periodoDe;
+  if(ate&&S.settings.periodoAte&&!ate.value)ate.value=S.settings.periodoAte;
+}
 function trocarPeriodo(){
   const el=document.getElementById('chart-period');
-  if(el){S.settings.chartPeriod=el.value;persistSettings();}
+  if(el){S.settings.chartPeriod=el.value;}
+  renderCamposPeriodo();
+  const de=document.getElementById('per-de'),ate=document.getElementById('per-ate');
+  if(de)S.settings.periodoDe=de.value||'';
+  if(ate)S.settings.periodoAte=ate.value||'';
+  persistSettings();
   renderChart();
   updateDashboard();
 }
@@ -3101,8 +3156,11 @@ function expDesde(){
   return '';
 }
 function exportarCSV(){
-  const desde=expDesde();
-  const dentro=x=>!desde||String(x.date||'')>=desde;
+  // "o período do painel" reusa exatamente a mesma faixa do gráfico — era a
+  // segunda ideia de período no app, com opções próprias e diferentes.
+  const vSel=(document.getElementById('exp-periodo')||{}).value;
+  const per=vSel==='painel'?periodoDash():{desde:expDesde(),ate:''};
+  const dentro=x=>noPeriodo(x,per);
   const emp=!!S.settings.empresarial;
   const nome=x=>emp?(ctxDe(x)==='pj'?'Empresa':'Pessoal'):'';
   const linhas=[];
@@ -3910,10 +3968,10 @@ function flashItem(id){
 
 function updateDashboard(){
   const per=periodoDash();
-  const vis=txVis().filter(x=>noPeriodo(x,per.desde));
+  const vis=txVis().filter(x=>noPeriodo(x,per));
   const income=vis.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=vis.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  const cc=ccVis().filter(x=>noPeriodo(x,per.desde)).reduce((s,c)=>s+c.amount,0);
+  const cc=ccVis().filter(x=>noPeriodo(x,per)).reduce((s,c)=>s+c.amount,0);
   // o rótulo acompanha o número: sem isso o cartão diria "total geral" sobre um recorte
   const sub1=document.getElementById('income-sub');if(sub1)sub1.textContent=per.rotulo;
   const sub2=document.getElementById('expense-sub');if(sub2)sub2.textContent=per.rotulo;
@@ -4084,29 +4142,35 @@ function renderChart(){
   const chartType=S.settings.chartType==='bar'?'bar':'line';
   const typeSel=document.getElementById('chart-type');
   if(typeSel)typeSel.value=chartType;
-  // mesma fonte que os cartões de cima usam — se cada um calculasse a sua,
-  // bastaria uma mudança em um para os dois divergirem em silêncio
-  const periodVal=periodoDash().v;
-  const daily=/d$/.test(periodVal);
+  // Um caminho só, dirigido pela FAIXA. Antes havia um ramo para dias e outro
+  // para meses, e o intervalo personalizado pediria um terceiro — três lugares
+  // para o gráfico discordar dos cartões de cima.
+  const per=periodoDash();
   const labels=[],incData=[],expData=[];
-  const now=new Date();
-  if(daily){
-    const days=parseInt(periodVal);
-    for(let i=days-1;i>=0;i--){
-      const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i);
-      const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const vis=txVis();
+  const soma=(tipo,pref)=>vis.filter(t=>t.type===tipo&&String(t.date||'').startsWith(pref)).reduce((s,t)=>s+t.amount,0);
+  if(per.diario){
+    const p=per.desde.split('-');
+    const ini=new Date(+p[0],+p[1]-1,+p[2]);
+    const n=_diasEntre(per.desde,per.ate);
+    for(let i=0;i<n;i++){
+      const d=new Date(ini.getFullYear(),ini.getMonth(),ini.getDate()+i);
       labels.push(d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}));
-      incData.push(txVis().filter(t=>t.type==='income'&&t.date===key).reduce((s,t)=>s+t.amount,0));
-      expData.push(txVis().filter(t=>t.type==='expense'&&t.date===key).reduce((s,t)=>s+t.amount,0));
+      const key=_isoDia(d);
+      incData.push(soma('income',key));expData.push(soma('expense',key));
     }
   }else{
-    const months=periodVal==='all'?mesesDoHistorico():parseInt(periodVal);
-    for(let i=months-1;i>=0;i--){
-      const d=new Date(now.getFullYear(),now.getMonth()-i,1);
-      const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    // sem inicio definido ("todo o período"), parte do lançamento mais antigo
+    const hoje=new Date();
+    const fim=per.ate?(()=>{const q=per.ate.split('-');return new Date(+q[0],+q[1]-1,1);})():new Date(hoje.getFullYear(),hoje.getMonth(),1);
+    const ini=per.desde?(()=>{const q=per.desde.split('-');return new Date(+q[0],+q[1]-1,1);})()
+                       :new Date(hoje.getFullYear(),hoje.getMonth()-(mesesDoHistorico()-1),1);
+    const n=Math.max(1,(fim.getFullYear()-ini.getFullYear())*12+(fim.getMonth()-ini.getMonth())+1);
+    for(let i=0;i<n;i++){
+      const d=new Date(ini.getFullYear(),ini.getMonth()+i,1);
       labels.push(d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}));
-      incData.push(txVis().filter(t=>t.type==='income'&&t.date.startsWith(key)).reduce((s,t)=>s+t.amount,0));
-      expData.push(txVis().filter(t=>t.type==='expense'&&t.date.startsWith(key)).reduce((s,t)=>s+t.amount,0));
+      const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      incData.push(soma('income',key));expData.push(soma('expense',key));
     }
   }
   const ctx=document.getElementById('dash-chart').getContext('2d');
