@@ -382,6 +382,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .mobile-period{display:flex;align-items:center;justify-content:center;flex:1;min-width:0}
 .mobile-period button{width:32px;height:44px;background:none;color:var(--ink4);font-size:27px}
 .mobile-period select{min-width:0;max-width:210px;width:100%;height:44px;border:0;background:var(--ink);color:var(--paper);font-family:var(--ff);font-weight:600;font-size:13px;text-align:center;text-overflow:ellipsis}
+.balance-eye{display:none}
 .mtopbar button:focus-visible,.mtopbar select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 @media(max-width:900px){
   .mtopbar{height:68px;gap:8px;padding:0 15px}
@@ -391,17 +392,30 @@ body.values-hidden #dash-chart{filter:blur(6px)}
   #dashboard>.ph{display:none}
   #dashboard{display:flex;flex-direction:column}
   #dashboard:not(.active){display:none}
-  #dash-cards{order:-1;gap:10px;margin-bottom:26px}
-  #dash-cards .balance{text-align:center;padding:14px 0 20px}
+  #dash-cards{order:-1;gap:24px 12px;margin:-20px -15px 28px;padding:22px 16px 28px;background:var(--ink);border-radius:0 0 28px 28px}
+  #dash-cards .balance{text-align:center;padding:8px 0 0}
+  #dash-cards .balance .sc-label,#dash-cards .balance .sc-sub{color:var(--ink4)}
+  #dash-cards .balance .sc-val{color:var(--paper)}
+  .balance-eye{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin-top:12px;border:0;border-radius:50%;background:transparent;color:var(--paper);cursor:pointer}
+  .balance-eye svg{width:23px;height:23px}
+  .balance-eye:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   #dash-cards .balance .sc-val{font-size:38px;letter-spacing:-1.2px}
-  #dash-cards .income,#dash-cards .expense{background:none;border:0;padding:0 0 0 38px;min-width:0}
-  #dash-cards .income::before,#dash-cards .expense::before{left:0;top:4px;width:30px;height:30px;font-size:22px}
+  #dash-cards .income,#dash-cards .expense{display:grid;grid-template-columns:34px minmax(0,max-content);justify-content:center;column-gap:10px;background:none;border:0;padding:0;min-width:0;border-radius:0}
+  #dash-cards .income:hover,#dash-cards .expense:hover{transform:none;box-shadow:none}
+  #dash-cards .income::before,#dash-cards .expense::before{position:static;grid-column:1;grid-row:1/3;align-self:center;width:34px;height:34px;font-size:26px;color:#fff}
+  #dash-cards .income::before{background:#267a48}
+  #dash-cards .expense::before{background:#b83228}
+  #dash-cards .income .sc-label,#dash-cards .expense .sc-label{grid-column:2;color:var(--ink4)}
+  #dash-cards .income .sc-val,#dash-cards .expense .sc-val{grid-column:2}
+  #dash-cards .income .sc-val{color:#72ce91}
+  #dash-cards .expense .sc-val{color:#ff8178}
   #dash-cards .sc-label{font-size:12px;text-transform:none;letter-spacing:0;margin-bottom:5px}
-  #dash-cards .income .sc-val,#dash-cards .expense .sc-val{font-size:clamp(15px,4.5vw,22px);line-height:1.25;overflow-wrap:anywhere}
+  #dash-cards .income .sc-val,#dash-cards .expense .sc-val{font-size:clamp(14px,4.2vw,20px);line-height:1.25;overflow-wrap:anywhere}
   #dash-cards .income .sc-sub,#dash-cards .expense .sc-sub{display:none}
   #dash-cards #card-cc{grid-column:1/-1;padding:14px 18px}
   #dash-cards #card-cc .sc-val{font-size:21px}
   #dashboard .panel-head{flex-wrap:wrap;gap:12px}
+  #dashboard .panel{border-radius:20px;padding:20px;margin-bottom:24px}
   #dashboard .panel-head>div{flex-wrap:wrap;max-width:100%}
   #per-custom{flex-wrap:wrap}
 }
@@ -724,7 +738,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
       </div>
       <div id="bills-alert"></div>
       <div class="cards-row" id="dash-cards">
-        <div class="sum-card balance"><div class="sc-label">Saldo do período</div><div class="sc-val" id="total-balance">R$ 0,00</div><div class="sc-sub" id="balance-sub">receitas − despesas</div></div>
+        <div class="sum-card balance"><div class="sc-label">Saldo do período</div><div class="sc-val" id="total-balance">R$ 0,00</div><div class="sc-sub" id="balance-sub">receitas − despesas</div><button type="button" id="balance-eye" class="balance-eye" onclick="toggleShowValues()" aria-label="Ocultar valores"></button></div>
         <div class="sum-card income"><div class="sc-label">Receitas</div><div class="sc-val" id="total-income">R$ 0,00</div><div class="sc-sub" id="income-sub">total geral</div></div>
         <div class="sum-card expense"><div class="sc-label">Despesas</div><div class="sc-val" id="total-expense">R$ 0,00</div><div class="sc-sub" id="expense-sub">total geral</div></div>
         <div class="sum-card cc" id="card-cc"><div class="sc-label">Cartão de Crédito</div><div class="sc-val" id="total-cc">R$ 0,00</div><div class="sc-sub" id="cc-sub">fatura acumulada</div></div>
@@ -2271,6 +2285,8 @@ function renderEyeToggle(){
   const btn=document.getElementById('eye-toggle');if(!btn)return;
   const show=!!S.settings.showValues;
   btn.innerHTML=(show?EYE_OPEN:EYE_CLOSED)+'<span>'+(show?'Ocultar valores':'Mostrar valores')+'</span>';
+  const mobile=document.getElementById('balance-eye');
+  if(mobile){mobile.innerHTML=show?EYE_OPEN:EYE_CLOSED;mobile.setAttribute('aria-label',show?'Ocultar valores':'Mostrar valores');mobile.setAttribute('aria-pressed',String(!show));}
   document.body.classList.toggle('values-hidden',!show);
 }
 function toggleShowValues(){
@@ -3201,6 +3217,7 @@ function renderCamposPeriodo(){
   if(ate&&S.settings.periodoAte&&!ate.value)ate.value=S.settings.periodoAte;
 }
 function renderTopoDash(per){
+  renderEyeToggle();
   const email=document.getElementById('udisp').textContent.trim();
   document.getElementById('mobile-initial').textContent=(email||'N').charAt(0).toUpperCase();
   const sel=document.getElementById('mobile-month');
