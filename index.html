@@ -364,6 +364,47 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 }
 .mp-field{height:44px;padding:0 12px}
 .mp-field iframe{width:100%;height:100%;border:0}
+/* Saldo primeiro; entradas e saídas como informações de apoio. */
+#dash-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+#dash-cards.has-credit{grid-template-columns:repeat(3,minmax(0,1fr))}
+#dash-cards .balance{grid-column:1/-1;background:transparent;border:0;padding:12px 0 22px}
+#dash-cards .balance:hover{transform:none;box-shadow:none}
+#dash-cards .balance .sc-label{text-transform:none;letter-spacing:0;font-size:14px;font-weight:500}
+#dash-cards .balance .sc-val{font-size:44px;line-height:1.15;overflow-wrap:anywhere}
+#dash-cards .income,#dash-cards .expense{padding-left:66px}
+#dash-cards .income::before,#dash-cards .expense::before{position:absolute;left:16px;top:23px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:25px;font-weight:700;line-height:1}
+#dash-cards .income::before{content:'↑';background:var(--greenl);color:var(--green)}
+#dash-cards .expense::before{content:'↓';background:var(--redl);color:var(--red)}
+.mobile-avatar,.mobile-gift,.mobile-period button{border:0;cursor:pointer;font-family:var(--ff);flex-shrink:0}
+.mobile-avatar{width:40px;height:40px;border-radius:50%;background:var(--goldl);color:var(--ink);font-size:17px;font-weight:800}
+.mobile-gift{width:44px;height:44px;display:grid;place-items:center;background:none;color:var(--gold)}
+.mobile-gift svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mobile-period{display:flex;align-items:center;justify-content:center;flex:1;min-width:0}
+.mobile-period button{width:32px;height:44px;background:none;color:var(--ink4);font-size:27px}
+.mobile-period select{min-width:0;max-width:210px;width:100%;height:44px;border:0;background:var(--ink);color:var(--paper);font-family:var(--ff);font-weight:600;font-size:13px;text-align:center;text-overflow:ellipsis}
+.mtopbar button:focus-visible,.mtopbar select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+@media(max-width:900px){
+  .mtopbar{height:68px;gap:8px;padding:0 15px}
+  .sidebar{box-shadow:none}
+  .sidebar.open{box-shadow:12px 0 40px rgba(0,0,0,.35)}
+  .main{padding-top:88px;padding-bottom:112px}
+  #dashboard>.ph{display:none}
+  #dashboard{display:flex;flex-direction:column}
+  #dashboard:not(.active){display:none}
+  #dash-cards{order:-1;gap:10px;margin-bottom:26px}
+  #dash-cards .balance{text-align:center;padding:14px 0 20px}
+  #dash-cards .balance .sc-val{font-size:38px;letter-spacing:-1.2px}
+  #dash-cards .income,#dash-cards .expense{background:none;border:0;padding:0 0 0 38px;min-width:0}
+  #dash-cards .income::before,#dash-cards .expense::before{left:0;top:4px;width:30px;height:30px;font-size:22px}
+  #dash-cards .sc-label{font-size:12px;text-transform:none;letter-spacing:0;margin-bottom:5px}
+  #dash-cards .income .sc-val,#dash-cards .expense .sc-val{font-size:clamp(15px,4.5vw,22px);line-height:1.25;overflow-wrap:anywhere}
+  #dash-cards .income .sc-sub,#dash-cards .expense .sc-sub{display:none}
+  #dash-cards #card-cc{grid-column:1/-1;padding:14px 18px}
+  #dash-cards #card-cc .sc-val{font-size:21px}
+  #dashboard .panel-head{flex-wrap:wrap;gap:12px}
+  #dashboard .panel-head>div{flex-wrap:wrap;max-width:100%}
+  #per-custom{flex-wrap:wrap}
+}
 </style>
 </head>
 <body>
@@ -601,8 +642,13 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 <!-- APP -->
 <div id="app">
   <div class="mtopbar">
-    <button class="mmenu" onclick="toggleSidebar(true)" aria-label="Abrir menu">☰</button>
-    <div class="mtitle"><img src="logo-192.png" alt="North Finances" style="width:30px;height:30px;border-radius:8px;display:block"></div>
+    <button type="button" class="mobile-avatar" onclick="openPerfil()" aria-label="Ver meu perfil"><span id="mobile-initial" aria-hidden="true">N</span></button>
+    <div class="mobile-period">
+      <button type="button" onclick="mudarMesDash(-1)" aria-label="Mês anterior">‹</button>
+      <select id="mobile-month" aria-label="Período do painel" onchange="selecionarMesDash(this.value)"></select>
+      <button type="button" onclick="mudarMesDash(1)" aria-label="Próximo mês">›</button>
+    </div>
+    <button type="button" class="mobile-gift" onclick="openModal('invite-modal')" aria-label="Convide alguém para o North" title="Convide alguém"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h18v4H3zM5 12v9h14v-9M12 8v13M12 8H8.5A3 3 0 1 1 11.3 4L12 8Zm0 0h3.5A3 3 0 1 0 12.7 4L12 8Z"/></svg></button>
   </div>
   <div id="sb-backdrop" onclick="toggleSidebar(false)"></div>
   <div class="fabback" id="fab-back" onclick="fecharFab()"></div>
@@ -678,10 +724,10 @@ body.values-hidden #dash-chart{filter:blur(6px)}
       </div>
       <div id="bills-alert"></div>
       <div class="cards-row" id="dash-cards">
+        <div class="sum-card balance"><div class="sc-label">Saldo do período</div><div class="sc-val" id="total-balance">R$ 0,00</div><div class="sc-sub" id="balance-sub">receitas − despesas</div></div>
         <div class="sum-card income"><div class="sc-label">Receitas</div><div class="sc-val" id="total-income">R$ 0,00</div><div class="sc-sub" id="income-sub">total geral</div></div>
         <div class="sum-card expense"><div class="sc-label">Despesas</div><div class="sc-val" id="total-expense">R$ 0,00</div><div class="sc-sub" id="expense-sub">total geral</div></div>
         <div class="sum-card cc" id="card-cc"><div class="sc-label">Cartão de Crédito</div><div class="sc-val" id="total-cc">R$ 0,00</div><div class="sc-sub" id="cc-sub">fatura acumulada</div></div>
-        <div class="sum-card balance"><div class="sc-label">Saldo</div><div class="sc-val" id="total-balance">R$ 0,00</div><div class="sc-sub" id="balance-sub">receitas − despesas</div></div>
       </div>
       <div class="panel">
         <div class="panel-head">
@@ -692,6 +738,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
               <option value="bar">Gráfico de barras</option>
             </select>
             <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="chart-period" onchange="trocarPeriodo()">
+              <option value="month">Mês selecionado</option>
               <option value="7d">Últimos 7 dias</option>
               <option value="30d">Últimos 30 dias</option>
               <option value="3">Últimos 3 meses</option>
@@ -1282,6 +1329,18 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 </div>
 
 <!-- MODAL: CONCILIAR SALDO -->
+<div class="overlay" id="invite-modal" role="dialog" aria-modal="true" aria-labelledby="invite-title">
+  <div class="modal">
+    <div class="mhead"><h3 id="invite-title">Convide alguém para o North</h3><button class="xbtn" onclick="closeModal('invite-modal')" aria-label="Fechar convite">✕</button></div>
+    <div class="mbody">
+      <p style="margin-bottom:20px;color:var(--ink3);line-height:1.6">Compartilhe o North com quem também quer organizar a vida financeira.</p>
+      <label class="flbl" for="invite-link">Link para compartilhar</label>
+      <input class="field" id="invite-link" readonly value="https://northfinances.com.br/" onclick="this.select()">
+      <div class="factions"><button class="btn btn-primary" onclick="copiarConvite()">Copiar link</button></div>
+      <p id="invite-status" role="status" style="margin-top:12px;font-size:13px"></p>
+    </div>
+  </div>
+</div>
 <div class="overlay" id="reconcile-modal">
   <div class="modal">
     <div class="mhead"><h3>Conciliar Saldo</h3><button class="xbtn" onclick="closeModal('reconcile-modal')">✕</button></div>
@@ -2811,6 +2870,7 @@ function newId(){
 // ═══ INIT ═══
 function initApp(){
   loadData();
+  if(!S.settings.chartPeriod&&window.matchMedia('(max-width:900px)').matches)S.settings.chartPeriod='month';
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   checkReminder();
   populateMonthFilter();
@@ -2826,7 +2886,7 @@ function applyModules(){
   const navCC=document.getElementById('nav-cc');if(navCC)navCC.style.display=cc?'flex':'none';
   const moreCC=document.getElementById('more-cc');if(moreCC)moreCC.style.display=cc?'flex':'none';
   const cardCC=document.getElementById('card-cc');if(cardCC)cardCC.style.display=cc?'block':'none';
-  const cards=document.getElementById('dash-cards');if(cards)cards.style.gridTemplateColumns='repeat('+(cc?4:3)+',1fr)';
+  const cards=document.getElementById('dash-cards');if(cards)cards.classList.toggle('has-credit',cc);
   if(!cc&&document.getElementById('credit-card').classList.contains('active'))showPage('dashboard');
 }
 
@@ -3085,6 +3145,11 @@ function periodoDash(){
   const hoje=new Date(),ate=_isoDia(hoje);
   const faixa=(v,desde,ate,rotulo)=>({v:v,desde:desde,ate:ate,rotulo:rotulo,
     diario:!!desde&&!!ate&&_diasEntre(desde,ate)<=DIAS_MAX_DIARIO});
+  if(v==='month'){
+    const key=S.settings.dashboardMonth||monthKeyOf(hoje);
+    const [ano,mes]=key.split('-').map(Number);
+    return faixa(v,key+'-01',_isoDia(new Date(ano,mes,0)),monthLabel(key));
+  }
   if(v==='custom'){
     const de=(document.getElementById('per-de')||{}).value||'';
     const a=(document.getElementById('per-ate')||{}).value||ate;
@@ -3134,6 +3199,39 @@ function renderCamposPeriodo(){
   }
   if(de&&S.settings.periodoDe&&!de.value)de.value=S.settings.periodoDe;
   if(ate&&S.settings.periodoAte&&!ate.value)ate.value=S.settings.periodoAte;
+}
+function renderTopoDash(per){
+  const email=document.getElementById('udisp').textContent.trim();
+  document.getElementById('mobile-initial').textContent=(email||'N').charAt(0).toUpperCase();
+  const sel=document.getElementById('mobile-month');
+  const atual=monthKeyOf(new Date());
+  const escolhido=S.settings.dashboardMonth||atual;
+  const meses=new Set([atual,escolhido]);
+  const hoje=new Date();
+  for(let i=-12;i<=12;i++)meses.add(monthKeyOf(new Date(hoje.getFullYear(),hoje.getMonth()+i,1)));
+  S.transactions.forEach(t=>{if(/^\d{4}-\d{2}-\d{2}$/.test(t.date||''))meses.add(t.date.slice(0,7));});
+  sel.replaceChildren();
+  if(per.v!=='month')sel.add(new Option(per.rotulo,'range'));
+  [...meses].sort().reverse().forEach(m=>sel.add(new Option(monthLabel(m),m)));
+  sel.value=per.v==='month'?escolhido:'range';
+}
+function selecionarMesDash(key){
+  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(key))return;
+  S.settings.dashboardMonth=key;
+  document.getElementById('chart-period').value='month';
+  trocarPeriodo();
+  showPage('dashboard');
+}
+function mudarMesDash(delta){
+  const key=S.settings.chartPeriod==='month'?(S.settings.dashboardMonth||monthKeyOf(new Date())):monthKeyOf(new Date());
+  const [ano,mes]=key.split('-').map(Number);
+  selecionarMesDash(monthKeyOf(new Date(ano,mes-1+delta,1)));
+}
+async function copiarConvite(){
+  const link=document.getElementById('invite-link');
+  const status=document.getElementById('invite-status');
+  try{await navigator.clipboard.writeText(link.value);status.textContent='Link copiado!';}
+  catch(e){link.focus();link.select();status.textContent='Selecione e copie o link acima.';}
 }
 function trocarPeriodo(){
   const el=document.getElementById('chart-period');
@@ -4130,6 +4228,7 @@ function flashItem(id){
 
 function updateDashboard(){
   const per=periodoDash();
+  renderTopoDash(per);
   const vis=txVis().filter(x=>noPeriodo(x,per));
   const income=vis.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=vis.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
@@ -4138,6 +4237,7 @@ function updateDashboard(){
   const sub1=document.getElementById('income-sub');if(sub1)sub1.textContent=per.rotulo;
   const sub2=document.getElementById('expense-sub');if(sub2)sub2.textContent=per.rotulo;
   const sub3=document.getElementById('cc-sub');if(sub3)sub3.textContent=per.v==='all'?'fatura acumulada':per.rotulo;
+  document.getElementById('balance-sub').textContent=per.rotulo+' · receitas − despesas';
   setCurAnimated('total-income',income);
   setCurAnimated('total-expense',expense);
   setCurAnimated('total-cc',cc);
