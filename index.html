@@ -4424,7 +4424,12 @@ function parseOFX(text){
     const dc=cleanDesc(memo);
     // Pix recebido sempre Outros; senão reaproveita categoria já usada pelo usuário; senão adivinha
     const cat=PIX_IN_RE.test(memo.toLowerCase())?'Outros':(known[dc]||guessCategory(memo));
-    const type=amt>=0?'income':'expense';
+    // A especificacao da OFX manda debito com TRNAMT negativo, mas vario banco
+    // brasileiro envia o valor positivo e deixa a direcao so no TRNTYPE. Valor
+    // negativo ja e inequivoco, entao o TRNTYPE so decide quando o sinal nao diz
+    // nada — nenhuma linha que hoje acerta muda de lado.
+    const saida=/^(DEBIT|PAYMENT|DIRECTDEBIT|REPEATPMT|CHECK|FEE|SRVCHG|ATM|CASH)$/.test(get('TRNTYPE').toUpperCase());
+    const type=(amt<0||saida)?'expense':'income';
     rows.push({type,description:dc,amount:Math.abs(amt),date,time,category:cat});
   }
   return rows;
@@ -4541,7 +4546,7 @@ function renderImportPreview(filename){
         :maybe?'<span class="badge" style="background:#fef3c7;color:#b45309">Possível duplicata</span>':'';
       return '<div class="imp-row"'+(exact?' style="opacity:.5"':(maybe?' style="background:#fef3c7;border-left:3px solid #f0b429"':''))+'>'+
       '<input type="checkbox" class="chk imp-chk" data-i="'+i+'"'+(maybe?' data-maybe="1"':'')+(exact?' disabled':(maybe?'':' checked'))+'>'+
-      '<span class="badge '+(t.type==='income'?'badge-in':'badge-out')+'">'+(t.type==='income'?'Receita':'Despesa')+'</span>'+
+      '<span class="badge '+(t.type==='income'?'badge-in':'badge-out')+'" onclick="flipImportType(this,'+i+')" title="Clique para inverter entre receita e despesa" style="cursor:pointer">'+(t.type==='income'?'Receita':'Despesa')+'</span>'+
       '<span style="flex:1;font-weight:500;min-width:120px">'+esc(t.description)+'</span>'+
       flag+
       '<select class="imp-cat" data-i="'+i+'" onchange="parsedRows[this.dataset.i].category=this.value" style="font-size:12px;padding:4px 6px;border-radius:8px;border:1px solid var(--paper3);background:var(--paper);color:var(--ink3)">'+CATS.map(c=>'<option'+(c===t.category?' selected':'')+'>'+c+'</option>').join('')+'</select>'+
@@ -4549,6 +4554,17 @@ function renderImportPreview(filename){
       '<span style="font-weight:700;color:'+(t.type==='income'?'var(--green)':'var(--red)')+'">'+fmtCur(t.amount)+'</span>'+
       '</div>';
     }).join('')+'</div>';
+}
+// Nenhuma heuristica cobre todo layout de CSV, e errar o lado de um lancamento
+// e corromper o saldo. Um toque no badge inverte a linha antes de importar.
+function flipImportType(el,i){
+  const t=parsedRows[i];if(!t)return;
+  t.type=t.type==='income'?'expense':'income';
+  const inc=t.type==='income';
+  el.className='badge '+(inc?'badge-in':'badge-out');
+  el.textContent=inc?'Receita':'Despesa';
+  const val=el.parentElement.lastElementChild;
+  if(val)val.style.color=inc?'var(--green)':'var(--red)';
 }
 function toggleAllImport(state){
   document.querySelectorAll('.imp-chk').forEach(c=>{
