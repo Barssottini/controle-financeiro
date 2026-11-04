@@ -300,9 +300,14 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .tb-ic svg.dots circle{fill:currentColor;stroke:none}
 .tabbar button.on{color:var(--gold)}
 .tabbar button.on .tb-ic{background:color-mix(in srgb,var(--gold) 18%,transparent)}
-.tabbar button.fab{flex:none;justify-content:center;width:58px;height:58px;border-radius:50%;
-  background:var(--gold);color:#0d0d0d;border:none;font-size:30px;font-weight:300;line-height:1;
-  padding:0;margin:-24px 4px 8px;box-shadow:0 8px 22px rgba(0,0,0,.5);cursor:pointer}
+/* Medido no print do Mobills a 3x: circulo 50px, "+" de 22px, traco 2,7px.
+   O "+" e SVG e nao glifo de texto porque o glifo carrega a metrica da fonte
+   (linha de base, ascendente) e nunca fica centrado no circulo. */
+.tabbar button.fab{flex:none;justify-content:center;width:50px;height:50px;border-radius:50%;
+  background:var(--gold);color:#0d0d0d;border:none;
+  padding:0;margin:-20px 4px 8px;box-shadow:0 8px 22px rgba(0,0,0,.5);cursor:pointer}
+.tabbar button.fab svg{display:block;width:22px;height:22px;fill:none;stroke:currentColor;
+  stroke-width:2.7;stroke-linecap:round}
 .fabmenu{display:none;position:fixed;left:0;right:0;bottom:108px;z-index:97;
   flex-direction:column;align-items:center;gap:10px}
 .fabmenu.open{display:flex}
@@ -608,7 +613,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
   <nav class="tabbar">
     <button type="button" data-page="dashboard" onclick="showPage('dashboard')"><span class="tb-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.2 12 3l9 7.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span>Principal</button>
     <button type="button" data-page="transactions" onclick="showPage('transactions')"><span class="tb-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h2M4 12h2M4 18h2M9 6h11M9 12h11M9 18h11"/></svg></span>Transações</button>
-    <button type="button" class="fab" onclick="toggleFab()" aria-label="Novo lançamento">+</button>
+    <button type="button" class="fab" onclick="toggleFab()" aria-label="Novo lançamento"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M11 1.35V20.65M1.35 11H20.65"/></svg></button>
     <button type="button" data-page="budget" onclick="showPage('budget')"><span class="tb-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v8.5h8.5"/></svg></span>Orçamento</button>
     <button type="button" data-page="more" onclick="showPage('more')"><span class="tb-ic"><svg class="dots" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></span>Mais</button>
   </nav>
