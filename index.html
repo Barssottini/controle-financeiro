@@ -288,7 +288,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .tabbar button{flex:1;background:none;border:none;color:var(--ink4);font-family:var(--ff);
   font-size:11px;font-weight:700;letter-spacing:-.1px;padding:14px 2px;cursor:pointer}
 .tabbar button.on{color:var(--gold)}
-.fab{flex:none;width:54px;height:54px;border-radius:50%;background:var(--gold);color:#0d0d0d;
+.tabbar button.fab{flex:none;width:54px;height:54px;border-radius:50%;background:var(--gold);color:#0d0d0d;
   border:none;font-size:28px;font-weight:300;line-height:50px;padding:0;margin:-20px 4px 10px;
   box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer}
 .fabmenu{display:none;position:fixed;left:0;right:0;bottom:92px;z-index:97;
@@ -306,6 +306,17 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 @media(max-width:900px){
   .tabbar{display:flex}
   .main{padding-bottom:96px}
+  /* a fileira de acoes do cabecalho somava mais largura que a tela e empurrava
+     o corpo inteiro para o lado — era a origem do scroll horizontal */
+  .ph>div:last-child{flex-wrap:wrap}
+  .ph .btn{flex:1 1 auto}
+  /* com 3 cartoes a grade de 2 colunas deixava o ultimo sozinho; com 4 (cartao
+     de credito ligado) fecha certo, entao so o impar ocupa a linha toda */
+  .cards-row>:last-child:nth-child(odd){grid-column:1/-1}
+  /* a barra de abas ja da acesso a tudo: o hamburguer virava um segundo menu
+     para as mesmas telas */
+  .mmenu{display:none}
+  .mtitle{margin-left:4px}
 }
 
 /* SYNC */
@@ -703,10 +714,10 @@ body.values-hidden #dash-chart{filter:blur(6px)}
       <div class="ph">
         <div><h1 class="pt">Transações</h1><p class="ps" id="tx-count-lbl"></p></div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-danger" onclick="clearAllTx()">Limpar Transações</button>
+          <button class="btn btn-primary" onclick="openModal('tx-modal')">+ Nova Transação</button>
           <button class="btn btn-secondary" onclick="openReconcile()">Conciliar Saldo</button>
           <button class="btn btn-secondary" onclick="openModal('recurring-modal')">Recorrentes</button>
-          <button class="btn btn-primary" onclick="openModal('tx-modal')">+ Nova Transação</button>
+          <button class="btn btn-danger" onclick="clearAllTx()">Limpar Transações</button>
         </div>
       </div>
       <div class="panel">
@@ -853,6 +864,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
         <div class="more-item" onclick="openPerfil()">Seu perfil</div>
         <div class="more-item" onclick="window.open('manual.html','_blank')">Manual do usuário</div>
         <div class="more-item" onclick="window.open('termos.html','_blank')">Termos e privacidade</div>
+        <div class="more-item" onclick="doLogout()">Sair da conta</div>
       </div>
     </div>
 
