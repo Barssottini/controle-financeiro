@@ -166,6 +166,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .sum-card.cc .sc-val{color:var(--purple)}
 .sum-card.balance .sc-val{color:var(--ink)}
 
+#dash-cards .summary-arrow svg{display:block;width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 /* PANEL */
 .panel{background:var(--paper);border:1px solid var(--paper3);border-radius:13px;padding:24px;margin-bottom:22px}
 .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
@@ -372,9 +373,9 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 #dash-cards .balance .sc-label{text-transform:none;letter-spacing:0;font-size:14px;font-weight:500}
 #dash-cards .balance .sc-val{font-size:44px;line-height:1.15;overflow-wrap:anywhere}
 #dash-cards .income,#dash-cards .expense{padding-left:66px}
-#dash-cards .income::before,#dash-cards .expense::before{position:absolute;left:16px;top:23px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:25px;font-weight:700;line-height:1}
-#dash-cards .income::before{content:'↑';background:var(--greenl);color:var(--green)}
-#dash-cards .expense::before{content:'↓';background:var(--redl);color:var(--red)}
+#dash-cards .income .summary-arrow,#dash-cards .expense .summary-arrow{position:absolute;left:16px;top:23px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:25px;font-weight:700;line-height:1}
+#dash-cards .income .summary-arrow{background:var(--greenl);color:var(--green)}
+#dash-cards .expense .summary-arrow{background:var(--redl);color:var(--red)}
 .mobile-avatar,.mobile-gift,.mobile-period button{border:0;cursor:pointer;font-family:var(--ff);flex-shrink:0}
 .mobile-avatar{width:40px;height:40px;border-radius:50%;background:var(--goldl);color:var(--ink);font-size:17px;font-weight:800}
 .mobile-gift{width:44px;height:44px;display:grid;place-items:center;background:none;color:var(--gold)}
@@ -402,9 +403,9 @@ body.values-hidden #dash-chart{filter:blur(6px)}
   #dash-cards .balance .sc-val{font-size:38px;letter-spacing:-1.2px}
   #dash-cards .income,#dash-cards .expense{display:grid;grid-template-columns:34px minmax(0,max-content);justify-content:center;column-gap:10px;background:none;border:0;padding:0;min-width:0;border-radius:0}
   #dash-cards .income:hover,#dash-cards .expense:hover{transform:none;box-shadow:none}
-  #dash-cards .income::before,#dash-cards .expense::before{position:static;grid-column:1;grid-row:1/3;align-self:center;width:34px;height:34px;font-size:26px;color:#fff}
-  #dash-cards .income::before{background:#267a48}
-  #dash-cards .expense::before{background:#b83228}
+  #dash-cards .income .summary-arrow,#dash-cards .expense .summary-arrow{position:static;grid-column:1;grid-row:1/3;align-self:center;width:34px;height:34px;font-size:26px;color:#fff}
+  #dash-cards .income .summary-arrow{background:#267a48}
+  #dash-cards .expense .summary-arrow{background:#b83228}
   #dash-cards .income .sc-label,#dash-cards .expense .sc-label{grid-column:2;color:var(--ink4)}
   #dash-cards .income .sc-val,#dash-cards .expense .sc-val{grid-column:2}
   #dash-cards .income .sc-val{color:#72ce91}
@@ -739,8 +740,8 @@ body.values-hidden #dash-chart{filter:blur(6px)}
       <div id="bills-alert"></div>
       <div class="cards-row" id="dash-cards">
         <div class="sum-card balance"><div class="sc-label">Saldo do período</div><div class="sc-val" id="total-balance">R$ 0,00</div><div class="sc-sub" id="balance-sub">receitas − despesas</div><button type="button" id="balance-eye" class="balance-eye" onclick="toggleShowValues()" aria-label="Ocultar valores"></button></div>
-        <div class="sum-card income"><div class="sc-label">Receitas</div><div class="sc-val" id="total-income">R$ 0,00</div><div class="sc-sub" id="income-sub">total geral</div></div>
-        <div class="sum-card expense"><div class="sc-label">Despesas</div><div class="sc-val" id="total-expense">R$ 0,00</div><div class="sc-sub" id="expense-sub">total geral</div></div>
+        <div class="sum-card income"><span class="summary-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20V4M5 11l7-7 7 7"/></svg></span><div class="sc-label">Receitas</div><div class="sc-val" id="total-income">R$ 0,00</div><div class="sc-sub" id="income-sub">total geral</div></div>
+        <div class="sum-card expense"><span class="summary-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v16M5 13l7 7 7-7"/></svg></span><div class="sc-label">Despesas</div><div class="sc-val" id="total-expense">R$ 0,00</div><div class="sc-sub" id="expense-sub">total geral</div></div>
         <div class="sum-card cc" id="card-cc"><div class="sc-label">Cartão de Crédito</div><div class="sc-val" id="total-cc">R$ 0,00</div><div class="sc-sub" id="cc-sub">fatura acumulada</div></div>
       </div>
       <div class="panel">
