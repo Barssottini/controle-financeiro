@@ -796,7 +796,6 @@ body.values-hidden #dash-chart{filter:blur(6px)}
         <div style="display:flex;gap:8px">
           <button class="btn btn-primary" onclick="openModal('tx-modal')">+ Nova Transação</button>
           <button class="btn btn-secondary" onclick="openReconcile()">Conciliar Saldo</button>
-          <button class="btn btn-secondary" onclick="openModal('recurring-modal')">Recorrentes</button>
           <button class="btn btn-danger" onclick="clearAllTx()">Limpar Transações</button>
         </div>
       </div>
@@ -1375,56 +1374,6 @@ body.values-hidden #dash-chart{filter:blur(6px)}
       <div class="factions">
         <button class="btn btn-secondary" onclick="closeModal('reconcile-modal')">Cancelar</button>
         <button class="btn btn-primary" onclick="doReconcile()">Conciliar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: RECORRENTES -->
-<div class="overlay" id="recurring-modal">
-  <div class="modal modal-lg">
-    <div class="mhead"><h3>Transações Recorrentes</h3><button class="xbtn" onclick="closeModal('recurring-modal')">✕</button></div>
-    <div class="mbody">
-      <div id="recurring-list" style="margin-bottom:18px"></div>
-      <div style="border-top:1px solid var(--paper3);padding-top:18px">
-        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:14px">+ Nova Recorrência</div>
-        <div class="fgrp">
-          <label class="flbl">Tipo</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <label class="topt"><input type="radio" name="rtype" value="income" checked><span>Receita</span></label>
-            <label class="topt"><input type="radio" name="rtype" value="expense"><span>Despesa</span></label>
-          </div>
-        </div>
-        <div class="fgrp" id="r-ctx-grp" style="display:none">
-          <label class="flbl">Bolso</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <label class="topt"><input type="radio" name="rctx" value="pf" checked><span>Pessoal</span></label>
-            <label class="topt"><input type="radio" name="rctx" value="pj"><span>Empresa</span></label>
-          </div>
-        </div>
-        <div class="frow">
-          <div class="fgrp"><label class="flbl">Descrição</label><input class="field" id="r-desc" placeholder="Ex: Aluguel, Salário..."></div>
-          <div class="fgrp"><label class="flbl">Valor (R$)</label><input class="field" type="number" id="r-amt" placeholder="0,00" step="0.01" min="0.01"></div>
-        </div>
-        <div class="frow">
-          <div class="fgrp">
-            <label class="flbl">Categoria</label>
-            <select class="field" id="r-cat">
-              <option value="">Selecione...</option>
-              <option>Salário</option><option>Investimentos</option>
-              <option>Alimentação</option><option>Transporte</option><option>Moradia</option>
-              <option>Contas</option><option>Cartão de Crédito</option>
-              <option>Lazer</option><option>Saúde</option><option>Outros</option>
-            </select>
-          </div>
-          <div class="fgrp">
-            <label class="flbl">Dia do mês (1–28)</label>
-            <input class="field" type="number" id="r-day" placeholder="Ex: 5" min="1" max="28" value="5">
-          </div>
-        </div>
-        <div class="factions" style="justify-content:flex-start">
-          <button class="btn btn-primary" onclick="saveRecurring()">+ Adicionar recorrência</button>
-        </div>
       </div>
     </div>
   </div>
@@ -2900,7 +2849,6 @@ function initApp(){
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   checkReminder();
   populateMonthFilter();
-  checkRecurring();
   applyModules();
   showPage('dashboard');
   updateCDI().then(ch=>{if(ch)updateDashboard();});
@@ -2982,7 +2930,6 @@ function openModal(id){
       '100% CDI ≈ '+cdiNow.toFixed(2).replace('.',',')+'% a.a. &nbsp;·&nbsp; 115% CDI ≈ '+(cdiNow*1.15).toFixed(2).replace('.',',')+'% a.a.<br>'+
       '<span style="color:var(--ink3)">Rendimento calculado por dias úteis (252/ano).</span>';
   }
-  if(id==='recurring-modal'){renderRecurringList();resetTxCtx('rctx');}
   if(id==='goal-modal')onGoalLinkChange();
 }
 function closeModal(id){
@@ -3301,7 +3248,7 @@ function tipoConta(){
 // editar esse lancamento a apagaria em silencio.
 function catsEmUso(){
   const s=new Set();
-  [...(S.transactions||[]),...(S.ccItems||[]),...(S.bills||[]),...(S.recurring||[])]
+  [...(S.transactions||[]),...(S.ccItems||[]),...(S.bills||[])]
     .forEach(x=>{if(x&&x.category)s.add(x.category);});
   return s;
 }
@@ -3324,7 +3271,6 @@ function renderCatSelects(){
   const planasDespesa=optsHTML([...c.despesas,...c.outras]);
   const alvos=[
     ['tx-cat','<option value="">Selecione...</option>'+comGrupos],
-    ['r-cat','<option value="">Selecione...</option>'+comGrupos],
     ['bl-cat',planas],
     ['cc-cat','<option value="">Selecione...</option>'+planasDespesa],
     ['fcat','<option value="">Todas categorias</option>'+planas]
@@ -3499,7 +3445,7 @@ function renderCtxSwitch(){
     const v=S.settings.ctxView||'all';
     box.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.ctx===v));
   }
-  ['tx-ctx-grp','bl-ctx-grp','cc-ctx-grp','r-ctx-grp'].forEach(id=>{
+  ['tx-ctx-grp','bl-ctx-grp','cc-ctx-grp'].forEach(id=>{
     const g=document.getElementById(id);
     if(g)g.style.display=lig?'':'none';
   });
@@ -4799,6 +4745,7 @@ function persistGoals(){_guardar('bf_goals',S.goals);}
 function persistSettings(){_guardar('bf_settings',S.settings);}
 function persistBudgets(){_guardar('bf_budgets',S.budgets);}
 function persistBills(){_guardar('bf_bills',S.bills);}
+// Legacy backup data only. Recurring transaction generation has been removed.
 function persistRecurring(){_guardar('bf_recurring',S.recurring);}
 function loadData(){
   const parse=(key,fb)=>{try{const v=localStorage.getItem(key);return v?JSON.parse(v):fb;}catch(e){console.warn('Erro ao carregar '+key,e);return fb;}};
@@ -4888,67 +4835,6 @@ function saveSettings(){
   persistSettings();
   applyModules();
   toast('Configurações salvas');
-}
-
-// ═══ RECURRING ═══
-function saveRecurring(){
-  const type=document.querySelector('input[name="rtype"]:checked').value;
-  const desc=document.getElementById('r-desc').value.trim();
-  const amt=parseFloat(document.getElementById('r-amt').value);
-  const cat=document.getElementById('r-cat').value;
-  const day=parseInt(document.getElementById('r-day').value)||5;
-  if(!desc||!amt||!cat){showAlert('Preencha todos os campos.');return;}
-  if(day<1||day>28){showAlert('Dia deve ser entre 1 e 28.');return;}
-  S.recurring.push({id:Date.now(),type,description:desc,amount:amt,category:cat,day,active:true,lastGenerated:'',ctx:bolsoEscolhido('rctx')});
-  persistRecurring();renderRecurringList();
-  toast('Recorrência adicionada');
-  document.getElementById('r-desc').value='';
-  document.getElementById('r-amt').value='';
-  document.getElementById('r-cat').value='';
-  document.getElementById('r-day').value='5';
-  document.querySelector('input[name="rtype"][value="income"]').checked=true;
-}
-function delRecurring(id){
-  delFromArray(S.recurring,id,persistRecurring,renderRecurringList,'Recorrência excluída');
-}
-function toggleRecurring(id){
-  const r=S.recurring.find(x=>x.id===id);if(!r)return;
-  r.active=!r.active;
-  persistRecurring();renderRecurringList();
-}
-function renderRecurringList(){
-  const el=document.getElementById('recurring-list');if(!el)return;
-  if(!S.recurring.length){
-    el.innerHTML='<p style="font-size:13px;color:var(--ink3)">Nenhuma recorrência cadastrada ainda.</p>';
-    return;
-  }
-  el.innerHTML=S.recurring.map(r=>
-    '<div class="tx-item" style="opacity:'+(r.active?'1':'.5')+'">'+
-    '<div class="tx-icon '+r.type+'">'+(CAT_ICONS[r.category]||CAT_ICONS['Outros'])+'</div>'+
-    '<div class="tx-info"><div class="tx-desc">'+esc(r.description)+'</div>'+
-    '<div class="tx-meta">'+esc(r.category)+' · Todo dia '+r.day+
-    ' · '+(r.active?'<span style="color:var(--green)">Ativa</span>':'<span style="color:var(--ink3)">Pausada</span>')+'</div></div>'+
-    '<div class="tx-amount '+r.type+'">'+fmtCur(r.amount)+'</div>'+
-    '<div class="tx-actions" style="opacity:1">'+
-    '<button class="btn btn-sm '+(r.active?'btn-secondary':'btn-green')+'" onclick="toggleRecurring('+r.id+')">'+(r.active?'Pausar':'Ativar')+'</button>'+
-    '<button class="ibt del" onclick="delRecurring('+r.id+')">🗑️</button>'+
-    '</div></div>'
-  ).join('');
-}
-function checkRecurring(){
-  const now=new Date();
-  const month=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  let changed=false;
-  S.recurring.filter(r=>r.active&&r.lastGenerated!==month).forEach(r=>{
-    const maxDay=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-    const day=Math.min(r.day,maxDay);
-    const date=month+'-'+String(day).padStart(2,'0');
-    const dup=S.transactions.some(t=>t.description===r.description+' (recorrente)'&&t.date===date);
-    if(!dup)S.transactions.push({id:newId(),type:r.type,description:r.description+' (recorrente)',amount:r.amount,date,category:r.category,ctx:ctxDe(r)});
-    r.lastGenerated=month;
-    changed=true;
-  });
-  if(changed){persist();persistRecurring();}
 }
 
 // ═══ ORÇAMENTO POR CATEGORIA ═══

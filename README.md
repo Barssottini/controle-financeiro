@@ -67,7 +67,6 @@ de quem usa o app não faz essa conferência sozinho — é o item 1 do
 - Metas & reserva de emergência com rendimento opcional
 - Orçamento mensal por categoria
 - Importação de extrato OFX/CSV (todos os bancos BR, com correção de encoding)
-- Transações recorrentes
 - Contas a pagar com aviso de vencimento no painel
 - Sincronização entre navegador e desktop pela conta na nuvem
 
