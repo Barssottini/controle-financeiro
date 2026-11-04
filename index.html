@@ -280,6 +280,33 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .cat-delta{font-size:11px;font-weight:700;white-space:nowrap;min-width:92px;text-align:right;flex-shrink:0}
 .cat-delta.up{color:var(--red)}.cat-delta.down{color:var(--green)}.cat-delta.flat{color:var(--ink3)}
 @media(max-width:700px){.cat-delta{display:none}}
+/* BARRA DE ABAS (celular). A lateral vira gaveta abaixo de 900px e some da vista;
+   sem uma barra fixa, navegar exige abrir o menu a cada troca de tela. */
+.tabbar{display:none;position:fixed;left:0;right:0;bottom:0;background:var(--ink);z-index:95;
+  align-items:flex-end;justify-content:space-around;padding-bottom:env(safe-area-inset-bottom,0px);
+  box-shadow:0 -6px 20px rgba(0,0,0,.35)}
+.tabbar button{flex:1;background:none;border:none;color:var(--ink4);font-family:var(--ff);
+  font-size:11px;font-weight:700;letter-spacing:-.1px;padding:14px 2px;cursor:pointer}
+.tabbar button.on{color:var(--gold)}
+.fab{flex:none;width:54px;height:54px;border-radius:50%;background:var(--gold);color:#0d0d0d;
+  border:none;font-size:28px;font-weight:300;line-height:50px;padding:0;margin:-20px 4px 10px;
+  box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer}
+.fabmenu{display:none;position:fixed;left:0;right:0;bottom:92px;z-index:97;
+  flex-direction:column;align-items:center;gap:10px}
+.fabmenu.open{display:flex}
+.fabmenu button{background:var(--paper);color:var(--ink);border:none;border-radius:24px;
+  padding:12px 30px;font-family:var(--ff);font-size:14.5px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.fabback{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:96}
+.fabback.open{display:block}
+.more-item{padding:15px 2px;border-bottom:1px solid var(--paper2);font-size:14.5px;font-weight:600;
+  color:var(--ink);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.more-item:last-child{border-bottom:none}
+.more-item::after{content:"›";color:var(--ink3);font-size:19px;font-weight:400}
+@media(max-width:900px){
+  .tabbar{display:flex}
+  .main{padding-bottom:96px}
+}
 
 /* SYNC */
 .sync-badge{display:inline-block;background:var(--greenl);color:var(--green);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
@@ -550,6 +577,18 @@ body.values-hidden #dash-chart{filter:blur(6px)}
     <div class="mtitle"><img src="logo-192.png" alt="North Finances" style="width:30px;height:30px;border-radius:8px;display:block"></div>
   </div>
   <div id="sb-backdrop" onclick="toggleSidebar(false)"></div>
+  <div class="fabback" id="fab-back" onclick="fecharFab()"></div>
+  <div class="fabmenu" id="fab-menu">
+    <button type="button" onclick="novaTx('income')">Nova receita</button>
+    <button type="button" onclick="novaTx('expense')">Nova despesa</button>
+  </div>
+  <nav class="tabbar">
+    <button type="button" data-page="dashboard" onclick="showPage('dashboard')">Principal</button>
+    <button type="button" data-page="transactions" onclick="showPage('transactions')">Transações</button>
+    <button type="button" class="fab" onclick="toggleFab()" aria-label="Novo lançamento">+</button>
+    <button type="button" data-page="budget" onclick="showPage('budget')">Orçamento</button>
+    <button type="button" data-page="more" onclick="showPage('more')">Mais</button>
+  </nav>
   <aside class="sidebar">
     <div class="sb-top">
       <div class="sb-brand"><img src="logo-192.png" alt="North Finances" style="width:48px;height:48px;border-radius:12px;display:block"></div>
@@ -798,6 +837,25 @@ body.values-hidden #dash-chart{filter:blur(6px)}
     </div>
 
     <!-- SETTINGS -->
+    <div class="page" id="more">
+      <div class="ph"><div><h1 class="pt">Mais</h1><p class="ps">O que não cabe nas abas de baixo</p></div></div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Gerenciar</span></div>
+        <div class="more-item" onclick="showPage('bills')">Contas a pagar e receber</div>
+        <div class="more-item" id="more-cc" onclick="showPage('credit-card')">Cartão de crédito</div>
+        <div class="more-item" onclick="showPage('goals')">Metas &amp; Reserva</div>
+        <div class="more-item" onclick="showPage('investments')">Investimentos</div>
+        <div class="more-item" onclick="showPage('import')">Importar extrato</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Sistema</span></div>
+        <div class="more-item" onclick="showPage('settings')">Configurações</div>
+        <div class="more-item" onclick="openPerfil()">Seu perfil</div>
+        <div class="more-item" onclick="window.open('manual.html','_blank')">Manual do usuário</div>
+        <div class="more-item" onclick="window.open('termos.html','_blank')">Termos e privacidade</div>
+      </div>
+    </div>
+
     <div class="page" id="settings">
       <div class="ph">
         <div><h1 class="pt">Configurações</h1><p class="ps">Preferências do sistema</p></div>
@@ -2737,12 +2795,29 @@ function initApp(){
 function applyModules(){
   const cc=!!S.settings.showCC;
   const navCC=document.getElementById('nav-cc');if(navCC)navCC.style.display=cc?'flex':'none';
+  const moreCC=document.getElementById('more-cc');if(moreCC)moreCC.style.display=cc?'flex':'none';
   const cardCC=document.getElementById('card-cc');if(cardCC)cardCC.style.display=cc?'block':'none';
   const cards=document.getElementById('dash-cards');if(cards)cards.style.gridTemplateColumns='repeat('+(cc?4:3)+',1fr)';
   if(!cc&&document.getElementById('credit-card').classList.contains('active'))showPage('dashboard');
 }
 
 // ═══ NAVIGATION ═══
+function toggleFab(){
+  const m=document.getElementById('fab-menu'),b=document.getElementById('fab-back');
+  const abrir=!m.classList.contains('open');
+  m.classList.toggle('open',abrir);b.classList.toggle('open',abrir);
+}
+function fecharFab(){
+  const m=document.getElementById('fab-menu'),b=document.getElementById('fab-back');
+  if(m)m.classList.remove('open');if(b)b.classList.remove('open');
+}
+// closeModal já chama resetTxForm, então aqui basta pré-selecionar o tipo
+function novaTx(tipo){
+  fecharFab();
+  const r=document.querySelector('input[name="txtype"][value="'+tipo+'"]');
+  if(r)r.checked=true;
+  openModal('tx-modal');
+}
 function toggleSidebar(open){
   document.querySelector('.sidebar').classList.toggle('open',open);
   document.getElementById('sb-backdrop').classList.toggle('show',open);
@@ -2753,6 +2828,10 @@ function showPage(id){
   document.querySelectorAll('.navi').forEach(n=>n.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.navi').forEach(n=>{if((n.getAttribute('onclick')||'').includes("'"+id+"'"))n.classList.add('active');});
+  // páginas alcançadas pelo hub acendem "Mais", senão nenhuma aba ficaria acesa
+  const _aba=['dashboard','transactions','budget','more'].includes(id)?id:'more';
+  document.querySelectorAll('.tabbar button[data-page]').forEach(b=>b.classList.toggle('on',b.dataset.page===_aba));
+  fecharFab();
   if(id==='dashboard'){_donutAnimate=true;updateDashboard();renderChart();}
   if(id==='transactions')renderTxList();
   if(id==='credit-card')renderCCPage();
