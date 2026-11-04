@@ -397,19 +397,20 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .balance-eye{display:none}
 .mtopbar button:focus-visible,.mtopbar select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 @media(max-width:900px){
-  .mtopbar{height:68px;gap:8px;padding:0 15px}
+  .mtopbar{height:56px;gap:8px;padding:0 15px}
   html,body{touch-action:pan-x pan-y}
   .sidebar{box-shadow:none}
   .sidebar.open{box-shadow:12px 0 40px rgba(0,0,0,.35)}
-  .main{padding-top:88px;padding-bottom:112px}
+  .main{padding-top:76px;padding-bottom:112px}
   #dashboard>.ph{display:none}
   #dashboard{display:flex;flex-direction:column}
   #dashboard:not(.active){display:none}
-  #dash-cards{order:-1;gap:24px 12px;margin:-20px -15px 28px;padding:22px 16px 28px;background:var(--ink);border-radius:0 0 28px 28px}
-  #dash-cards .balance{text-align:center;padding:8px 0 0}
+  #dash-cards{order:-1;gap:12px;margin:-20px -15px 28px;padding:10px 16px 20px;background:var(--ink);border-radius:0 0 28px 28px}
+  #dash-cards .balance{text-align:center;padding:0}
+  #dash-cards .balance .sc-sub{display:none}
   #dash-cards .balance .sc-label,#dash-cards .balance .sc-sub{color:var(--ink4)}
   #dash-cards .balance .sc-val{color:var(--paper)}
-  .balance-eye{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin-top:12px;border:0;border-radius:50%;background:transparent;color:var(--paper);cursor:pointer}
+  .balance-eye{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin-top:6px;border:0;border-radius:50%;background:transparent;color:var(--paper);cursor:pointer}
   .balance-eye svg{width:23px;height:23px}
   .balance-eye:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   #dash-cards .balance .sc-val{font-size:38px;letter-spacing:-1.2px}
