@@ -399,7 +399,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 #north-splash{position:fixed;inset:0;width:100%;max-width:none;height:100dvh;max-height:none;margin:0;padding:0;border:0;background:#000;overflow:hidden;outline:none}
 #north-splash[open]{display:block}
 #north-splash::backdrop{background:#000}
-#north-splash video{display:block;width:100%;height:100%;object-fit:contain;object-position:center;background:#000}
+#north-splash video{display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(72vw,300px,45dvh);height:auto;object-fit:contain;object-position:center;background:#000}
 .mtopbar button:focus-visible,.mtopbar select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 @media(max-width:900px){
   .mtopbar{height:56px;gap:8px;padding:0 15px}
@@ -442,7 +442,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 </head>
 <body>
 <dialog id="north-splash" aria-label="North Finances está abrindo" tabindex="-1">
-  <video id="north-intro" src="north-intro-v1.mp4" muted playsinline preload="auto" disablepictureinpicture aria-hidden="true"></video>
+  <video id="north-intro" src="north-intro-v2.mp4" muted playsinline preload="auto" disablepictureinpicture aria-hidden="true"></video>
 </dialog>
 <script>
 (()=>{
