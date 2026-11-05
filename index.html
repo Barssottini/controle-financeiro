@@ -395,6 +395,24 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .mobile-period button{width:32px;height:44px;background:none;color:var(--ink4);font-size:27px}
 .mobile-period select{min-width:0;max-width:210px;width:100%;height:44px;border:0;background:var(--ink);color:var(--paper);font-family:var(--ff);font-weight:600;font-size:13px;text-align:center;text-overflow:ellipsis}
 .balance-eye{display:none}
+/* Abertura: 2s de símbolo, depois assinatura completa até completar 5s. */
+#north-splash{position:fixed;inset:0;width:100%;max-width:none;height:100%;height:100dvh;max-height:none;margin:0;padding:0;border:0;background:#000;color:#faf9f7;overflow:hidden;outline:none;animation:splash-out .25s ease 4.75s both}
+#north-splash[open]{display:grid;place-items:center}
+#north-splash::backdrop{background:#000}
+.splash-brand{position:relative;width:280px;height:64px}
+.splash-icon{position:absolute;left:108px;top:0;width:64px;height:64px;object-fit:contain;animation:splash-icon .65s cubic-bezier(.22,.8,.3,1) 2s both}
+.splash-name{position:absolute;left:80px;top:0;height:64px;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:var(--ff);font-size:25px;font-weight:800;letter-spacing:-.8px;animation:splash-name .65s ease 2s both}
+.splash-name span{color:var(--gold)}
+@keyframes splash-icon{from{transform:translateX(0)}to{transform:translateX(-108px)}}
+@keyframes splash-name{from{opacity:0;transform:translateX(16px);clip-path:inset(0 100% 0 0)}to{opacity:1;transform:translateX(0);clip-path:inset(0)}}
+@keyframes splash-out{from{opacity:1}to{opacity:0}}
+@media(prefers-reduced-motion:reduce){
+  .splash-icon,.splash-name{animation:none}
+  .splash-name{opacity:0}
+  #north-splash.revealed .splash-icon{transform:translateX(-108px)}
+  #north-splash.revealed .splash-name{opacity:1}
+  #north-splash{animation:none}
+}
 .mtopbar button:focus-visible,.mtopbar select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 @media(max-width:900px){
   .mtopbar{height:56px;gap:8px;padding:0 15px}
@@ -436,6 +454,24 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 </style>
 </head>
 <body>
+<dialog id="north-splash" aria-label="North Finances está abrindo" tabindex="-1">
+  <div class="splash-brand" aria-hidden="true">
+    <img class="splash-icon" src="logo-192.png" alt="" width="64" height="64" fetchpriority="high">
+    <div class="splash-name">North <span>Finances</span></div>
+  </div>
+</dialog>
+<script>
+(()=>{
+  const splash=document.getElementById('north-splash');
+  if(typeof splash.showModal!=='function'){splash.remove();return;}
+  splash.showModal();
+  setTimeout(()=>splash.classList.add('revealed'),2000);
+  const finish=()=>{if(splash.open)splash.close();splash.remove();};
+  // Independente da autenticação: a abertura nunca segura a tela de login.
+  setTimeout(finish,5000);
+  splash.addEventListener('cancel',finish,{once:true});
+})();
+</script>
 
 <!-- SETUP (primeiro acesso) -->
 <div id="setup-screen" style="position:fixed;inset:0;z-index:10000;background:#0d0d0d;display:none;align-items:center;justify-content:center">
