@@ -24,6 +24,8 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  // O player usa Range; respostas parciais (206) nao podem entrar no Cache API.
+  if (new URL(e.request.url).pathname.endsWith('.mp4')) return;
   // APIs de cotação sempre vão direto à rede, sem cache
   if (/coingecko|brapi/.test(e.request.url)) return;
   e.respondWith(

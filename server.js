@@ -20,6 +20,7 @@ const MIME = {
   '.png': 'image/png',
   '.ico': 'image/x-icon',
   '.svg': 'image/svg+xml',
+  '.mp4': 'video/mp4',
   '.css': 'text/css; charset=utf-8',
   // A fonte passou a ser servida daqui (vendor/fonts). Sem esta entrada o preview
   // local entrega application/octet-stream e deixa de refletir a producao, onde o

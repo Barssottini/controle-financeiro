@@ -395,36 +395,11 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .mobile-period button{width:32px;height:44px;background:none;color:var(--ink4);font-size:27px}
 .mobile-period select{min-width:0;max-width:210px;width:100%;height:44px;border:0;background:var(--ink);color:var(--paper);font-family:var(--ff);font-weight:600;font-size:13px;text-align:center;text-overflow:ellipsis}
 .balance-eye{display:none}
-/* Abertura: 2s de símbolo, depois assinatura completa até completar 5s. */
-#north-splash{position:fixed;inset:0;width:100%;max-width:none;height:100dvh;max-height:none;margin:0;padding:0;border:0;background:#000;color:#faf9f7;overflow:hidden;outline:none;animation:splash-out .25s ease 4.75s both}
+/* Abertura aprovada no Canva, reproduzida sem recortes ou efeitos extras. */
+#north-splash{position:fixed;inset:0;width:100%;max-width:none;height:100dvh;max-height:none;margin:0;padding:0;border:0;background:#000;overflow:hidden;outline:none}
 #north-splash[open]{display:block}
 #north-splash::backdrop{background:#000}
-.splash-brand{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:max-content;max-width:100%;height:64px}
-.splash-icon{position:absolute;left:0;top:0;width:64px;height:64px;transform:translate3d(var(--splash-shift,100px),0,0);animation:splash-icon .8s cubic-bezier(.4,0,.2,1) 2s both;will-change:transform}
-.splash-name{position:relative;margin-left:80px;height:64px;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:var(--ff);font-size:25px;font-weight:800;letter-spacing:-.8px;animation:splash-name .4s ease 2.55s both}
-.splash-name span{color:var(--gold)}
-.splash-icon svg{display:block;width:100%;height:100%}
-.splash-bar{transform-box:fill-box;transform-origin:center bottom;animation:splash-grow .65s cubic-bezier(.22,.8,.3,1) both}
-.splash-bar.b1{animation-delay:.1s}.splash-bar.b2{animation-delay:.25s}.splash-bar.b3{animation-delay:.4s}.splash-bar.b4{animation-delay:.55s}
-.splash-arrow-line{stroke-dasharray:1;stroke-dashoffset:1;animation:splash-draw .9s ease .65s forwards}
-.splash-arrow-tip{opacity:0;animation:splash-appear .25s ease 1.35s forwards}
-
-@keyframes splash-grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-@keyframes splash-draw{to{stroke-dashoffset:0}}
-@keyframes splash-appear{to{opacity:1}}
-@keyframes splash-icon{from{transform:translate3d(var(--splash-shift,100px),0,0)}to{transform:translate3d(0,0,0)}}
-@keyframes splash-name{from{opacity:0;transform:translate3d(12px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
-@keyframes splash-out{from{opacity:1}to{opacity:0}}
-@media(prefers-reduced-motion:reduce){
-  .splash-icon,.splash-name{animation:none}
-  .splash-bar,.splash-arrow-line,.splash-arrow-tip{animation:none}
-  .splash-arrow-line{stroke-dashoffset:0}
-  .splash-arrow-tip{opacity:1}
-  .splash-name{opacity:0}
-  #north-splash.revealed .splash-icon{left:0;transform:translateX(0)}
-  #north-splash.revealed .splash-name{opacity:1}
-  #north-splash{animation:none}
-}
+#north-splash video{display:block;width:100%;height:100%;object-fit:contain;object-position:center;background:#000}
 .mtopbar button:focus-visible,.mtopbar select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 @media(max-width:900px){
   .mtopbar{height:56px;gap:8px;padding:0 15px}
@@ -467,55 +442,28 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 </head>
 <body>
 <dialog id="north-splash" aria-label="North Finances está abrindo" tabindex="-1">
-  <div class="splash-brand" aria-hidden="true">
-    <div class="splash-icon">
-      <svg viewBox="22 20 145 134" aria-hidden="true" focusable="false">
-        <defs>
-          <linearGradient id="splash-gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f5d783"/><stop offset="1" stop-color="#b78125"/></linearGradient>
-          <mask id="splash-arrow-mask" maskUnits="userSpaceOnUse" x="20" y="20" width="150" height="134">
-            <path class="splash-arrow-line" d="M33 144 78 89 99 111 141 53" pathLength="1" fill="none" stroke="white" stroke-width="32" stroke-linejoin="round"/>
-          </mask>
-        </defs>
-        <g fill="url(#splash-gold)">
-          <path class="splash-bar b1" d="M50 149 78 112V149Z"/>
-          <path class="splash-bar b2" d="M85 119 101 131V149H85Z"/>
-          <path class="splash-bar b3" d="M107 118 124 95V149H107Z"/>
-          <path class="splash-bar b4" d="M129 87 145 65V149H129Z"/>
-        </g>
-        <path d="M26 149 78 77 99 99 125 62 113 88 141 66 100 122 79 101 42 149Z" fill="#fff" mask="url(#splash-arrow-mask)"/>
-        <path class="splash-arrow-tip" d="M121 40 163 23 147 67 141 55 119 81 134 47Z" fill="url(#splash-gold)"/>
-      </svg>
-    </div>
-    <div class="splash-name">North <span>Finances</span></div>
-  </div>
+  <video id="north-intro" src="north-intro-v1.mp4" muted playsinline preload="auto" disablepictureinpicture aria-hidden="true"></video>
 </dialog>
 <script>
 (()=>{
   const splash=document.getElementById('north-splash');
-  if(typeof splash.showModal!=='function'){splash.remove();return;}
-  const viewport=window.visualViewport;
-  const centerSplash=()=>{
-    const brand=splash.querySelector('.splash-brand');
-    splash.style.setProperty('--splash-shift',Math.max(0,(brand.offsetWidth-64)/2)+'px');
-  };
-  centerSplash();
-  viewport?.addEventListener('resize',centerSplash);
-  viewport?.addEventListener('scroll',centerSplash);
-  window.addEventListener('resize',centerSplash);
-  splash.showModal();
-  centerSplash();
-  document.fonts.ready.then(()=>{if(splash.isConnected)centerSplash();});
-  setTimeout(()=>splash.classList.add('revealed'),2000);
+  const video=document.getElementById('north-intro');
+  if(typeof splash.showModal!=='function'||matchMedia('(prefers-reduced-motion: reduce)').matches){splash.remove();return;}
+  let deadline;
   const finish=()=>{
-    viewport?.removeEventListener('resize',centerSplash);
-    viewport?.removeEventListener('scroll',centerSplash);
-    window.removeEventListener('resize',centerSplash);
+    clearTimeout(deadline);
+    video.pause();
     if(splash.open)splash.close();
     splash.remove();
   };
-  // Independente da autenticação: a abertura nunca segura a tela de login.
-  setTimeout(finish,5000);
+  video.addEventListener('ended',finish,{once:true});
+  video.addEventListener('error',finish,{once:true});
   splash.addEventListener('cancel',finish,{once:true});
+  splash.showModal();
+  video.muted=true;
+  // Falha de rede ou autoplay bloqueado nunca pode impedir o acesso ao app.
+  deadline=setTimeout(finish,8000);
+  video.play().catch(finish);
 })();
 </script>
 
