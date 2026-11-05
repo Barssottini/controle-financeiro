@@ -396,20 +396,20 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .mobile-period select{min-width:0;max-width:210px;width:100%;height:44px;border:0;background:var(--ink);color:var(--paper);font-family:var(--ff);font-weight:600;font-size:13px;text-align:center;text-overflow:ellipsis}
 .balance-eye{display:none}
 /* Abertura: 2s de símbolo, depois assinatura completa até completar 5s. */
-#north-splash{position:fixed;inset:0;width:100%;max-width:none;height:100%;height:100dvh;max-height:none;margin:0;padding:0;border:0;background:#000;color:#faf9f7;overflow:hidden;outline:none;animation:splash-out .25s ease 4.75s both}
+#north-splash{position:fixed;inset:auto;top:var(--splash-top,0px);left:var(--splash-left,0px);width:var(--splash-width,100%);max-width:none;height:var(--splash-height,100dvh);max-height:none;margin:0;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);border:0;background:#000;color:#faf9f7;overflow:hidden;outline:none;animation:splash-out .25s ease 4.75s both}
 #north-splash[open]{display:grid;place-items:center}
 #north-splash::backdrop{background:#000}
-.splash-brand{position:relative;width:280px;height:64px}
-.splash-icon{position:absolute;left:108px;top:0;width:64px;height:64px;object-fit:contain;animation:splash-icon .65s cubic-bezier(.22,.8,.3,1) 2s both}
-.splash-name{position:absolute;left:80px;top:0;height:64px;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:var(--ff);font-size:25px;font-weight:800;letter-spacing:-.8px;animation:splash-name .65s ease 2s both}
+.splash-brand{position:relative;width:max-content;max-width:100%;height:64px}
+.splash-icon{position:absolute;left:50%;transform:translateX(-50%);top:0;width:64px;height:64px;object-fit:contain;animation:splash-icon .65s cubic-bezier(.22,.8,.3,1) 2s both}
+.splash-name{position:relative;margin-left:80px;height:64px;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:var(--ff);font-size:25px;font-weight:800;letter-spacing:-.8px;animation:splash-name .65s ease 2s both}
 .splash-name span{color:var(--gold)}
-@keyframes splash-icon{from{transform:translateX(0)}to{transform:translateX(-108px)}}
+@keyframes splash-icon{from{left:50%;transform:translateX(-50%)}to{left:0;transform:translateX(0)}}
 @keyframes splash-name{from{opacity:0;transform:translateX(16px);clip-path:inset(0 100% 0 0)}to{opacity:1;transform:translateX(0);clip-path:inset(0)}}
 @keyframes splash-out{from{opacity:1}to{opacity:0}}
 @media(prefers-reduced-motion:reduce){
   .splash-icon,.splash-name{animation:none}
   .splash-name{opacity:0}
-  #north-splash.revealed .splash-icon{transform:translateX(-108px)}
+  #north-splash.revealed .splash-icon{left:0;transform:translateX(0)}
   #north-splash.revealed .splash-name{opacity:1}
   #north-splash{animation:none}
 }
@@ -464,9 +464,26 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 (()=>{
   const splash=document.getElementById('north-splash');
   if(typeof splash.showModal!=='function'){splash.remove();return;}
+  const viewport=window.visualViewport;
+  const centerSplash=()=>{
+    splash.style.setProperty('--splash-top',(viewport?viewport.offsetTop:0)+'px');
+    splash.style.setProperty('--splash-left',(viewport?viewport.offsetLeft:0)+'px');
+    splash.style.setProperty('--splash-width',(viewport?viewport.width:window.innerWidth)+'px');
+    splash.style.setProperty('--splash-height',(viewport?viewport.height:window.innerHeight)+'px');
+  };
+  centerSplash();
+  viewport?.addEventListener('resize',centerSplash);
+  viewport?.addEventListener('scroll',centerSplash);
+  window.addEventListener('resize',centerSplash);
   splash.showModal();
   setTimeout(()=>splash.classList.add('revealed'),2000);
-  const finish=()=>{if(splash.open)splash.close();splash.remove();};
+  const finish=()=>{
+    viewport?.removeEventListener('resize',centerSplash);
+    viewport?.removeEventListener('scroll',centerSplash);
+    window.removeEventListener('resize',centerSplash);
+    if(splash.open)splash.close();
+    splash.remove();
+  };
   // Independente da autenticação: a abertura nunca segura a tela de login.
   setTimeout(finish,5000);
   splash.addEventListener('cancel',finish,{once:true});
