@@ -403,11 +403,22 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .splash-icon{position:absolute;left:50%;transform:translateX(-50%);top:0;width:64px;height:64px;object-fit:contain;animation:splash-icon .65s cubic-bezier(.22,.8,.3,1) 2s both}
 .splash-name{position:relative;margin-left:80px;height:64px;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:var(--ff);font-size:25px;font-weight:800;letter-spacing:-.8px;animation:splash-name .65s ease 2s both}
 .splash-name span{color:var(--gold)}
+.splash-icon svg{display:block;width:100%;height:100%}
+.splash-bar{transform-box:fill-box;transform-origin:center bottom;animation:splash-grow .65s cubic-bezier(.22,.8,.3,1) both}
+.splash-bar.b1{animation-delay:.1s}.splash-bar.b2{animation-delay:.25s}.splash-bar.b3{animation-delay:.4s}.splash-bar.b4{animation-delay:.55s}
+.splash-arrow-line{stroke-dasharray:1;stroke-dashoffset:1;animation:splash-draw .9s ease .65s forwards}
+.splash-arrow-tip{opacity:0;animation:splash-appear .25s ease 1.35s forwards}
+.splash-complete{opacity:0;animation:splash-appear .2s ease 1.7s forwards}
+@keyframes splash-grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes splash-draw{to{stroke-dashoffset:0}}
+@keyframes splash-appear{to{opacity:1}}
 @keyframes splash-icon{from{left:50%;transform:translateX(-50%)}to{left:0;transform:translateX(0)}}
 @keyframes splash-name{from{opacity:0;transform:translateX(16px);clip-path:inset(0 100% 0 0)}to{opacity:1;transform:translateX(0);clip-path:inset(0)}}
 @keyframes splash-out{from{opacity:1}to{opacity:0}}
 @media(prefers-reduced-motion:reduce){
   .splash-icon,.splash-name{animation:none}
+  .splash-bar,.splash-arrow-line,.splash-arrow-tip{animation:none}
+  .splash-complete{animation:none;opacity:1}
   .splash-name{opacity:0}
   #north-splash.revealed .splash-icon{left:0;transform:translateX(0)}
   #north-splash.revealed .splash-name{opacity:1}
@@ -456,7 +467,26 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 <body>
 <dialog id="north-splash" aria-label="North Finances está abrindo" tabindex="-1">
   <div class="splash-brand" aria-hidden="true">
-    <img class="splash-icon" src="logo-192.png" alt="" width="64" height="64" fetchpriority="high">
+    <div class="splash-icon">
+      <svg viewBox="0 0 192 192" aria-hidden="true" focusable="false">
+        <defs>
+          <!-- Recortes da marca original: preservam as cores e o desenho do ícone. -->
+          <clipPath id="splash-bars"><path d="M50 149 78 111V149ZM85 119 101 132V149H85ZM107 119 124 94V149H107ZM129 87 145 65V149H129Z"/></clipPath>
+          <mask id="splash-build-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="192" height="192">
+            <g clip-path="url(#splash-bars)" fill="white">
+              <rect class="splash-bar b1" x="50" y="110" width="29" height="40"/>
+              <rect class="splash-bar b2" x="84" y="118" width="18" height="32"/>
+              <rect class="splash-bar b3" x="106" y="93" width="19" height="57"/>
+              <rect class="splash-bar b4" x="128" y="64" width="18" height="86"/>
+            </g>
+            <path class="splash-arrow-line" d="M35 141 78 89 99 111 149 40" pathLength="1" fill="none" stroke="white" stroke-width="29" stroke-linejoin="round"/>
+            <path class="splash-arrow-tip" d="M119 39 165 20 151 74 140 61 114 88 132 49Z" fill="white"/>
+          </mask>
+        </defs>
+        <image href="logo-192.png" width="192" height="192" mask="url(#splash-build-mask)"/>
+        <image class="splash-complete" href="logo-192.png" width="192" height="192"/>
+      </svg>
+    </div>
     <div class="splash-name">North <span>Finances</span></div>
   </div>
 </dialog>
