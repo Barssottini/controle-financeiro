@@ -31,7 +31,7 @@ const sandbox = {
 };
 const nomes = Object.keys(sandbox);
 const F = new Function(...nomes,
-  t.slice(i, j) + '\nreturn {contas,contaPadraoId,contaDe,noConta,addConta,apagarConta,saldoDaConta,nomeDaConta};');
+  t.slice(i, j) + '\nreturn {contas,contaPadraoId,contaDe,noConta,addConta,apagarConta,saldoDaConta,nomeDaConta,bancoDe};');
 const C = F(...nomes.map(n => sandbox[n]));
 
 let falhas = 0;
@@ -140,6 +140,40 @@ else {
   checa('mesmo lançamento na MESMA conta é duplicata', ehDup(S, C.contaDe, 1, novo), true);
   checa('mesmo lançamento em OUTRA conta não é duplicata', ehDup(S, C.contaDe, 2, novo), false);
 }
+
+// 12. Banco reconhecido pelo nome da conta (o icone sai disso).
+const banco = nome => { const b = C.bancoDe(nome); return b ? (b.carteira ? 'carteira' : b.t) : null; };
+checa('"Nubank" vira o icone do Nubank', banco('Nubank'), 'Nu');
+checa('acento e sobrenome nao atrapalham: "Itaú Personnalité"', banco('Itaú Personnalité'), 'I');
+checa('"Banco Inter" e o Inter', banco('Banco Inter'), 'In');
+checa('"Banco do Brasil" e o BB', banco('Banco do Brasil'), 'BB');
+checa('palavra inteira: "Interativa" nao vira Inter', banco('Interativa'), null);
+checa('"Carteira" vira o icone de carteira', banco('Carteira'), 'carteira');
+checa('nome sem banco conhecido fica sem marca', banco('Conta conjunta'), null);
+
+// 13 e 14. Fora da tela de Transacoes o app e consolidado, e o "Conciliar Saldo"
+// concilia a conta em exibicao. Regras extraidas do index.html real.
+const fatia = (de, ate) => { const a = t.indexOf(de), b = t.indexOf(ate, a); if (a < 0 || b < 0) throw new Error('ancora: ' + de); return t.slice(a, b); };
+const fonte = fatia('function txVis(){', 'function ccVis(){') + fatia('function appBalance(){', '// ═══ AVISO DE TERMOS ═══');
+let saldoReal = 0;
+const R = new Function('S', 'noCtx', 'noConta', 'newId', 'persist', 'closeModal', 'openModal', 'updateDashboard', 'renderTxList', 'populateMonthFilter', 'showAlert', 'fmtCur', 'document',
+  fonte + '\nreturn {txVis,appBalance,doReconcile};')(
+  S, () => true, C.noConta, () => 999, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, m => avisos.push(m), v => 'R$ ' + v,
+  { getElementById: id => (id === 'rec-real-balance' ? { value: String(saldoReal) } : { value: '' }) });
+S.accounts = [{ id: 1, nome: 'Nubank' }, { id: 2, nome: 'Itaú' }];
+S.transactions = [
+  { id: 1, type: 'income', amount: 1000, date: '2026-11-01', conta: 1 },
+  { id: 2, type: 'income', amount: 500, date: '2026-11-01', conta: 2 },
+];
+S.settings.contaView = 2;
+checa('vendo o Itau, o resto do app continua consolidado', R.txVis().length, 2);
+checa('vendo o Itau, Conciliar Saldo compara o saldo do Itau', R.appBalance(), 500);
+saldoReal = 600;
+R.doReconcile();
+const ajuste = S.transactions[S.transactions.length - 1];
+checa('o ajuste da conciliacao cai no Itau, nao na conta principal', ajuste.conta, 2);
+checa('e acerta a diferenca', [ajuste.type, ajuste.amount], ['income', 100]);
+checa('Nubank fica intocado', C.saldoDaConta(1), 1000);
 
 console.log('CONTAS — ' + (falhas ? falhas + ' FALHA(S)' : 'tudo bate'));
 console.log(L.join('\n'));

@@ -107,6 +107,25 @@
 .tema-seg button:hover{color:var(--ink)}
 .tema-seg button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.14)}
 .tema-seg button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* barra de bancos na tela de Transacoes: escolhe o banco; "Ver todas" ao lado */
+/* quebra linha em vez de rolar de lado: no celular o "Ver todas" ficava fora da tela */
+.acc-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:-4px 0 18px}
+.acc-chip{display:flex;align-items:center;gap:9px;flex:none;padding:6px 15px 6px 6px;border-radius:100px;border:1.5px solid var(--paper3);
+  background:var(--paper);color:var(--ink2);font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;transition:border-color .15s,background .15s}
+.acc-chip:hover{border-color:var(--ink4)}
+.acc-chip.on{border-color:var(--gold);background:var(--goldl);color:var(--ink)}
+.acc-all{display:flex;align-items:center;gap:7px;flex:none;padding:8px 16px;border-radius:100px;border:1.5px dashed var(--paper3);
+  background:transparent;color:var(--ink3);font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.acc-all svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+.acc-all:hover{color:var(--ink);border-color:var(--ink4)}
+.acc-all.on{border-style:solid;border-color:var(--gold);background:var(--goldl);color:var(--ink)}
+/* icone do banco: cor da marca + inicial. Nao e a logo — logo de banco e marca
+   registrada; isto basta para reconhecer de relance */
+.cbadge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;
+  font-size:10.5px;font-weight:800;letter-spacing:-.02em;flex:none;line-height:1}
+.cbadge.sm{width:17px;height:17px;border-radius:5px;font-size:7.5px;vertical-align:-4px;margin-right:2px}
+.cbadge svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cbadge.sm svg{width:11px;height:11px}
 body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:100vh}
 
 /* LOGIN */
@@ -798,9 +817,6 @@ html.splash-active{background:#000}
       <button class="sb-user sb-user-btn" onclick="openPerfil()" title="Ver seu perfil">Logado como<strong id="udisp"></strong><span class="sb-user-more">Ver perfil ›</span></button>
       <div id="sync-status" style="font-size:10px;margin-top:6px;color:var(--ink4)"></div>
       <button id="eye-toggle" onclick="toggleShowValues()" style="background:none;border:none;color:var(--ink4);cursor:pointer;padding:5px 0 0;margin:0;display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--ff)"></button>
-      <div id="conta-switch" style="display:none;margin-top:8px">
-        <select class="field" id="conta-view" onchange="setContaView(this.value)" style="font-size:12px;padding:6px 8px"></select>
-      </div>
       <div id="ctx-switch" style="display:none">
         <div class="ctx-seg">
           <button type="button" data-ctx="pf" onclick="setCtxView('pf')">Pessoal</button>
@@ -915,6 +931,7 @@ html.splash-active{background:#000}
           <button class="btn btn-danger" onclick="clearAllTx()">Limpar Transações</button>
         </div>
       </div>
+      <div class="acc-bar" id="tx-acc-bar" style="display:none" role="tablist" aria-label="Filtrar por conta"></div>
       <div class="panel">
         <div class="filters">
           <input class="field" id="srch" placeholder="Buscar..." onkeyup="renderTxList()">
@@ -1094,7 +1111,7 @@ html.splash-active{background:#000}
 
       <div class="panel">
         <h3 class="panel-title">Suas contas</h3>
-        <p style="font-size:12px;color:var(--ink3);margin-bottom:10px">Separe o dinheiro por onde ele está — banco, carteira, poupança. Com mais de uma conta aparece um filtro no menu lateral e um campo em cada lançamento. <strong>Tudo que já existe fica na primeira conta</strong> — nada é reclassificado nem apagado.</p>
+        <p style="font-size:12px;color:var(--ink3);margin-bottom:10px">Separe o dinheiro por onde ele está — banco, carteira, poupança. Com mais de uma conta, a tela de Transações mostra uma barra com os seus bancos para filtrar, e cada lançamento ganha um campo de conta. <strong>Tudo que já existe fica na primeira conta</strong> — nada é reclassificado nem apagado.</p>
         <div id="contas-lista"></div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
           <input class="field" style="flex:1;min-width:0" type="text" id="conta-nova" maxlength="24" placeholder="Ex: Nubank, Carteira, Poupança">
@@ -1212,7 +1229,7 @@ html.splash-active{background:#000}
           <label class="topt"><input type="radio" name="txtype" value="expense"><span>Despesa</span></label>
         </div>
       </div>
-      <div class="fgrp" id="tx-conta-grp" style="display:none"><label class="flbl">Conta</label><select class="field" id="tx-conta"></select></div>
+      <div class="fgrp" id="tx-conta-grp" style="display:none"><label class="flbl">Conta</label><div style="display:flex;align-items:center;gap:9px"><span id="tx-conta-ic"></span><select class="field" id="tx-conta" onchange="renderIconeForm()"></select></div></div>
       <div class="fgrp" id="tx-ctx-grp" style="display:none"><label class="flbl">Bolso</label><div class="trow"><label class="topt"><input type="radio" name="txctx" value="pf" checked><span>Pessoal</span></label><label class="topt"><input type="radio" name="txctx" value="pj"><span>Empresa</span></label></div></div>
       <div class="fgrp"><label class="flbl">Descrição</label><input class="field" type="text" id="tx-desc" placeholder="Ex: Salário, Aluguel..."></div>
       <div class="frow">
@@ -3201,7 +3218,8 @@ async function clearAllTx(){
 
 // ═══ CONCILIAÇÃO DE SALDO ═══
 function appBalance(){
-  const v=txVis();
+  // na tela de Transacoes, conciliar vendo o Itau compara o saldo do Itau
+  const v=txVis().filter(noConta);
   const income=v.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=v.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   return income-expense;
@@ -3226,7 +3244,10 @@ function doReconcile(){
     // O appBalance() usado acima já filtra pelo bolso em exibição: conciliar
     // vendo "Empresa" compara o saldo da empresa, então o ajuste tem de cair
     // lá. Sem esta linha ele nasceria pessoal e desequilibraria os dois lados.
-    ctx:(S.settings.ctxView==='pj'?'pj':'pf')
+    ctx:(S.settings.ctxView==='pj'?'pj':'pf'),
+    // o saldo comparado acima e o da conta em exibicao; sem isto o ajuste nascia
+    // na conta principal e desequilibrava as duas
+    conta:(S.settings.contaView&&S.settings.contaView!=='all')?S.settings.contaView:undefined
   });
   persist();closeModal('reconcile-modal');updateDashboard();renderTxList();populateMonthFilter();
   showAlert('Ajuste de '+fmtCur(Math.abs(diff))+' criado. O Saldo agora bate com o banco.');
@@ -3609,9 +3630,11 @@ function noCtx(x){
   const v=S.settings.ctxView||'all';
   return v==='all'||ctxDe(x)===v;
 }
-function txVis(){return S.transactions.filter(x=>noCtx(x)&&noConta(x));}
-function ccVis(){return (S.ccItems||[]).filter(x=>noCtx(x)&&noConta(x));}
-function billsVis(){return (S.bills||[]).filter(x=>noCtx(x)&&noConta(x));}
+// Consolidado de todas as contas: e o que painel, orcamento, contas a pagar e o
+// grafico mostram. O filtro por conta vive so na tela de Transacoes.
+function txVis(){return S.transactions.filter(noCtx);}
+function ccVis(){return (S.ccItems||[]).filter(noCtx);}
+function billsVis(){return (S.bills||[]).filter(noCtx);}
 
 function setCtxView(v){
   S.settings.ctxView=v;persistSettings();
@@ -3670,28 +3693,64 @@ function saldoDaConta(id){
 function setContaView(v){
   S.settings.contaView=(v==='all')?'all':Number(v);persistSettings();
   renderContaSwitch();
-  try{updateDashboard();}catch(e){}
-  try{renderTxList();}catch(e){}
-  try{renderChart();}catch(e){}
-  try{renderBillsPage();}catch(e){}
-  try{renderCCPage();}catch(e){}
-  try{renderBudgetPage();}catch(e){}
+  try{renderTxList();}catch(e){}   // so Transacoes filtra por conta; o resto e consolidado
+}
+// Banco pelo nome da conta: cor da marca + inicial. Nao e a logo (logo de banco
+// e marca registrada) — e o que basta para reconhecer de relance.
+const BANCOS=[
+  {k:['nubank','nu'],t:'Nu',bg:'#820ad1',fg:'#fff'},
+  {k:['itau'],t:'I',bg:'#ec7000',fg:'#fff'},
+  {k:['bradesco'],t:'B',bg:'#cc092f',fg:'#fff'},
+  {k:['banco do brasil','bb'],t:'BB',bg:'#fcf800',fg:'#0038a8'},
+  {k:['caixa','cef'],t:'CX',bg:'#005ca9',fg:'#fff'},
+  {k:['santander'],t:'S',bg:'#ec0000',fg:'#fff'},
+  {k:['inter'],t:'In',bg:'#ff7a00',fg:'#fff'},
+  {k:['c6'],t:'C6',bg:'#242424',fg:'#fff'},
+  {k:['picpay'],t:'P',bg:'#21c25e',fg:'#fff'},
+  {k:['mercado pago'],t:'MP',bg:'#00b1ea',fg:'#fff'},
+  {k:['btg'],t:'BTG',bg:'#05132a',fg:'#fff'},
+  {k:['xp'],t:'XP',bg:'#111111',fg:'#ffd100'},
+  {k:['sicredi'],t:'S',bg:'#3fa110',fg:'#fff'},
+  {k:['sicoob'],t:'S',bg:'#003641',fg:'#fff'},
+  {k:['pagbank','pagseguro'],t:'PB',bg:'#1bb99a',fg:'#fff'},
+  {k:['neon'],t:'N',bg:'#0dd8d8',fg:'#063a3a'},
+];
+// casa por palavra inteira: "Banco Inter" e Inter; "Interativa" nao
+function bancoDe(nome){
+  const n=' '+String(nome||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()+' ';
+  if(/ (carteira|dinheiro|especie) /.test(n))return {carteira:true};
+  for(const b of BANCOS){if(b.k.some(k=>n.includes(' '+k+' ')))return b;}
+  return null;
+}
+function iconeConta(id,cls){
+  const nome=nomeDaConta(id),b=bancoDe(nome),c=cls?' '+cls:'',tt=' title="'+esc(nome)+'"';
+  if(b&&b.carteira)return '<span class="cbadge'+c+'" style="background:var(--goldl);color:var(--goldd)"'+tt+'><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"/><circle cx="16" cy="14.5" r="1.2"/></svg></span>';
+  if(b)return '<span class="cbadge'+c+'" style="background:'+b.bg+';color:'+b.fg+'"'+tt+'>'+b.t+'</span>';
+  return '<span class="cbadge'+c+'" style="background:var(--paper3);color:var(--ink2)"'+tt+'>'+esc((String(nome).trim()[0]||'?').toUpperCase())+'</span>';
+}
+function renderAccBar(){
+  const bar=document.getElementById('tx-acc-bar');if(!bar)return;
+  const lista=contas();
+  if(lista.length<2){bar.style.display='none';bar.innerHTML='';return;}
+  const v=S.settings.contaView,todas=!v||v==='all';
+  bar.style.display='';
+  bar.innerHTML=lista.map(c=>'<button type="button" role="tab" aria-selected="'+(!todas&&v===c.id)+'" class="acc-chip'+(!todas&&v===c.id?' on':'')+'" onclick="setContaView('+c.id+')">'+iconeConta(c.id)+esc(c.nome)+'</button>').join('')
+    +'<button type="button" role="tab" aria-selected="'+todas+'" class="acc-all'+(todas?' on':'')+'" onclick="setContaView(\'all\')"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Ver todas</button>';
+}
+function renderIconeForm(){
+  const s=document.getElementById('tx-conta'),ic=document.getElementById('tx-conta-ic');
+  if(s&&ic)ic.innerHTML=s.value?iconeConta(Number(s.value)):'';
 }
 function opcoesConta(){return contas().map(c=>'<option value="'+c.id+'">'+esc(c.nome)+'</option>').join('');}
 function renderContaSwitch(){
   const varias=contas().length>1;
-  const box=document.getElementById('conta-switch');
-  if(box){
-    box.style.display=varias?'':'none';
-    const sel=document.getElementById('conta-view');
-    if(sel){sel.innerHTML='<option value="all">Todas as contas</option>'+opcoesConta();sel.value=String(S.settings.contaView||'all');}
-  }
   const grp=document.getElementById('tx-conta-grp');
   if(grp){
     grp.style.display=varias?'':'none';
     const sel=document.getElementById('tx-conta');
-    if(sel){const ant=sel.value;sel.innerHTML=opcoesConta();if(ant)sel.value=ant;}
+    if(sel){const ant=sel.value;sel.innerHTML=opcoesConta();if(ant)sel.value=ant;renderIconeForm();}
   }
+  renderAccBar();
 }
 // Lançamento novo nasce na conta que você está olhando. Em "Todas", na primeira.
 function resetTxConta(){
@@ -3699,6 +3758,7 @@ function resetTxConta(){
   if(!sel)return;
   const v=S.settings.contaView;
   sel.value=String((v&&v!=='all')?v:contaPadraoId());
+  renderIconeForm();
 }
 // Com uma conta só o campo nem aparece: não grava nada novo, e preserva o que o
 // lançamento já tinha — editar com o recurso "desligado" não pode reclassificar.
@@ -4615,14 +4675,14 @@ function txCompare(a,b){
   const t=(b.time||'').localeCompare(a.time||'');if(t)return t;
   return (b.id||0)-(a.id||0);
 }
-function txHTML(t,showAct=true){
+function txHTML(t,showAct=true,comBanco=contas().length>1){
   const signs={income:'+',expense:'−',cc:'−',investment:'−'};
   const cats={income:'Receita',expense:'Despesa',cc:'Crédito',investment:'Investimento'};
   const timeStr=t.time?' · '+t.time.substring(0,5):'';
   return '<div class="tx-item" data-id="'+t.id+'">'+
     '<div class="tx-icon '+(t.type||'expense')+'">'+(CAT_ICONS[t.category]||CAT_ICONS['Sem categoria'])+'</div>'+
     '<div class="tx-info"><div class="tx-desc">'+esc(t.description)+'</div>'+
-    '<div class="tx-meta">'+esc(t.category||cats[t.type])+' · '+fmtDate(t.date)+timeStr+'</div></div>'+
+    '<div class="tx-meta">'+(comBanco?iconeConta(contaDe(t),'sm'):'')+esc(t.category||cats[t.type])+' · '+fmtDate(t.date)+timeStr+'</div></div>'+
     '<div class="tx-amount '+(t.type||'expense')+'">'+(signs[t.type]||'')+ ' '+fmtCur(t.amount)+'</div>'+
     (showAct?'<div class="tx-actions"><button class="ibt" onclick="editTx('+t.id+')">✏️</button><button class="ibt del" onclick="delTx('+t.id+')">🗑️</button></div>':'')+
     '</div>';
@@ -4633,7 +4693,7 @@ function renderTxList(){
   const ft=document.getElementById('ftype')?.value||'';
   const fc=document.getElementById('fcat')?.value||'';
   const fm=document.getElementById('fmonth')?.value||'';
-  const filtered=txVis().filter(t=>
+  const filtered=txVis().filter(noConta).filter(t=>
     (!q||t.description.toLowerCase().includes(q))&&
     (!ft||t.type===ft)&&(!fc||t.category===fc)&&(!fm||t.date.substring(0,7)===fm)
   ).sort(txCompare);
@@ -4642,6 +4702,8 @@ function renderTxList(){
   const el=document.getElementById('tx-list');
   if(!el)return;
   if(!filtered.length){el.innerHTML=emptyHTML('Nenhuma transação encontrada');return;}
+  // vendo um banco so, o icone em cada linha seria repetido; vendo todas, ele diz de onde veio
+  const mostrarBanco=contas().length>1&&(!S.settings.contaView||S.settings.contaView==='all');
   let html='',lastM='';
   filtered.forEach(t=>{
     const m=t.date.substring(0,7);
@@ -4651,7 +4713,7 @@ function renderTxList(){
       const label=new Date(y,parseInt(mo)-1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
       html+='<div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);padding:18px 8px 8px;border-bottom:1px solid var(--paper2)">'+label+'</div>';
     }
-    html+=txHTML(t);
+    html+=txHTML(t,true,mostrarBanco);
   });
   el.innerHTML=html;
 }
