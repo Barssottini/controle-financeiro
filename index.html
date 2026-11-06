@@ -407,7 +407,9 @@ html.splash-active{background:#000}
 .mtopbar button:focus-visible,.mtopbar select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 @media(max-width:900px){
   .mtopbar{height:56px;gap:8px;padding:0 15px}
-  html,body{touch-action:pan-x pan-y}
+  /* Rolagem livre dentro do conteúdo, sem puxar a página além das bordas. */
+  html,body{touch-action:pan-x pan-y;overscroll-behavior-y:none}
+  .modal,.sidebar,[id$="-screen"]{overscroll-behavior-y:none}
   .sidebar{box-shadow:none}
   .sidebar.open{box-shadow:12px 0 40px rgba(0,0,0,.35)}
   .main{padding-top:76px;padding-bottom:112px}
@@ -3124,8 +3126,8 @@ function doReconcile(){
 //
 // Ao mudar os termos: atualize as duas constantes abaixo com a data do topo de
 // termos.html. O sync-termos.ps1 confere se elas batem e falha se divergirem.
-const TERMOS_VERSAO='2026-09-08';
-const TERMOS_RESUMO='Voce agora baixa os seus dados quando quiser, em Configuracoes → Seus dados: a conta inteira em JSON ou uma planilha dos lancamentos. A secao de portabilidade dizia que isso nao existia, e passou a existir.';
+const TERMOS_VERSAO='2026-11-06';
+const TERMOS_RESUMO='Declaramos antes de construir: lancar gasto por mensagem no WhatsApp sera o unico caminho do North que nao e de ponta a ponta, porque a Meta e o nosso servidor precisam ler a frase para entende-la. O servidor guarda so o lancamento ja cifrado e descarta o texto. E opcional, e ainda nao esta no ar — nada mudou no que voce ja usa.';
 function renderAvisoTermos(){
   const bar=document.getElementById('termos-bar');if(!bar)return;
   if(S.settings.termosVistos===TERMOS_VERSAO){bar.classList.add('hidden');return;}

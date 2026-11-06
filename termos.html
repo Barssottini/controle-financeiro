@@ -76,7 +76,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
   <img src="logo-192.png" alt="North Finances" class="badge">
   <div class="brand">North<span> Finances</span></div>
   <div class="doc-title">Termos de Uso &amp; Privacidade</div>
-  <div class="doc-date">Última atualização: 8 de setembro de 2026</div>
+  <div class="doc-date">Última atualização: 6 de novembro de 2026</div>
 </div>
 
 <div class="wrap">
@@ -130,7 +130,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
   <h2><span class="num">5</span> Onde seus dados ficam e como são protegidos</h2>
   <ul>
     <li><strong>Servidor no Brasil:</strong> seus dados são armazenados em banco de dados PostgreSQL gerenciado pela <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a>, em região de <strong>São Paulo</strong>.</li>
-    <li><strong>Criptografia de ponta a ponta:</strong> seus dados financeiros são <strong>cifrados dentro do seu navegador</strong>, no seu dispositivo, <strong>antes</strong> de subir para a nuvem. No servidor fica apenas texto cifrado — <strong>sem a sua senha ou a sua chave de recuperação, nem a North consegue lê-los</strong>. A chave é derivada da sua senha no seu próprio aparelho e nunca é enviada para nós. Como o aplicativo é de <strong>código aberto</strong>, qualquer pessoa pode auditar como isso funciona.</li>
+    <li><strong>Criptografia de ponta a ponta:</strong> seus dados financeiros são <strong>cifrados dentro do seu navegador</strong>, no seu dispositivo, <strong>antes</strong> de subir para a nuvem. No servidor fica apenas texto cifrado — <strong>sem a sua senha ou a sua chave de recuperação, nem a North consegue lê-los</strong>. A chave é derivada da sua senha no seu próprio aparelho e nunca é enviada para nós. Como o aplicativo é de <strong>código aberto</strong>, qualquer pessoa pode auditar como isso funciona. Isso vale para tudo que você digita ou importa <strong>dentro</strong> do aplicativo. Há um caminho previsto que não funcionará assim — lançar por mensagem — e ele está descrito abaixo, na seção 5.1.</li>
     <li><strong>Isolamento por usuário:</strong> regras de segurança no nível do banco de dados garantem que <strong>cada usuário só acessa os próprios dados</strong> — nenhum outro usuário enxerga suas informações.</li>
     <li><strong>Senha criptografada</strong> e conexões protegidas por criptografia (HTTPS/TLS). Exigimos <strong>senha forte</strong> e o sistema recusa a reutilização da senha anterior na troca.</li>
     <li><strong>Verificação em duas etapas (2FA) opcional:</strong> você pode ativar nas Configurações um segundo código, gerado no seu celular, exigido a cada login — mesmo quem descobrir sua senha não entra sem ele.</li>
@@ -142,6 +142,23 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
     <li><strong>Sair de todos os dispositivos:</strong> botão nas Configurações que encerra todas as sessões ativas da sua conta.</li>
     <li><strong>Cópia local:</strong> uma cópia dos seus dados fica no seu próprio dispositivo, para o app funcionar rápido e mesmo sem internet.</li>
   </ul>
+
+  <h2><span class="num">5.1</span> Lançar por mensagem (WhatsApp)</h2>
+  <div class="highlight">⚠️ <strong>Este recurso ainda não está no ar.</strong> Enquanto não estiver, nada seu passa pelo WhatsApp. Estamos declarando aqui, antes de construir, porque ele é a <strong>única parte do North que não poderá ser de ponta a ponta</strong> — e você merece saber disso antes de decidir usá-lo, não depois.</div>
+  <p>A ideia é você mandar uma mensagem — escrita ou falada — como "gastei 30 no Uber", e ela virar um lançamento. Para que isso funcione, alguém precisa <strong>entender a frase</strong>. E entender exige ler em texto claro.</p>
+  <h3>Quem vê a sua mensagem</h3>
+  <ul>
+    <li><strong>A Meta</strong>, dona do WhatsApp. O canal é o WhatsApp Business, que <strong>não tem a mesma criptografia de ponta a ponta da sua conversa pessoal</strong>. Mensagem trocada com uma empresa é legível pela Meta — isso é do WhatsApp, não nosso, e vale para qualquer empresa que te atenda por lá.</li>
+    <li><strong>O nosso servidor</strong>, por alguns instantes, para extrair o valor, a descrição e a categoria.</li>
+    <li>Se você mandar <strong>áudio</strong>, um serviço de transcrição converte a fala em texto. O fornecedor será <strong>nomeado nesta seção antes de o recurso entrar no ar</strong>.</li>
+  </ul>
+  <h3>O que fazemos para preservar o máximo</h3>
+  <ul>
+    <li>O servidor lê a mensagem, extrai <strong>apenas</strong> valor, descrição e categoria, <strong>cifra esse resultado com a sua chave pública</strong> e <strong>descarta o texto original</strong>. O lançamento fica guardado já cifrado, e só o seu aparelho o abre.</li>
+    <li>Ou seja: o servidor <strong>vê de passagem e não guarda</strong>. Depois que o lançamento é criado, nem nós voltamos a ler o que você escreveu.</li>
+    <li>O canal é <strong>opcional e só funciona se você pedir</strong>. Quem não quiser usar o WhatsApp continua com o app exatamente como é hoje — cifrado de ponta a ponta, sem exceção nenhuma.</li>
+  </ul>
+  <p>Dizer "nem nós lemos seus dados" e manter um canal que não é privado seria uma contradição. Por isso ela está escrita aqui, e não em letra miúda.</p>
 
   <h2><span class="num">6</span> Compartilhamento com terceiros</h2>
   <p><strong>Nós não vendemos, alugamos ou compartilhamos seus dados pessoais.</strong> Utilizamos apenas fornecedores técnicos estritamente necessários para o funcionamento do app:</p>
@@ -156,7 +173,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
   </ul>
   <h3>Transferência internacional de dados</h3>
   <p>Seus dados financeiros ficam armazenados <strong>no Brasil</strong>, na região de São Paulo. Ainda assim, alguns fornecedores acima são empresas sediadas no exterior e podem tratar dados a partir de fora do país — é o caso de <strong>Supabase</strong>, <strong>Resend</strong>, <strong>Cloudflare</strong>, <strong>GitHub</strong> e <strong>Meta</strong>.</p>
-  <p>Essas transferências ocorrem nos termos dos <strong>artigos 33 a 35 da LGPD</strong>, amparadas nas cláusulas contratuais de proteção de dados oferecidas por cada fornecedor e limitadas ao <strong>estritamente necessário para executar o contrato</strong> com você. Vale lembrar o que mais importa aqui: como o conteúdo financeiro é cifrado no seu aparelho, o que trafega e o que fica armazenado nesses serviços é <strong>texto embaralhado</strong> — nenhum deles tem como lê-lo.</p>
+  <p>Essas transferências ocorrem nos termos dos <strong>artigos 33 a 35 da LGPD</strong>, amparadas nas cláusulas contratuais de proteção de dados oferecidas por cada fornecedor e limitadas ao <strong>estritamente necessário para executar o contrato</strong> com você. Vale lembrar o que mais importa aqui: como o conteúdo financeiro é cifrado no seu aparelho, o que trafega e o que fica armazenado nesses serviços é <strong>texto embaralhado</strong> — nenhum deles tem como lê-lo. A <strong>única exceção prevista</strong> é a mensagem enviada pelo canal do WhatsApp, quando ele existir: ela chega em texto claro à Meta e ao nosso servidor, pelo motivo e com os limites explicados na <strong>seção 5.1</strong>.</p>
 
   <h2><span class="num">7</span> Seus direitos (LGPD)</h2>
   <p>A qualquer momento, você pode exercer os direitos garantidos pela LGPD:</p>
@@ -246,6 +263,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
     <table>
       <thead><tr><th>Data</th><th>O que mudou</th></tr></thead>
       <tbody>
+        <tr><td class="dt">06/11/2026</td><td>Declarado, antes de existir, o único caminho do North que não será de ponta a ponta: o lançamento por mensagem no WhatsApp (nova seção 5.1). A mensagem é legível pela Meta e pelo nosso servidor, que extrai valor, descrição e categoria, cifra o resultado com a sua chave pública e descarta o texto original. O recurso é opcional e ainda não está no ar. As seções 5 e 6 passaram a apontar essa exceção em vez de afirmar que nada é legível.</td></tr>
         <tr><td class="dt">08/09/2026</td><td>Portabilidade deixa de ser lacuna declarada e passa a ser recurso: exportação de tudo em JSON e dos lançamentos em CSV, direto no app, sem precisar solicitar. Acrescentada a separação opcional entre finanças pessoais e da empresa, para quem é MEI ou autônomo.</td></tr>
         <tr><td class="dt">30/08/2026</td><td>Duração do teste gratuito declarada — 31 dias — e o marco em que ele começa: a confirmação do e-mail, não o cadastro. Direito de peticionar à ANPD acrescentado à seção 7. Identificação de quem opera o serviço detalhada na seção 13. Este histórico reordenado, do mais recente para o mais antigo.</td></tr>
         <tr><td class="dt">18/08/2026</td><td>Ressalva honesta sobre portabilidade: ainda não há exportação em arquivo, e o motivo técnico. Licença do código (MIT) e da marca. Hipóteses de suspensão e encerramento pela North. Este histórico.</td></tr>
