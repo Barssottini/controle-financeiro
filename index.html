@@ -12,6 +12,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="logo-192.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d0d0d">
+<script>try{if(localStorage.getItem('nf_tema')==='escuro')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <link rel="apple-touch-icon" href="logo-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -61,7 +62,51 @@
   --purple:#7c3aed;--purplel:#ede9fe;
   --sw:272px;--r:10px;
   --ff:'Plus Jakarta Sans',sans-serif;
+  /* tokens que antes eram cor fixa: no escuro precisam de outro valor */
+  --goldd:#8a5f1e;--warn:#b45309;--warnl:#fef3c7;--warnb:#f0b429;
+  color-scheme:light;
 }
+/* ═══ TEMA ESCURO ═══
+   Os tokens do conteudo trocam de valor; o resto do CSS ja usa os tokens. */
+:root[data-theme="dark"]{
+  --ink:#f2ede8;--ink2:#d9d3cc;--ink3:#a39c93;--ink4:#6f6962;
+  --paper:#181715;--paper2:#211f1c;--paper3:#302d29;
+  --goldl:#332a1b;--goldd:#e8c47c;
+  --green:#5cc486;--greenl:#16301f;
+  --red:#ef7468;--redl:#3a1c19;
+  --blue:#7aa2ff;--bluel:#172240;
+  --purple:#b19cff;--purplel:#261e3c;
+  --warn:#f0b429;--warnl:#38290e;--warnb:#c98f16;
+  color-scheme:dark;
+}
+:root[data-theme="dark"] body{background:#0f0e0d}
+/* Barra lateral, abas e topo do celular e o aviso flutuante ja sao escuros por
+   desenho. Dentro deles valem as cores do tema claro — entao nada neles muda, sem
+   precisar mexer em nenhuma regra deles. */
+:root[data-theme="dark"] :is(.sidebar,.tabbar,.mtopbar,#toast){
+  --ink:#0d0d0d;--ink2:#383533;--ink3:#79736d;--ink4:#b5afa9;
+  --paper:#faf9f7;--paper2:#f2ede8;--paper3:#e6dfd8;
+  --goldl:#f4e4c8;--green:#267a48;--greenl:#d2edde;--red:#b83228;--redl:#f8e4e2;
+  color-scheme:dark;
+}
+/* o cartao de saldo do celular e escuro so ate 900px; no computador ele e uma
+   fileira de cartoes comuns e segue o tema */
+@media(max-width:900px){
+  :root[data-theme="dark"] #dash-cards{
+    --ink:#0d0d0d;--ink4:#b5afa9;--paper:#faf9f7;
+    /* no escuro o cartao quase encosta no fundo: um fio desenha o formato */
+    box-shadow:0 1px 0 #2a2723;
+  }
+}
+/* no escuro a barra lateral (#0d0d0d) quase encosta no fundo: um fio separa */
+:root[data-theme="dark"] .sidebar{border-right:1px solid #262320}
+/* seletor de tema nas Configuracoes */
+.tema-seg{display:inline-flex;gap:3px;padding:3px;border:1px solid var(--paper3);border-radius:12px;background:var(--paper2)}
+.tema-seg button{display:flex;align-items:center;gap:7px;border:none;background:transparent;color:var(--ink3);
+  font-family:var(--ff);font-size:13px;font-weight:600;padding:8px 18px;border-radius:9px;cursor:pointer;transition:background .15s,color .15s}
+.tema-seg button:hover{color:var(--ink)}
+.tema-seg button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.tema-seg button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:100vh}
 
 /* LOGIN */
@@ -80,7 +125,7 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 .captcha-box:empty{margin:0}
 .captcha-box iframe{max-width:100%}
 .lbtn:hover{background:var(--gold)}
-.lerr{background:#fef2f2;color:#b91c1c;border:1.5px solid #fca5a5;border-radius:var(--r);padding:12px 16px;font-size:13px;font-weight:600;margin-bottom:14px;display:none;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(185,28,28,.12)}
+.lerr{background:var(--redl);color:var(--red);border:1.5px solid rgba(184,50,40,.35);border-radius:var(--r);padding:12px 16px;font-size:13px;font-weight:600;margin-bottom:14px;display:none;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(185,28,28,.12)}
 .lerr.show{display:flex;animation:shake .4s ease}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 
@@ -132,12 +177,12 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .ps{font-size:13px;color:var(--ink3);margin-top:5px;font-weight:400}
 
 /* REMINDER */
-.reminder-bar{background:linear-gradient(135deg,#fffbf0,var(--goldl));border:1px solid #e8c97a;border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:14px;margin-bottom:24px}
+.reminder-bar{background:linear-gradient(135deg,var(--paper),var(--goldl));border:1px solid #e8c97a;border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:14px;margin-bottom:24px}
 .reminder-bar.hidden{display:none}
 .reminder-text{flex:1;font-size:13px;font-weight:500;color:var(--ink2)}
 .reminder-text strong{display:block;font-size:14px;font-weight:700;color:var(--ink);margin-bottom:2px}
 .rdismiss{background:none;border:none;cursor:pointer;font-size:17px;color:var(--ink3);padding:3px 7px;border-radius:6px}
-.rdismiss:hover{background:rgba(0,0,0,.07)}
+.rdismiss:hover{background:rgba(128,128,128,.16)}
 /* BOLSO — alternador na barra lateral, que é escura */
 .ctx-seg{display:flex;margin-top:10px;border:1px solid rgba(250,249,247,.16);border-radius:7px;overflow:hidden}
 .ctx-seg button{flex:1;border:none;background:none;font-family:var(--ff);font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:6px 2px;color:var(--ink4);cursor:pointer}
@@ -177,10 +222,10 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 
 /* BUTTONS */
 .btn{padding:9px 18px;border:none;border-radius:var(--r);font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px;letter-spacing:-.1px}
-.btn-primary{background:var(--ink);color:var(--paper)}.btn-primary:hover{background:var(--gold);color:var(--ink)}
+.btn-primary{background:var(--ink);color:var(--paper)}.btn-primary:hover{background:var(--gold);color:#0d0d0d}
 .btn-secondary{background:var(--paper2);color:var(--ink);border:1px solid var(--paper3)}.btn-secondary:hover{background:var(--paper3)}
 .btn-danger{background:var(--redl);color:var(--red)}.btn-danger:hover{background:var(--red);color:#fff}
-.btn-gold{background:var(--gold);color:var(--ink)}.btn-gold:hover{background:#b07a2c;color:#fff}
+.btn-gold{background:var(--gold);color:#0d0d0d}.btn-gold:hover{background:#b07a2c;color:#fff}
 .btn-green{background:var(--greenl);color:var(--green)}.btn-green:hover{background:var(--green);color:#fff}
 .btn-sm{padding:6px 12px;font-size:12px}
 
@@ -275,7 +320,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .insight b{font-weight:800}
 .insight.warn{background:var(--redl);border-color:transparent;color:var(--red)}
 .insight.good{background:var(--greenl);border-color:transparent;color:var(--green)}
-.insight.tip{background:var(--goldl);border-color:transparent;color:#8a5f1e;cursor:pointer}
+.insight.tip{background:var(--goldl);border-color:transparent;color:var(--goldd);cursor:pointer}
 .insight.tip:hover{background:var(--gold);color:var(--paper)}
 .cat-row{display:flex;align-items:center;gap:13px;padding:11px 8px;border-radius:9px;cursor:pointer;transition:background .15s;border-bottom:1px solid var(--paper2)}
 .cat-row:last-child{border-bottom:none}
@@ -619,7 +664,7 @@ html.splash-active{background:#000}
     <div class="login-brand" style="margin-bottom:6px">North<span> Finances</span></div>
     <p style="font-size:19px;font-weight:800;text-align:center;margin-bottom:6px;letter-spacing:-.3px">Sua chave de recuperação</p>
     <p class="login-sub" style="text-align:center">Agora seus dados são cifrados no seu aparelho. Guarde este arquivo em lugar seguro: é a <b>única</b> forma de recuperar seus dados se você esquecer a senha. A North não tem cópia dela.</p>
-    <div id="reckey-value" style="font-family:'Courier New',monospace;font-size:16px;font-weight:700;letter-spacing:1px;text-align:center;background:#f2ede8;border:1px solid #e6dfd8;border-radius:10px;padding:16px;margin:6px 0 16px;color:#0d0d0d;word-break:break-all;user-select:all"></div>
+    <div id="reckey-value" style="font-family:'Courier New',monospace;font-size:16px;font-weight:700;letter-spacing:1px;text-align:center;background:var(--paper2);border:1px solid var(--paper3);border-radius:10px;padding:16px;margin:6px 0 16px;color:var(--ink);word-break:break-all;user-select:all"></div>
     <button class="lbtn" id="reckey-dl" onclick="downloadRecoveryKey()">Baixar chave de recuperação (.txt)</button>
     <label style="display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--ink3);margin:16px 0;cursor:pointer;line-height:1.5"><input type="checkbox" id="reckey-chk" onchange="reckeyGate()" style="margin-top:2px;flex:none"> Salvei minha chave de recuperação e entendo que, sem ela, se eu esquecer a senha meus dados não poderão ser recuperados.</label>
     <button class="lbtn" id="reckey-continue" onclick="reckeyContinue()" disabled style="opacity:.5">Continuar</button>
@@ -648,7 +693,7 @@ html.splash-active{background:#000}
     <input class="linput" id="recentry-key" type="text" placeholder="XXXX-XXXX-XXXX-XXXX-..." autocomplete="off">
     <div class="lerr" id="recentry-err"><span id="recentry-err-msg">Chave incorreta.</span></div>
     <button class="lbtn" onclick="doRecoveryRestore()">Restaurar dados</button>
-    <p style="text-align:center;margin-top:14px;font-size:12px"><a href="#" onclick="recoveryGiveUp();return false" style="color:#b83228;font-weight:700">Não tenho a chave — recomeçar do zero</a></p>
+    <p style="text-align:center;margin-top:14px;font-size:12px"><a href="#" onclick="recoveryGiveUp();return false" style="color:var(--red);font-weight:700">Não tenho a chave — recomeçar do zero</a></p>
   </div>
 </div>
 
@@ -1024,6 +1069,15 @@ html.splash-active{background:#000}
       </div>
 
       <div class="panel">
+        <div class="panel-head"><span class="panel-title">Aparência</span></div>
+        <p style="font-size:12px;color:var(--ink3);margin-bottom:12px">Escolha o tema do aplicativo. A preferência vale para este dispositivo e é aplicada na hora.</p>
+        <div class="tema-seg" role="radiogroup" aria-label="Tema do aplicativo">
+          <button type="button" data-tema="claro" role="radio" onclick="setTema('claro')"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Claro</button>
+          <button type="button" data-tema="escuro" role="radio" onclick="setTema('escuro')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Escuro</button>
+        </div>
+      </div>
+
+      <div class="panel">
         <div class="panel-head"><span class="panel-title">Módulos</span></div>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="set-show-cc" class="chk"> Exibir módulo Cartão de Crédito</label>
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--paper2)">
@@ -1042,9 +1096,9 @@ html.splash-active{background:#000}
         <h3 class="panel-title">Suas contas</h3>
         <p style="font-size:12px;color:var(--ink3);margin-bottom:10px">Separe o dinheiro por onde ele está — banco, carteira, poupança. Com mais de uma conta aparece um filtro no menu lateral e um campo em cada lançamento. <strong>Tudo que já existe fica na primeira conta</strong> — nada é reclassificado nem apagado.</p>
         <div id="contas-lista"></div>
-        <div class="frow" style="align-items:center;gap:8px;margin-top:10px">
-          <input class="field" type="text" id="conta-nova" maxlength="24" placeholder="Ex: Nubank, Carteira, Poupança">
-          <button class="btn btn-secondary" type="button" onclick="addConta()">Adicionar</button>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
+          <input class="field" style="flex:1;min-width:0" type="text" id="conta-nova" maxlength="24" placeholder="Ex: Nubank, Carteira, Poupança">
+          <button class="btn btn-secondary btn-sm" style="flex:none" type="button" onclick="addConta()">Adicionar</button>
         </div>
       </div>
 
@@ -1998,7 +2052,7 @@ async function initMPFields(){
   if(mpFieldsReady)return;
   await loadMPSdk();
   mpInstance=new MercadoPago(MP_PUBLIC_KEY);
-  const style={fontSize:'14px',color:'#0d0d0d','::placeholder':{color:'#9a938a'}};
+  const style={fontSize:'14px',color:cssVar('--ink')||'#0d0d0d','::placeholder':{color:'#9a938a'}};
   mpInstance.fields.create('cardNumber',{placeholder:'0000 0000 0000 0000',style}).mount('mp-card-number');
   mpInstance.fields.create('expirationDate',{placeholder:'MM/AA',style}).mount('mp-expiry');
   mpInstance.fields.create('securityCode',{placeholder:'CVV',style}).mount('mp-cvv');
@@ -2948,6 +3002,29 @@ function newId(){
 }
 
 // ═══ INIT ═══
+// ═══ TEMA ═══
+// Preferencia do aparelho, nao da conta: fica no localStorage e nao entra no
+// blob cifrado. Um script no <head> aplica antes da primeira pintura — sem ele,
+// quem usa o escuro veria um clarao a cada abertura. O logout limpa so as
+// chaves bf_*, entao o tema sobrevive a sair e entrar de novo.
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function temaAtual(){try{return localStorage.getItem('nf_tema')==='escuro'?'escuro':'claro';}catch(e){return 'claro';}}
+function aplicarTema(tm){
+  if(tm==='escuro')document.documentElement.setAttribute('data-theme','dark');
+  else document.documentElement.removeAttribute('data-theme');
+}
+function renderTemaSel(){
+  const tm=temaAtual();
+  document.querySelectorAll('.tema-seg button').forEach(b=>{
+    const on=b.dataset.tema===tm;b.classList.toggle('on',on);b.setAttribute('aria-checked',on?'true':'false');
+  });
+}
+function setTema(tm){
+  try{localStorage.setItem('nf_tema',tm);}catch(e){}
+  aplicarTema(tm);renderTemaSel();
+  try{renderChart();}catch(e){}   // o grafico pinta as cores no canvas: precisa redesenhar
+}
+
 function initApp(){
   loadData();
   if(!S.settings.chartPeriod&&window.matchMedia('(max-width:900px)').matches)S.settings.chartPeriod='month';
@@ -3667,9 +3744,9 @@ function renderContasSettings(){
   const box=document.getElementById('contas-lista');
   if(!box)return;
   box.innerHTML=contas().map(c=>
-    '<div class="frow" style="align-items:center;gap:8px;margin-bottom:6px">'
-    +'<input class="field" type="text" maxlength="24" value="'+esc(c.nome)+'" onchange="renomearConta('+c.id+',this.value)">'
-    +'<button class="btn" type="button" onclick="apagarConta('+c.id+')">Apagar</button>'
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+    +'<input class="field" style="flex:1;min-width:0" type="text" maxlength="24" value="'+esc(c.nome)+'" onchange="renomearConta('+c.id+',this.value)">'
+    +'<button class="btn btn-danger btn-sm" style="flex:none" type="button" onclick="apagarConta('+c.id+')">Apagar</button>'
     +'</div>').join('');
 }
 
@@ -4630,15 +4707,19 @@ function renderChart(){
   }
   const ctx=document.getElementById('dash-chart').getContext('2d');
   if(dashChart)dashChart.destroy();
+  // o canvas nao herda CSS: as cores saem dos tokens no momento do desenho, e
+  // setTema() redesenha o grafico quando o tema muda
+  const CT={g:cssVar('--green'),r:cssVar('--red'),p:cssVar('--paper'),t2:cssVar('--ink2'),t3:cssVar('--ink3'),
+    grid:document.documentElement.getAttribute('data-theme')==='dark'?'rgba(255,255,255,.06)':'rgba(0,0,0,.05)'};
   const datasets=chartType==='bar'?[
     {label:'Receitas',data:incData,backgroundColor:'rgba(38,122,72,.7)',borderRadius:6,borderSkipped:false},
     {label:'Despesas',data:expData,backgroundColor:'rgba(184,50,40,.65)',borderRadius:6,borderSkipped:false}
   ]:[
-    {label:'Receitas',data:incData,borderColor:'#267a48',backgroundColor:'rgba(38,122,72,.12)',
-      pointBackgroundColor:'#267a48',pointBorderColor:'#faf9f7',pointBorderWidth:2,pointRadius:4,pointHoverRadius:6,
+    {label:'Receitas',data:incData,borderColor:CT.g,backgroundColor:'rgba(38,122,72,.12)',
+      pointBackgroundColor:CT.g,pointBorderColor:CT.p,pointBorderWidth:2,pointRadius:4,pointHoverRadius:6,
       borderWidth:2.5,tension:.35,fill:true},
-    {label:'Despesas',data:expData,borderColor:'#b83228',backgroundColor:'rgba(184,50,40,.1)',
-      pointBackgroundColor:'#b83228',pointBorderColor:'#faf9f7',pointBorderWidth:2,pointRadius:4,pointHoverRadius:6,
+    {label:'Despesas',data:expData,borderColor:CT.r,backgroundColor:'rgba(184,50,40,.1)',
+      pointBackgroundColor:CT.r,pointBorderColor:CT.p,pointBorderWidth:2,pointRadius:4,pointHoverRadius:6,
       borderWidth:2.5,tension:.35,fill:true}
   ];
   dashChart=new Chart(ctx,{
@@ -4647,11 +4728,11 @@ function renderChart(){
     options:{
       responsive:true,maintainAspectRatio:false,
       interaction:{intersect:false,mode:'index'},
-      plugins:{legend:{position:'top',labels:{font:{family:'Plus Jakarta Sans',size:12},color:'#383533'}},
+      plugins:{legend:{position:'top',labels:{font:{family:'Plus Jakarta Sans',size:12},color:CT.t2}},
         tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtCur(ctx.raw)}`}}},
       scales:{
-        x:{grid:{display:false},ticks:{font:{family:'Plus Jakarta Sans',size:12},color:'#79736d',autoSkip:true,maxTicksLimit:15}},
-        y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{family:'Plus Jakarta Sans',size:11},color:'#79736d',callback:v=>fmtCur(v)}}
+        x:{grid:{display:false},ticks:{font:{family:'Plus Jakarta Sans',size:12},color:CT.t3,autoSkip:true,maxTicksLimit:15}},
+        y:{grid:{color:CT.grid},ticks:{font:{family:'Plus Jakarta Sans',size:11},color:CT.t3,callback:v=>fmtCur(v)}}
       }
     }
   });
@@ -4847,7 +4928,7 @@ function renderImportPreview(filename){
   const nNew=rows.length-nExact-nMaybe;
   const summary='<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;margin-bottom:12px">'+
     '<span><b style="color:var(--green)">'+nNew+'</b> nova(s)</span>'+
-    (nMaybe?'<span><b style="color:#b45309">'+nMaybe+'</b> possível(is) duplicata(s) — revise antes de importar</span>':'')+
+    (nMaybe?'<span><b style="color:var(--warn)">'+nMaybe+'</b> possível(is) duplicata(s) — revise antes de importar</span>':'')+
     (nExact?'<span><b style="color:var(--ink3)">'+nExact+'</b> já importada(s)</span>':'')+
     '</div>';
   prev.innerHTML=
@@ -4874,8 +4955,8 @@ function renderImportPreview(filename){
     '<div id="imp-rows">'+rows.map(({t,i,exact,maybe})=>{
       const flag=exact
         ?'<span class="badge" style="background:var(--paper3);color:var(--ink3)">Já importada</span>'
-        :maybe?'<span class="badge" style="background:#fef3c7;color:#b45309">Possível duplicata</span>':'';
-      return '<div class="imp-row"'+(exact?' style="opacity:.5"':(maybe?' style="background:#fef3c7;border-left:3px solid #f0b429"':''))+'>'+
+        :maybe?'<span class="badge" style="background:var(--warnl);color:var(--warn)">Possível duplicata</span>':'';
+      return '<div class="imp-row"'+(exact?' style="opacity:.5"':(maybe?' style="background:var(--warnl);border-left:3px solid var(--warnb)"':''))+'>'+
       '<input type="checkbox" class="chk imp-chk" data-i="'+i+'"'+(maybe?' data-maybe="1"':'')+(exact?' disabled':(maybe?'':' checked'))+'>'+
       '<span class="badge '+(t.type==='income'?'badge-in':'badge-out')+'" onclick="flipImportType(this,'+i+')" title="Clique para inverter entre receita e despesa" style="cursor:pointer">'+(t.type==='income'?'Receita':'Despesa')+'</span>'+
       '<span style="flex:1;font-weight:500;min-width:120px">'+esc(t.description)+'</span>'+
@@ -5050,6 +5131,7 @@ function renderSettings(){
   const ta=document.getElementById('tipo-atual');
   if(ta)ta.textContent={pf:'Hoje: pessoal',pj:'Hoje: empresa',both:'Hoje: as duas coisas'}[tipoConta()];
   renderContasSettings();
+  renderTemaSel();
   loadEmailPrefs();
 }
 // Preferência do lembrete mensal por e-mail — mora na tabela email_prefs (não no blob),
