@@ -753,6 +753,9 @@ html.splash-active{background:#000}
       <button class="sb-user sb-user-btn" onclick="openPerfil()" title="Ver seu perfil">Logado como<strong id="udisp"></strong><span class="sb-user-more">Ver perfil ›</span></button>
       <div id="sync-status" style="font-size:10px;margin-top:6px;color:var(--ink4)"></div>
       <button id="eye-toggle" onclick="toggleShowValues()" style="background:none;border:none;color:var(--ink4);cursor:pointer;padding:5px 0 0;margin:0;display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--ff)"></button>
+      <div id="conta-switch" style="display:none;margin-top:8px">
+        <select class="field" id="conta-view" onchange="setContaView(this.value)" style="font-size:12px;padding:6px 8px"></select>
+      </div>
       <div id="ctx-switch" style="display:none">
         <div class="ctx-seg">
           <button type="button" data-ctx="pf" onclick="setCtxView('pf')">Pessoal</button>
@@ -1036,6 +1039,16 @@ html.splash-active{background:#000}
       </div>
 
       <div class="panel">
+        <h3 class="panel-title">Suas contas</h3>
+        <p style="font-size:12px;color:var(--ink3);margin-bottom:10px">Separe o dinheiro por onde ele está — banco, carteira, poupança. Com mais de uma conta aparece um filtro no menu lateral e um campo em cada lançamento. <strong>Tudo que já existe fica na primeira conta</strong> — nada é reclassificado nem apagado.</p>
+        <div id="contas-lista"></div>
+        <div class="frow" style="align-items:center;gap:8px;margin-top:10px">
+          <input class="field" type="text" id="conta-nova" maxlength="24" placeholder="Ex: Nubank, Carteira, Poupança">
+          <button class="btn btn-secondary" type="button" onclick="addConta()">Adicionar</button>
+        </div>
+      </div>
+
+      <div class="panel">
         <div class="panel-head"><span class="panel-title">Notificações por e-mail</span></div>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="set-monthly-reminder" class="chk" onchange="saveMonthlyReminder(this)"> Lembrete mensal para exportar o extrato</label>
         <p style="font-size:12px;color:var(--ink3);margin-top:10px">No dia 1º de cada mês, enviamos um e-mail lembrando de exportar o extrato do banco e importar aqui, para manter tudo atualizado. Desative se não quiser receber.</p>
@@ -1145,6 +1158,7 @@ html.splash-active{background:#000}
           <label class="topt"><input type="radio" name="txtype" value="expense"><span>Despesa</span></label>
         </div>
       </div>
+      <div class="fgrp" id="tx-conta-grp" style="display:none"><label class="flbl">Conta</label><select class="field" id="tx-conta"></select></div>
       <div class="fgrp" id="tx-ctx-grp" style="display:none"><label class="flbl">Bolso</label><div class="trow"><label class="topt"><input type="radio" name="txctx" value="pf" checked><span>Pessoal</span></label><label class="topt"><input type="radio" name="txctx" value="pj"><span>Empresa</span></label></div></div>
       <div class="fgrp"><label class="flbl">Descrição</label><input class="field" type="text" id="tx-desc" placeholder="Ex: Salário, Aluguel..."></div>
       <div class="frow">
@@ -1640,7 +1654,7 @@ function setSync(state){
   el.style.color=state==='offline'?'#f87171':'var(--ink4)';
 }
 
-function persistAllLocal(){persist();persistCC();persistInv();persistGoals();persistSettings();persistBudgets();persistBills();persistRecurring();}
+function persistAllLocal(){persist();persistCC();persistInv();persistGoals();persistSettings();persistBudgets();persistBills();persistRecurring();persistContas();}
 
 function scheduleCloudSave(){
   if(!cloudReady)return;
@@ -1724,7 +1738,7 @@ async function cloudSaveNow(){
     const {data:{session}}=await sb.auth.getSession();
     if(!session)return;
     if(!_mk){setSync('offline');return;}   // sem a chave, não sobe nada (fica local até destravar)
-    const payload={transactions:S.transactions,ccItems:S.ccItems,investments:S.investments,goals:S.goals,budgets:S.budgets,bills:S.bills,recurring:S.recurring,settings:S.settings};
+    const payload={transactions:S.transactions,ccItems:S.ccItems,investments:S.investments,goals:S.goals,budgets:S.budgets,bills:S.bills,recurring:S.recurring,accounts:S.accounts,settings:S.settings};
     const encBlob=await nfEnc(_mk,JSON.stringify(payload));
     const {error}=await sb.from('user_data').upsert({user_id:session.user.id,enc_data:encBlob,data:null,updated_at:new Date().toISOString()});
     if(error)throw error;
@@ -1737,6 +1751,7 @@ function dataCount(d){
     +(d.ccItems||[]).length+(d.budgets||[]).length+(d.bills||[]).length+(d.recurring||[]).length;
 }
 function applyCloud(d){
+  S.accounts=Array.isArray(d.accounts)&&d.accounts.length?d.accounts:[];
   S.transactions=d.transactions||[];S.ccItems=d.ccItems||[];S.investments=d.investments||[];
   S.goals=d.goals||[];S.budgets=d.budgets||[];S.bills=d.bills||[];S.recurring=d.recurring||[];
   S.settings={...S.settings,...(d.settings||{})};
@@ -1759,10 +1774,10 @@ function applyCloud(d){
 // A guarda abaixo grava de quem e o cache e o apaga quando quem entra e outro.
 // Ela vale mesmo sem logout — navegador fechado, sessao derrubada, conta apagada.
 const NF_DONO='bf_owner';
-const NF_CHAVES=['bf_tx','bf_cc','bf_inv','bf_goals','bf_settings','bf_budgets','bf_bills','bf_recurring'];
+const NF_CHAVES=['bf_tx','bf_cc','bf_inv','bf_goals','bf_settings','bf_budgets','bf_bills','bf_recurring','bf_accounts'];
 function nfLimparCacheLocal(){
   NF_CHAVES.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});
-  S.transactions=[];S.ccItems=[];S.investments=[];S.goals=[];S.budgets=[];S.bills=[];S.recurring=[];
+  S.transactions=[];S.ccItems=[];S.investments=[];S.goals=[];S.budgets=[];S.bills=[];S.recurring=[];S.accounts=[];
 }
 function nfGarantirDono(uid){
   let dono=null;try{dono=localStorage.getItem(NF_DONO);}catch(e){}
@@ -1855,6 +1870,7 @@ async function onSignedIn(session,fresh){
   renderMFAStatus();
   renderEyeToggle();
   renderCtxSwitch();   // sem isto o alternador some para quem já ativou o modo
+  renderContaSwitch(); // idem para quem tem mais de uma conta
   renderCatSelects();
   renderCamposPeriodo();
   resetInactivityTimer();
@@ -2752,8 +2768,8 @@ async function recoveryGiveUp(){
   const uid=_recEntrySession.user.id,newPass=_nfNewPass||'';
   const rec=nfGenRecovery();const built=await nfBuildMeta(newPass,rec.bytes);_mk=built.mk;
   await sb.from('user_data').upsert({user_id:uid,enc_meta:built.meta,enc_data:null,data:null,updated_at:new Date().toISOString()});
-  ['bf_tx','bf_cc','bf_inv','bf_goals','bf_budgets','bf_bills','bf_recurring'].forEach(function(k){localStorage.removeItem(k);});
-  S.transactions=[];S.ccItems=[];S.investments=[];S.goals=[];S.budgets=[];S.bills=[];S.recurring=[];
+  ['bf_tx','bf_cc','bf_inv','bf_goals','bf_budgets','bf_bills','bf_recurring','bf_accounts'].forEach(function(k){localStorage.removeItem(k);});
+  S.transactions=[];S.ccItems=[];S.investments=[];S.goals=[];S.budgets=[];S.bills=[];S.recurring=[];S.accounts=[];
   await nfStoreMK(uid);_nfNewPass=null;
   document.getElementById('recentry-screen').style.display='none';
   await onSignedIn(_recEntrySession,false);
@@ -2983,7 +2999,7 @@ function openModal(id){
   document.getElementById(id).classList.add('open');
   if(id==='tx-modal'){
     document.getElementById('tx-date').valueAsDate=new Date();
-    if(!S.editId)resetTxCtx();
+    if(!S.editId){resetTxCtx();resetTxConta();}
   }
   if(id==='cc-modal'){
     document.getElementById('cc-date').valueAsDate=new Date();
@@ -3491,9 +3507,9 @@ function noCtx(x){
   const v=S.settings.ctxView||'all';
   return v==='all'||ctxDe(x)===v;
 }
-function txVis(){return S.transactions.filter(noCtx);}
-function ccVis(){return (S.ccItems||[]).filter(noCtx);}
-function billsVis(){return (S.bills||[]).filter(noCtx);}
+function txVis(){return S.transactions.filter(x=>noCtx(x)&&noConta(x));}
+function ccVis(){return (S.ccItems||[]).filter(x=>noCtx(x)&&noConta(x));}
+function billsVis(){return (S.bills||[]).filter(x=>noCtx(x)&&noConta(x));}
 
 function setCtxView(v){
   S.settings.ctxView=v;persistSettings();
@@ -3525,6 +3541,107 @@ function resetTxCtx(nome){
   if(r)r.checked=true;
 }
 
+// ═══ CONTAS ═══
+// Mesma forma do "bolso" acima, com a diferença de a lista ser montada pelo
+// usuário. A conta de um lançamento é OPCIONAL: sem ela, ou apontando para uma
+// conta já apagada, o lançamento cai na primeira. É por isso que ligar o recurso
+// não reescreve nada no blob cifrado e apagar uma conta nunca some com dinheiro
+// da tela — o pior caso é um lançamento reaparecer na conta principal.
+function contas(){
+  if(!Array.isArray(S.accounts)||!S.accounts.length)S.accounts=[{id:1,nome:'Principal'}];
+  return S.accounts;
+}
+function contaPadraoId(){return contas()[0].id;}
+function contaDe(x){const id=x&&x.conta;return contas().some(c=>c.id===id)?id:contaPadraoId();}
+function noConta(x){
+  if(contas().length<2)return true;
+  const v=S.settings.contaView;
+  return !v||v==='all'||contaDe(x)===v;
+}
+function setContaView(v){
+  S.settings.contaView=(v==='all')?'all':Number(v);persistSettings();
+  renderContaSwitch();
+  try{updateDashboard();}catch(e){}
+  try{renderTxList();}catch(e){}
+  try{renderChart();}catch(e){}
+  try{renderBillsPage();}catch(e){}
+  try{renderCCPage();}catch(e){}
+  try{renderBudgetPage();}catch(e){}
+}
+function opcoesConta(){return contas().map(c=>'<option value="'+c.id+'">'+esc(c.nome)+'</option>').join('');}
+function renderContaSwitch(){
+  const varias=contas().length>1;
+  const box=document.getElementById('conta-switch');
+  if(box){
+    box.style.display=varias?'':'none';
+    const sel=document.getElementById('conta-view');
+    if(sel){sel.innerHTML='<option value="all">Todas as contas</option>'+opcoesConta();sel.value=String(S.settings.contaView||'all');}
+  }
+  const grp=document.getElementById('tx-conta-grp');
+  if(grp){
+    grp.style.display=varias?'':'none';
+    const sel=document.getElementById('tx-conta');
+    if(sel){const ant=sel.value;sel.innerHTML=opcoesConta();if(ant)sel.value=ant;}
+  }
+}
+// Lançamento novo nasce na conta que você está olhando. Em "Todas", na primeira.
+function resetTxConta(){
+  const sel=document.getElementById('tx-conta');
+  if(!sel)return;
+  const v=S.settings.contaView;
+  sel.value=String((v&&v!=='all')?v:contaPadraoId());
+}
+// Com uma conta só o campo nem aparece: não grava nada novo, e preserva o que o
+// lançamento já tinha — editar com o recurso "desligado" não pode reclassificar.
+function contaDoForm(anterior){
+  if(contas().length<2)return anterior&&anterior.conta;
+  const sel=document.getElementById('tx-conta');
+  return Number(sel&&sel.value)||contaPadraoId();
+}
+// shortcut: o limite de uma conta no plano Free entra aqui quando o Free existir.
+// Hoje todo mundo que usa o app é assinante, então ninguém é barrado.
+function podeCriarConta(){return true;}
+function addConta(){
+  const inp=document.getElementById('conta-nova');
+  const nome=((inp&&inp.value)||'').trim();
+  if(!nome){showAlert('Dê um nome à conta.');return;}
+  if(contas().some(c=>c.nome.toLowerCase()===nome.toLowerCase())){showAlert('Já existe uma conta com esse nome.');return;}
+  if(!podeCriarConta()){showAlert('O plano Free permite uma conta. O Pro permite várias.');return;}
+  contas().push({id:Date.now(),nome});
+  if(inp)inp.value='';
+  persistContas();renderContasSettings();renderContaSwitch();
+  toast('Conta criada');
+}
+function renomearConta(id,nome){
+  nome=(nome||'').trim();
+  const c=contas().find(c=>c.id===id);
+  if(!c||!nome||c.nome===nome){renderContasSettings();return;}
+  c.nome=nome;persistContas();renderContaSwitch();toast('Conta renomeada');
+}
+function apagarConta(id){
+  if(contas().length<2){showAlert('Você precisa de pelo menos uma conta.');return;}
+  // A conta só sai quando está vazia: apagar junto com o dinheiro seria perda
+  // silenciosa, e o usuário só descobriria pelo saldo errado.
+  const n=S.transactions.filter(t=>contaDe(t)===id).length
+         +(S.bills||[]).filter(b=>contaDe(b)===id).length
+         +(S.ccItems||[]).filter(c=>contaDe(c)===id).length;
+  if(n){showAlert('Essa conta tem '+n+' lançamento(s). Mova ou apague os lançamentos antes de remover a conta.');return;}
+  S.accounts=contas().filter(c=>c.id!==id);
+  if(S.settings.contaView===id){S.settings.contaView='all';persistSettings();}
+  persistContas();renderContasSettings();renderContaSwitch();
+  try{updateDashboard();}catch(e){}
+  toast('Conta removida');
+}
+function renderContasSettings(){
+  const box=document.getElementById('contas-lista');
+  if(!box)return;
+  box.innerHTML=contas().map(c=>
+    '<div class="frow" style="align-items:center;gap:8px;margin-bottom:6px">'
+    +'<input class="field" type="text" maxlength="24" value="'+esc(c.nome)+'" onchange="renomearConta('+c.id+',this.value)">'
+    +'<button class="btn" type="button" onclick="apagarConta('+c.id+')">Apagar</button>'
+    +'</div>').join('');
+}
+
 // ═══ TRANSACTIONS ═══
 function saveTx(){
   const desc=document.getElementById('tx-desc').value.trim();
@@ -3534,6 +3651,9 @@ function saveTx(){
   const type=document.querySelector('input[name="txtype"]:checked').value;
   if(!desc||!amt||!date||!cat){showAlert('Preencha todos os campos.');return;}
   const tx={id:S.editId||Date.now(),type,description:desc,amount:amt,date,category:cat};
+  const _antTx=S.editId?S.transactions.find(x=>x.id===S.editId):null;
+  const _conta=contaDoForm(_antTx);
+  if(_conta)tx.conta=_conta;
   if(S.settings.empresarial){
     const rc=document.querySelector('input[name="txctx"]:checked');
     tx.ctx=(rc&&rc.value==='pj')?'pj':'pf';
@@ -4812,6 +4932,7 @@ function persistInv(){_guardar('bf_inv',S.investments);}
 function persistGoals(){_guardar('bf_goals',S.goals);}
 function persistSettings(){_guardar('bf_settings',S.settings);}
 function persistBudgets(){_guardar('bf_budgets',S.budgets);}
+function persistContas(){_guardar('bf_accounts',S.accounts);}
 function persistBills(){_guardar('bf_bills',S.bills);}
 // Legacy backup data only. Recurring transaction generation has been removed.
 function persistRecurring(){_guardar('bf_recurring',S.recurring);}
@@ -4822,6 +4943,7 @@ function loadData(){
   S.investments=parse('bf_inv',[]);
   S.goals=parse('bf_goals',[]);
   S.budgets=parse('bf_budgets',[]);
+  S.accounts=parse('bf_accounts',[]);
   S.bills=parse('bf_bills',[]);
   S.recurring=parse('bf_recurring',[]);
   S.settings={...S.settings,...parse('bf_settings',{})};
@@ -4865,6 +4987,7 @@ function renderSettings(){
   const emp=document.getElementById('set-empresarial');if(emp)emp.checked=!!S.settings.empresarial;
   const ta=document.getElementById('tipo-atual');
   if(ta)ta.textContent={pf:'Hoje: pessoal',pj:'Hoje: empresa',both:'Hoje: as duas coisas'}[tipoConta()];
+  renderContasSettings();
   loadEmailPrefs();
 }
 // Preferência do lembrete mensal por e-mail — mora na tabela email_prefs (não no blob),
