@@ -398,7 +398,8 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 /* Abertura aprovada no Canva, reproduzida sem recortes ou efeitos extras. */
 #north-splash{position:fixed;inset:0;width:100%;max-width:none;height:100dvh;max-height:none;margin:0;padding:0;border:0;background:#000;overflow:hidden;outline:none;opacity:1;transition:opacity .65s cubic-bezier(.4,0,.2,1)}
 #north-splash[open]{display:block}
-html.splash-active,html.splash-active body{background:#000}
+/* A área externa fica preta; o corpo mantém sua cor durante o fade. */
+html.splash-active{background:#000}
 #north-splash::backdrop{background:#000;opacity:1;transition:opacity .65s cubic-bezier(.4,0,.2,1)}
 #north-splash.leaving{opacity:0}
 #north-splash.leaving::backdrop{opacity:0}
