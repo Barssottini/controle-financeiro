@@ -58,6 +58,24 @@ Sendo honesto sobre o alcance: isso detecta adulteração, não impede. O navega
 de quem usa o app não faz essa conferência sozinho — é o item 1 do
 [THREAT_MODEL.md](THREAT_MODEL.md), que continua aberto.
 
+## Conferir o formato da criptografia
+
+```
+node verificar-cripto.js
+```
+
+Extrai as funções de criptografia do `index.html` e as roda contra vetores
+fixos: senha e chave de recuperação abrindo a mesma chave-mestra, o blob
+decifrado com os acentos intactos, a chave de recuperação digitada torta
+voltando aos bytes certos, e a senha errada sendo recusada.
+
+Serve para duas coisas. Trava o formato contra mudança acidental — baixar as
+600.000 iterações do PBKDF2, por exemplo, deixaria toda conta existente
+ilegível. E é o **critério de aceite do app nativo**: o React Native não tem
+WebCrypto, então essa camada vai ser reescrita, e a reescrita só está pronta
+quando decifra estes mesmos bytes. O próprio arquivo descreve o formato e as
+armadilhas do port.
+
 ## Funcionalidades
 
 - Dashboard com gráfico receitas × despesas
