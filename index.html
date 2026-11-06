@@ -3583,6 +3583,13 @@ function noConta(x){
   const v=S.settings.contaView;
   return !v||v==='all'||contaDe(x)===v;
 }
+function nomeDaConta(id){const c=contas().find(c=>c.id===id);return c?c.nome:contas()[0].nome;}
+// Saldo de UMA conta, sem recorte de bolso nem de periodo: e o numero que o
+// extrato do banco fecha. Diferente do appBalance(), que segue o que esta na tela.
+function saldoDaConta(id){
+  return S.transactions.filter(t=>contaDe(t)===id)
+    .reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),0);
+}
 function setContaView(v){
   S.settings.contaView=(v==='all')?'all':Number(v);persistSettings();
   renderContaSwitch();
@@ -4652,6 +4659,15 @@ function renderChart(){
 
 // ═══ OFX/CSV IMPORT (encoding fix) ═══
 let parsedRows=[];
+let parsedFile='';   // guardado para poder redesenhar a previa ao trocar a conta
+// Para onde este lote vai. Antes da previa existir, cai na conta que voce esta
+// olhando — importar olhando o Nubank ja chega com o Nubank escolhido.
+function contaDoImport(){
+  const sel=document.getElementById('imp-conta');
+  if(sel&&sel.value)return Number(sel.value);
+  const v=S.settings.contaView;
+  return (v&&v!=='all')?v:contaPadraoId();
+}
 function handleDrop(e){
   e.preventDefault();document.getElementById('drop-zone').classList.remove('drag-over');
   const f=e.dataTransfer.files[0];if(f)processFile(f);
@@ -4810,14 +4826,20 @@ function knownCats(){
 }
 const CATS=['Salário','Investimentos','Alimentação','Transporte','Moradia','Contas','Cartão de Crédito','Lazer','Saúde','Outros'];
 function renderImportPreview(filename){
+  parsedFile=filename;
   const prev=document.getElementById('import-preview');
   if(!parsedRows.length){
     prev.innerHTML='<div style="background:var(--redl);color:var(--red);padding:13px;border-radius:10px;margin-top:6px">Nenhuma transação encontrada em <strong>'+esc(filename)+'</strong>. Verifique se é OFX ou CSV válido.</div>';
     return;
   }
+  // Duplicata é SEMPRE dentro da mesma conta. O mesmo Uber de R$ 50 no mesmo dia
+  // pode existir de verdade no Nubank e no Itaú; comparar entre contas engoliria
+  // um lançamento legítimo em silêncio.
+  const alvo=contaDoImport();
+  const naConta=x=>contaDe(x)===alvo;
   const rows=parsedRows.map((t,i)=>{
-    const exact=S.transactions.some(x=>x.description===t.description&&x.amount===t.amount&&x.date===t.date);
-    const maybe=!exact&&S.transactions.some(x=>x.amount===t.amount&&x.date===t.date);
+    const exact=S.transactions.some(x=>naConta(x)&&x.description===t.description&&x.amount===t.amount&&x.date===t.date);
+    const maybe=!exact&&S.transactions.some(x=>naConta(x)&&x.amount===t.amount&&x.date===t.date);
     return {t,i,exact,maybe};
   });
   const nExact=rows.filter(r=>r.exact).length;
@@ -4834,6 +4856,12 @@ function renderImportPreview(filename){
     '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
     '<button class="btn btn-secondary btn-sm" onclick="toggleAllImport(true)">Selecionar tudo</button>'+
     '<button class="btn btn-secondary btn-sm" onclick="toggleAllImport(false)">Desmarcar tudo</button>'+
+    (contas().length>1
+      ?'<label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink2)">Conta:'+
+       '<select class="field" id="imp-conta" onchange="renderImportPreview(parsedFile)" style="width:auto;padding:6px 10px;font-size:12px">'+
+       contas().map(c=>'<option value="'+c.id+'"'+(c.id===alvo?' selected':'')+'>'+esc(c.nome)+'</option>').join('')+
+       '</select></label>'
+      :'')+
     (S.settings.empresarial
       ?'<label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink2)">Importar para:'+
        '<select class="field" id="imp-ctx" style="width:auto;padding:6px 10px;font-size:12px">'+
@@ -4888,21 +4916,30 @@ async function confirmImport(){
   // lido UMA vez: o lote inteiro vai para o mesmo bolso, inclusive o ajuste de
   // conciliação criado logo abaixo.
   const bolsoLote=(document.getElementById('imp-ctx')||{}).value==='pj'?'pj':'pf';
+  // Mesma ideia para a conta: o extrato do Nubank entra inteiro no Nubank, e a
+  // duplicata é conferida só contra o que já está nessa mesma conta.
+  const contaLote=contaDoImport();
   let added=0,dup=0;
   sel.forEach(i=>{
     const t=parsedRows[i];
-    if(S.transactions.some(x=>x.description===t.description&&x.amount===t.amount&&x.date===t.date)){dup++;return;}
-    S.transactions.push({id:newId(),...t,ctx:bolsoLote});added++;
+    if(S.transactions.some(x=>contaDe(x)===contaLote&&x.description===t.description&&x.amount===t.amount&&x.date===t.date)){dup++;return;}
+    S.transactions.push({id:newId(),...t,ctx:bolsoLote,conta:contaLote});added++;
   });
   persist();updateDashboard();populateMonthFilter();
   // Conciliação automática com o saldo final do extrato (LEDGERBAL)
   let balMsg='';
   if(parsedBal){
-    const diff=+(parsedBal.amt-appBalance()).toFixed(2);
+    // Compara com o saldo DESSA conta, não com o total na tela. O extrato do
+    // Nubank fecha contra o Nubank; conferir contra a soma de todas as contas
+    // ofereceria um "ajuste" que só faria o saldo ficar errado.
+    // Sem recorte de bolso de propósito: o extrato do banco traz pessoal e
+    // empresa misturados, que é justamente o caso de quem usa os dois.
+    const saldoConta=saldoDaConta(contaLote);
+    const diff=+(parsedBal.amt-saldoConta).toFixed(2);
     if(Math.abs(diff)<0.01){
       balMsg='<br>Saldo conferido: bate com o extrato ('+fmtCur(parsedBal.amt)+')';
-    }else if(await showConfirm('O extrato informa saldo final de '+fmtCur(parsedBal.amt)+'.\nO app calculou '+fmtCur(appBalance())+'.\n\nCriar ajuste automático de '+fmtCur(Math.abs(diff))+' para conciliar?',{title:'Conciliar saldo',confirmLabel:'Criar ajuste'})){
-      S.transactions.push({id:newId(),type:diff>0?'income':'expense',description:'Ajuste de conciliação (saldo do extrato)',amount:Math.abs(diff),date:parsedBal.date,category:'Outros',ctx:bolsoLote});
+    }else if(await showConfirm('O extrato informa saldo final de '+fmtCur(parsedBal.amt)+'.\nO app calculou '+fmtCur(saldoConta)+' para '+esc(nomeDaConta(contaLote))+'.\n\nCriar ajuste automático de '+fmtCur(Math.abs(diff))+' para conciliar?',{title:'Conciliar saldo',confirmLabel:'Criar ajuste'})){
+      S.transactions.push({id:newId(),type:diff>0?'income':'expense',description:'Ajuste de conciliação (saldo do extrato)',amount:Math.abs(diff),date:parsedBal.date,category:'Outros',ctx:bolsoLote,conta:contaLote});
       persist();updateDashboard();populateMonthFilter();
       balMsg='<br>Saldo conciliado automaticamente com o extrato ('+fmtCur(parsedBal.amt)+')';
     }else{

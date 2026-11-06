@@ -31,7 +31,7 @@ const sandbox = {
 };
 const nomes = Object.keys(sandbox);
 const F = new Function(...nomes,
-  t.slice(i, j) + '\nreturn {contas,contaPadraoId,contaDe,noConta,addConta,apagarConta};');
+  t.slice(i, j) + '\nreturn {contas,contaPadraoId,contaDe,noConta,addConta,apagarConta,saldoDaConta,nomeDaConta};');
 const C = F(...nomes.map(n => sandbox[n]));
 
 let falhas = 0;
@@ -114,6 +114,32 @@ checa('no Free nenhum lancamento e escondido', visiveis(), [1, 2]);
 S.settings.contaView = 2;
 checa('no Free o filtro da conta extra ainda funciona', visiveis(), [2]);
 pro = true;
+
+// 10. Saldo por conta: o extrato do banco fecha contra a conta dele, nao contra
+// a soma de tudo. Sem recorte de periodo nem de bolso.
+S.accounts = [{ id: 1, nome: 'Nubank' }, { id: 2, nome: 'Itaú' }];
+S.transactions = [
+  { id: 1, type: 'income', amount: 1000 },                  // sem conta -> Nubank
+  { id: 2, type: 'expense', amount: 250, conta: 1 },
+  { id: 3, type: 'income', amount: 70, conta: 2, ctx: 'pj' },
+];
+checa('saldo do Nubank ignora o Itaú', C.saldoDaConta(1), 750);
+checa('saldo do Itaú ignora o Nubank', C.saldoDaConta(2), 70);
+checa('nome da conta', C.nomeDaConta(2), 'Itaú');
+
+// 11. Duplicata na importacao e DENTRO da conta. A regra e extraida do
+// confirmImport real: copiar a condicao para ca faria o teste passar enquanto o
+// app engole lancamento legitimo.
+const mDup = /S\.transactions\.some\((x=>contaDe\(x\)===contaLote&&[^\n]*?)\)\)\{dup\+\+/.exec(t);
+if (!mDup) { falhas++; L.push('  FALHOU  nao achei a regra de duplicata no confirmImport'); }
+else {
+  const ehDup = new Function('S', 'contaDe', 'contaLote', 't', 'return S.transactions.some(' + mDup[1] + ');');
+  const jaTem = { description: 'Uber', amount: 50, date: '2026-11-01', conta: 1 };
+  S.transactions = [jaTem];
+  const novo = { description: 'Uber', amount: 50, date: '2026-11-01' };
+  checa('mesmo lançamento na MESMA conta é duplicata', ehDup(S, C.contaDe, 1, novo), true);
+  checa('mesmo lançamento em OUTRA conta não é duplicata', ehDup(S, C.contaDe, 2, novo), false);
+}
 
 console.log('CONTAS — ' + (falhas ? falhas + ' FALHA(S)' : 'tudo bate'));
 console.log(L.join('\n'));
