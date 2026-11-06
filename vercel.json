@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
 
-  "//": "Site estatico. Sem isto a Vercel ve o package.json, detecta 'node', instala o Electron e publica o server.js como funcao serverless atendendo TODAS as rotas. O server.js existe so para pre-visualizacao local (npm start) e nunca foi feito para producao.",
   "framework": null,
   "installCommand": "",
   "buildCommand": "",
