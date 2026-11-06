@@ -17,7 +17,9 @@ if (i < 0 || j < 0) { console.error('nao achei o bloco CONTAS no index.html'); p
 
 const S = { settings: {}, transactions: [], bills: [], ccItems: [], accounts: [] };
 const avisos = [];
+let pro = true;   // o teste liga e desliga o Pro para conferir os dois lados
 const sandbox = {
+  exigePro: () => { if (!pro) avisos.push('precisa do Pro'); return pro; },
   S,
   persistSettings: () => {}, persistContas: () => {},
   renderContaSwitch: () => {}, renderContasSettings: () => {},
@@ -29,7 +31,7 @@ const sandbox = {
 };
 const nomes = Object.keys(sandbox);
 const F = new Function(...nomes,
-  t.slice(i, j) + '\nreturn {contas,contaPadraoId,contaDe,noConta,addConta,apagarConta,podeCriarConta};');
+  t.slice(i, j) + '\nreturn {contas,contaPadraoId,contaDe,noConta,addConta,apagarConta};');
 const C = F(...nomes.map(n => sandbox[n]));
 
 let falhas = 0;
@@ -96,6 +98,22 @@ checa('nenhum lancamento sumiu', visiveis(), [1, 3]);
 avisos.length = 0;
 C.apagarConta(C.contaPadraoId());
 checa('a ultima conta nao pode ser apagada', C.contas().length, 1);
+
+// 9. No Free, criar conta e barrado — mas o que ja existe NAO some.
+S.accounts = [{ id: 1, nome: 'Principal' }, { id: 2, nome: 'Carteira' }];
+S.transactions = [{ id: 1 }, { id: 2, conta: 2 }];
+pro = false;
+avisos.length = 0;
+sandbox.document.getElementById = id => (id === 'conta-nova' ? { value: 'Poupança' } : null);
+C.addConta();
+checa('no Free nao cria conta nova', C.contas().length, 2);
+checa('e avisa que precisa do Pro', avisos.length, 1);
+S.settings.contaView = 'all';
+checa('no Free as contas que ja existiam continuam', C.contas().map(c => c.nome), ['Principal', 'Carteira']);
+checa('no Free nenhum lancamento e escondido', visiveis(), [1, 2]);
+S.settings.contaView = 2;
+checa('no Free o filtro da conta extra ainda funciona', visiveis(), [2]);
+pro = true;
 
 console.log('CONTAS — ' + (falhas ? falhas + ' FALHA(S)' : 'tudo bate'));
 console.log(L.join('\n'));

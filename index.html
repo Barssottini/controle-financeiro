@@ -1857,7 +1857,7 @@ async function onSignedIn(session,fresh){
   const sub=await getSubscription(session.user.id);
   _nfSub=sub;
   const acc=subAccess(sub);
-  if(!acc.ok){ showPaywall(acc); return; }
+  // Sem bloqueio por assinatura: quem nao e Pro entra no Free.
   document.getElementById('paywall-screen').style.display='none';
   document.getElementById('app').classList.add('visible');
   document.getElementById('udisp').textContent=session.user.email;
@@ -1908,15 +1908,29 @@ function subAccess(sub){
   return{ok:false,reason:sub.status};
 }
 
-function showPaywall(acc){
-  document.getElementById('app').classList.remove('visible');
-  const msg={
-    trial_expired:'Seu teste grátis de 31 dias terminou. Assine para continuar.',
-    past_due:'Não conseguimos processar seu pagamento. Renove para continuar usando.',
-    canceled:'Sua assinatura terminou. Assine novamente para voltar a usar.'
-  };
-  document.getElementById('pw-sub').textContent=msg[acc.reason]||'Assine para continuar usando o North Finances.';
-  document.getElementById('paywall-screen').style.display='flex';
+// ═══ FREE x PRO ═══
+// Decisao de 06/11/2026: existe plano Free, e vale tanto no app nativo quanto
+// aqui. Entao acabar o teste gratis deixou de BLOQUEAR e passou a REBAIXAR:
+// subAccess continua decidindo quem e Pro, e quem nao e entra no Free em vez de
+// bater num paywall. Por isso o showPaywall saiu — ninguem mais e barrado por
+// causa de assinatura (a tela de exclusao pendente continua barrando, que e
+// outro assunto).
+//
+// A regra que o Free NAO pode quebrar: ele nunca esconde nem apaga o que ja
+// existe. Investimento, conta a pagar e conta extra que a pessoa ja criou
+// continuam na tela, no calculo e no export — o Free impede CRIAR coisa nova,
+// so isso. Esconder dado que o usuario digitou contradiz "seus dados sao seus"
+// e a portabilidade que a secao 7 dos termos promete.
+const PRO_SO={
+  investimento:'Acompanhar investimentos',
+  conta:'Ter mais de uma conta',
+  bill:'Contas a pagar e receber',
+};
+function ehPro(){return subAccess(_nfSub).ok;}
+function exigePro(qual){
+  if(ehPro())return true;
+  showAlert((PRO_SO[qual]||'Esse recurso')+' faz parte do plano Pro.\n\nO que você já cadastrou continua aqui, entra nas contas e pode ser exportado quando quiser.');
+  return false;
 }
 
 // Se a assinatura for paga FORA desta janela — no navegador do sistema (é para
@@ -2075,6 +2089,13 @@ function renderTrialBanner(acc){
       +'<div style="font-size:12px;font-weight:800;color:var(--gold)">Teste grátis</div>'
       +'<div style="font-size:11.5px;color:var(--ink4);margin:4px 0 8px">'+(d>0?('Faltam <strong>'+d+'</strong> dia'+(d===1?'':'s')):'Último dia')+' · depois R$ 9,90/mês</div>'
       +'<button onclick="startSubscription(this)" style="width:100%;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;padding:9px;font-family:var(--ff);font-weight:800;font-size:12px;letter-spacing:-.1px;cursor:pointer">Assinar agora</button>'
+      +'</div>';
+  }else if(!acc.ok){
+    el.style.display='block';
+    el.innerHTML='<div style="background:linear-gradient(135deg,rgba(200,144,58,.16),rgba(200,144,58,.05));border:1px solid rgba(200,144,58,.35);border-radius:12px;padding:12px 14px;margin-top:14px">'
+      +'<div style="font-size:12px;font-weight:800;color:var(--gold)">Plano Free</div>'
+      +'<div style="font-size:11.5px;color:var(--ink4);margin:4px 0 8px">Lançamentos, orçamento e gráficos sem limite. O Pro abre investimentos, contas a pagar e mais de uma conta.</div>'
+      +'<button onclick="startSubscription(this)" style="width:100%;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;padding:9px;font-family:var(--ff);font-weight:800;font-size:12px;letter-spacing:-.1px;cursor:pointer">Assinar o Pro</button>'
       +'</div>';
   }else if(acc.reason==='grace'){
     el.style.display='block';
@@ -2996,6 +3017,10 @@ function showPage(id){
 
 // ═══ MODAL ═══
 function openModal(id){
+  // Barra na abertura, nao depois do formulario preenchido. O saveInv/saveBill
+  // repete a checagem porque o modal pode ser aberto por outro caminho.
+  if(id==='inv-modal'&&!S.invEditId&&!exigePro('investimento'))return;
+  if(id==='bill-modal'&&!S.billEditId&&!exigePro('bill'))return;
   document.getElementById(id).classList.add('open');
   if(id==='tx-modal'){
     document.getElementById('tx-date').valueAsDate=new Date();
@@ -3598,15 +3623,14 @@ function contaDoForm(anterior){
   const sel=document.getElementById('tx-conta');
   return Number(sel&&sel.value)||contaPadraoId();
 }
-// shortcut: o limite de uma conta no plano Free entra aqui quando o Free existir.
-// Hoje todo mundo que usa o app é assinante, então ninguém é barrado.
-function podeCriarConta(){return true;}
 function addConta(){
   const inp=document.getElementById('conta-nova');
   const nome=((inp&&inp.value)||'').trim();
   if(!nome){showAlert('Dê um nome à conta.');return;}
   if(contas().some(c=>c.nome.toLowerCase()===nome.toLowerCase())){showAlert('Já existe uma conta com esse nome.');return;}
-  if(!podeCriarConta()){showAlert('O plano Free permite uma conta. O Pro permite várias.');return;}
+  // No Free a conta e uma so — a que o app cria sozinho. As que ja existem,
+  // se a pessoa foi Pro antes, continuam funcionando e filtrando normalmente.
+  if(!exigePro('conta'))return;
   contas().push({id:Date.now(),nome});
   if(inp)inp.value='';
   persistContas();renderContasSettings();renderContaSwitch();
@@ -3882,6 +3906,7 @@ function invNumbers(inv){
     meta:inv.qty+' un. · PM '+fmtCur(inv.pm)+' · Preço atual '+fmtCur(inv.price)+(inv.ticker?' · '+esc(inv.ticker):'')};
 }
 function saveInv(){
+  if(!S.invEditId&&!exigePro('investimento'))return;   // editar o que ja existe continua liberado
   const name=document.getElementById('inv-name').value.trim();
   const kind=document.querySelector('input[name="invkind"]:checked').value;
   let inv;
@@ -5178,6 +5203,7 @@ function editBill(id){
   openModal('bill-modal');
 }
 function saveBill(){
+  if(!S.billEditId&&!exigePro('bill'))return;   // editar o que ja existe continua liberado
   const name=document.getElementById('bl-name').value.trim();
   const amt=parseFloat(document.getElementById('bl-amt').value);
   const day=parseInt(document.getElementById('bl-day').value);
