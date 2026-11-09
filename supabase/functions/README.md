@@ -13,9 +13,12 @@ Fonte das funções de servidor do North Finances, projeto Supabase
 
 | Função | JWT | O que faz |
 |---|---|---|
-| `create-subscription` | exige | Cria a assinatura no Mercado Pago (token de cartão ou checkout hospedado) |
-| `cancel-subscription` | exige | Cancela no Mercado Pago e marca a assinatura como cancelada |
-| `mp-webhook` | **público** | Recebe a notificação do Mercado Pago e sincroniza o status |
+| `stripe-checkout` | exige | Abre o pagamento do Pro na página hospedada do Stripe; quem já assina vai ao portal |
+| `stripe-portal` | exige | Portal do Stripe: cancelar no fim do período, trocar cartão, faturas |
+| `stripe-webhook` | **público** | Confere a `Stripe-Signature`, relê a assinatura na API do Stripe e sincroniza `subscriptions` |
+| `create-subscription` | exige | **Aposentada em 09/11/2026** (Mercado Pago). Responde 410 |
+| `cancel-subscription` | exige | **Aposentada em 09/11/2026** (Mercado Pago). Responde 410 |
+| `mp-webhook` | **público** | **Aposentada em 09/11/2026** (Mercado Pago). Responde 200 sem processar |
 | `panic-lockdown` | **público** | Botão "não fui eu": embaralha a senha e derruba todas as sessões |
 | `email-unsubscribe` | **público** | Descadastro do lembrete mensal, inclusive one-click do Gmail |
 | `notify-migrate` | **público** | Aposentada. One-off de migração, hoje no-op |
