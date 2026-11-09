@@ -119,6 +119,11 @@
 .acc-all svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
 .acc-all:hover{color:var(--ink);border-color:var(--ink4)}
 .acc-all.on{border-style:solid;border-color:var(--gold);background:var(--goldl);color:var(--ink)}
+.acc-add{display:flex;align-items:center;gap:6px;flex:none;padding:8px 10px;border:none;background:none;color:var(--goldd);
+  font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.acc-add:hover{text-decoration:underline;text-underline-offset:3px}
+.acc-add svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+span.acc-chip{cursor:default}
 /* icone do banco: cor da marca + inicial. Nao e a logo — logo de banco e marca
    registrada; isto basta para reconhecer de relance */
 .cbadge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;
@@ -931,7 +936,7 @@ html.splash-active{background:#000}
           <button class="btn btn-danger" onclick="clearAllTx()">Limpar Transações</button>
         </div>
       </div>
-      <div class="acc-bar" id="tx-acc-bar" style="display:none" role="tablist" aria-label="Filtrar por conta"></div>
+      <div class="acc-bar" id="tx-acc-bar" style="display:none" role="group" aria-label="Suas contas"></div>
       <div class="panel">
         <div class="filters">
           <input class="field" id="srch" placeholder="Buscar..." onkeyup="renderTxList()">
@@ -1109,7 +1114,7 @@ html.splash-active{background:#000}
 
       <div class="panel">
         <h3 class="panel-title">Suas contas</h3>
-        <p style="font-size:12px;color:var(--ink3);margin-bottom:10px">Separe o dinheiro por onde ele está — banco, carteira, poupança. Com mais de uma conta, a tela de Transações mostra uma barra com os seus bancos para filtrar, e cada lançamento ganha um campo de conta. <strong>Tudo que já existe fica na primeira conta</strong> — nada é reclassificado nem apagado.</p>
+        <p style="font-size:12px;color:var(--ink3);margin-bottom:10px">Separe o dinheiro por onde ele está — banco, carteira, poupança. A tela de Transações mostra uma barra com os seus bancos; com mais de uma conta, ela filtra os lançamentos por banco e cada lançamento ganha um campo de conta. <strong>Tudo que já existe fica na primeira conta</strong> — nada é reclassificado nem apagado.</p>
         <div id="contas-lista"></div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
           <input class="field" style="flex:1;min-width:0" type="text" id="conta-nova" maxlength="24" placeholder="Ex: Nubank, Carteira, Poupança">
@@ -3725,14 +3730,29 @@ function iconeConta(id,cls){
   if(b)return '<span class="cbadge'+c+'" style="background:'+b.bg+';color:'+b.fg+'"'+tt+'>'+b.t+'</span>';
   return '<span class="cbadge'+c+'" style="background:var(--paper3);color:var(--ink2)"'+tt+'>'+esc((String(nome).trim()[0]||'?').toUpperCase())+'</span>';
 }
+const BOTAO_NOVO_BANCO='<button type="button" class="acc-add" onclick="novoBanco()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Adicionar banco</button>';
+// Aparece mesmo com uma conta so — sem ela ninguem descobre que da para separar
+// por banco. Com uma conta nao ha o que filtrar: o chip so mostra o banco.
 function renderAccBar(){
   const bar=document.getElementById('tx-acc-bar');if(!bar)return;
   const lista=contas();
-  if(lista.length<2){bar.style.display='none';bar.innerHTML='';return;}
-  const v=S.settings.contaView,todas=!v||v==='all';
   bar.style.display='';
-  bar.innerHTML=lista.map(c=>'<button type="button" role="tab" aria-selected="'+(!todas&&v===c.id)+'" class="acc-chip'+(!todas&&v===c.id?' on':'')+'" onclick="setContaView('+c.id+')">'+iconeConta(c.id)+esc(c.nome)+'</button>').join('')
-    +'<button type="button" role="tab" aria-selected="'+todas+'" class="acc-all'+(todas?' on':'')+'" onclick="setContaView(\'all\')"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Ver todas</button>';
+  if(lista.length<2){
+    bar.innerHTML='<span class="acc-chip on">'+iconeConta(lista[0].id)+esc(lista[0].nome)+'</span>'+BOTAO_NOVO_BANCO;
+    return;
+  }
+  const v=S.settings.contaView,todas=!v||v==='all';
+  bar.innerHTML=lista.map(c=>'<button type="button" aria-pressed="'+(!todas&&v===c.id)+'" class="acc-chip'+(!todas&&v===c.id?' on':'')+'" onclick="setContaView('+c.id+')">'+iconeConta(c.id)+esc(c.nome)+'</button>').join('')
+    +'<button type="button" aria-pressed="'+todas+'" class="acc-all'+(todas?' on':'')+'" onclick="setContaView(\'all\')"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Ver todas</button>'
+    +BOTAO_NOVO_BANCO;
+}
+// No Free, o aviso do Pro ali mesmo. No Pro, o campo de conta nova nas
+// Configuracoes, onde o addConta() ja recusa nome vazio e repetido.
+function novoBanco(){
+  if(!exigePro('conta'))return;
+  showPage('settings');
+  const el=document.getElementById('conta-nova');
+  if(el){el.scrollIntoView({block:'center'});el.focus();}
 }
 function renderIconeForm(){
   const s=document.getElementById('tx-conta'),ic=document.getElementById('tx-conta-ic');

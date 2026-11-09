@@ -16,10 +16,11 @@ const j = t.indexOf('// ═══ TRANSACTIONS ═══', i);
 if (i < 0 || j < 0) { console.error('nao achei o bloco CONTAS no index.html'); process.exit(2); }
 
 const S = { settings: {}, transactions: [], bills: [], ccItems: [], accounts: [] };
-const avisos = [];
+const avisos = [], paginas = [];
 let pro = true;   // o teste liga e desliga o Pro para conferir os dois lados
 const sandbox = {
   exigePro: () => { if (!pro) avisos.push('precisa do Pro'); return pro; },
+  showPage: p => paginas.push(p),
   S,
   persistSettings: () => {}, persistContas: () => {},
   renderContaSwitch: () => {}, renderContasSettings: () => {},
@@ -31,7 +32,7 @@ const sandbox = {
 };
 const nomes = Object.keys(sandbox);
 const F = new Function(...nomes,
-  t.slice(i, j) + '\nreturn {contas,contaPadraoId,contaDe,noConta,addConta,apagarConta,saldoDaConta,nomeDaConta,bancoDe};');
+  t.slice(i, j) + '\nreturn {contas,contaPadraoId,contaDe,noConta,addConta,apagarConta,saldoDaConta,nomeDaConta,bancoDe,renderAccBar,novoBanco};');
 const C = F(...nomes.map(n => sandbox[n]));
 
 let falhas = 0;
@@ -194,6 +195,28 @@ checa('o bolso gravado no lancamento nao e apagado', S.transactions[0].ctx, 'pj'
 checa('"as duas coisas" vira pessoal nas categorias', B.tipoConta(), 'pf');
 S.settings.accountType = 'pj';
 checa('empresa continua empresa', B.tipoConta(), 'pj');
+
+// 16. A barra de bancos aparece mesmo com uma conta so — sem ela ninguem descobre
+// que da para separar por banco. "Ver todas" so quando ha o que juntar.
+const barra = { style: { display: 'none' }, innerHTML: '' };
+sandbox.document.getElementById = id => (id === 'tx-acc-bar' ? barra : null);
+S.accounts = [{ id: 1, nome: 'Principal' }];
+S.settings.contaView = 'all';
+C.renderAccBar();
+checa('com uma conta, a barra aparece', barra.style.display, '');
+checa('com uma conta: o banco e o "Adicionar banco", sem "Ver todas"',
+  ['Principal', 'Adicionar banco', 'Ver todas'].map(s => barra.innerHTML.includes(s)), [true, true, false]);
+S.accounts.push({ id: 2, nome: 'Itaú' });
+C.renderAccBar();
+checa('com duas contas: "Ver todas" e o "Adicionar banco"',
+  ['Ver todas', 'Adicionar banco'].map(s => barra.innerHTML.includes(s)), [true, true]);
+// no Free o "+" e o aviso do Pro ali mesmo; no Pro leva ao campo de conta nova
+pro = false; avisos.length = 0; paginas.length = 0;
+C.novoBanco();
+checa('no Free, "Adicionar banco" avisa do Pro e nao sai da tela', [avisos.length, paginas.length], [1, 0]);
+pro = true;
+C.novoBanco();
+checa('no Pro, "Adicionar banco" leva as Configuracoes', paginas, ['settings']);
 
 console.log('CONTAS — ' + (falhas ? falhas + ' FALHA(S)' : 'tudo bate'));
 console.log(L.join('\n'));
