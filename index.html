@@ -5,7 +5,7 @@
 <!-- CSP: num app E2EE, o maior risco é XSS exfiltrar a chave. script-src mantém 'unsafe-inline'
      (o app é um script inline + handlers onclick), mas connect-src/img-src travam a EXFILTRAÇÃO:
      um script injetado não consegue mandar a chave pra fora dos hosts abaixo. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://sdk.mercadopago.com https://*.mercadopago.com https://*.mlstatic.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https://*.mlstatic.com https://*.mercadopago.com; connect-src 'self' https://uipywjbcjzhqueyrfwef.supabase.co wss://uipywjbcjzhqueyrfwef.supabase.co https://api.coingecko.com https://api.bcb.gov.br https://challenges.cloudflare.com https://api.mercadopago.com https://*.mercadopago.com https://*.mlstatic.com; frame-src https://challenges.cloudflare.com https://sdk.mercadopago.com https://*.mercadopago.com https://*.mlstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; connect-src 'self' https://uipywjbcjzhqueyrfwef.supabase.co wss://uipywjbcjzhqueyrfwef.supabase.co https://api.coingecko.com https://api.bcb.gov.br https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>North Finances</title>
 <link rel="icon" href="logo.ico" sizes="any">
@@ -443,8 +443,6 @@ body.values-hidden #dash-chart{filter:blur(6px)}
   .filters{grid-template-columns:1fr}
   .frow{grid-template-columns:1fr}
 }
-.mp-field{height:44px;padding:0 12px}
-.mp-field iframe{width:100%;height:100%;border:0}
 /* Saldo primeiro; entradas e saídas como informações de apoio. */
 #dash-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 #dash-cards.has-credit{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -754,13 +752,12 @@ html.splash-active{background:#000}
     <div class="login-brand" style="margin-bottom:6px">North<span> Finances</span></div>
     <p class="login-sub" id="pw-sub" style="margin-bottom:20px">Continue organizando sua vida financeira</p>
     <div style="background:var(--paper2);border:1px solid var(--paper3);border-radius:16px;padding:22px 20px;margin-bottom:22px">
-      <div style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Oferta de lançamento</div>
-      <div style="text-decoration:line-through;color:var(--ink3);font-size:14px;margin-bottom:2px">De R$ 19,90</div>
-      <div style="font-size:38px;font-weight:900;color:var(--ink);line-height:1">R$ 9,90<span style="font-size:15px;font-weight:700;color:var(--ink3)">/mês</span></div>
+      <div style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Plano Pro</div>
+      <div style="font-size:38px;font-weight:900;color:var(--ink);line-height:1">R$ 19,90<span style="font-size:15px;font-weight:700;color:var(--ink3)">/mês</span></div>
       <div style="font-size:12.5px;color:var(--ink2);margin-top:8px">Cancele quando quiser</div>
     </div>
     <button class="lbtn" id="pw-btn" onclick="startSubscription(this)">Assinar agora</button>
-    <p style="text-align:center;margin-top:16px;font-size:11.5px;color:var(--ink3);line-height:1.6">Pagamento processado com segurança pelo Mercado Pago.</p>
+    <p style="text-align:center;margin-top:16px;font-size:11.5px;color:var(--ink3);line-height:1.6">Pagamento processado com segurança pelo Stripe.</p>
     <p style="text-align:center;margin-top:18px;font-size:12px">
       <a href="#" onclick="doLogout();return false" style="color:var(--ink3);font-weight:700">Sair da conta</a>
     </p>
@@ -1600,30 +1597,6 @@ html.splash-active{background:#000}
   </div>
 </div>
 
-<!-- MODAL: PAGAMENTO (checkout transparente Mercado Pago) — z-index acima do paywall (10002) -->
-<div class="overlay" id="pay-modal" style="z-index:10005">
-  <div class="modal">
-    <div class="mhead"><h3>Assinar North Finances</h3><button class="xbtn" onclick="closeModal('pay-modal')">✕</button></div>
-    <div class="mbody">
-      <div style="background:var(--goldl);border-radius:var(--r);padding:12px;font-size:12px;color:var(--ink2);line-height:1.6;margin-bottom:18px">
-        <strong>R$ 9,90/mês no cartão de crédito.</strong> Sem fidelidade — cancele quando quiser. Os dados do cartão vão direto para o Mercado Pago e não passam pelos nossos servidores.
-      </div>
-      <div class="fgrp"><label class="flbl">Nome impresso no cartão</label><input class="field" type="text" id="pay-holder" placeholder="Como está no cartão" autocomplete="cc-name"></div>
-      <div class="fgrp"><label class="flbl">CPF do titular</label><input class="field" type="text" id="pay-doc" placeholder="Só números" inputmode="numeric" maxlength="14"></div>
-      <div class="fgrp"><label class="flbl">Número do cartão</label><div class="field mp-field" id="mp-card-number"></div></div>
-      <div class="frow">
-        <div class="fgrp"><label class="flbl">Validade</label><div class="field mp-field" id="mp-expiry"></div></div>
-        <div class="fgrp"><label class="flbl">CVV</label><div class="field mp-field" id="mp-cvv"></div></div>
-      </div>
-      <div id="pay-err" style="display:none;background:var(--redl);color:var(--red);border-radius:var(--r);padding:10px 12px;font-size:12.5px;margin-bottom:14px"></div>
-      <div class="factions" style="flex-direction:column;gap:10px">
-        <button class="btn btn-primary" id="pay-btn" style="width:100%" onclick="payWithCard(this)">Assinar por R$ 9,90/mês</button>
-        <a href="#" onclick="startSubscriptionRedirect(this);return false" style="font-size:12px;color:var(--ink3);text-align:center">Prefiro pagar pelo site do Mercado Pago</a>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- MODAL: BOAS-VINDAS (primeiro login) -->
 <div class="overlay" id="welcome-modal">
   <div class="modal">
@@ -2055,102 +2028,41 @@ async function reportTrialStart(uid){
     localStorage.setItem(key,'1');
   }catch(e){}
 }
-// ═══ CHECKOUT TRANSPARENTE (Mercado Pago Secure Fields) ═══
-const MP_PUBLIC_KEY='APP_USR-d1b9a81d-499b-44a8-a7d1-03da8583765c';
-let mpInstance=null,mpFieldsReady=false;
-function loadMPSdk(){
-  return new Promise((res,rej)=>{
-    if(window.MercadoPago)return res();
-    const s=document.createElement('script');
-    s.src='https://sdk.mercadopago.com/js/v2';
-    s.onload=res;s.onerror=()=>rej(new Error('Falha ao carregar o Mercado Pago.'));
-    document.head.appendChild(s);
-  });
-}
-async function initMPFields(){
-  if(mpFieldsReady)return;
-  await loadMPSdk();
-  mpInstance=new MercadoPago(MP_PUBLIC_KEY);
-  const style={fontSize:'14px',color:cssVar('--ink')||'#0d0d0d','::placeholder':{color:'#9a938a'}};
-  mpInstance.fields.create('cardNumber',{placeholder:'0000 0000 0000 0000',style}).mount('mp-card-number');
-  mpInstance.fields.create('expirationDate',{placeholder:'MM/AA',style}).mount('mp-expiry');
-  mpInstance.fields.create('securityCode',{placeholder:'CVV',style}).mount('mp-cvv');
-  mpFieldsReady=true;
-}
-function payErr(msg){
-  const el=document.getElementById('pay-err');if(!el)return;
-  if(!msg){el.style.display='none';return;}
-  el.textContent=msg;el.style.display='block';
-}
-async function startSubscription(btn){
-  payErr('');
-  openModal('pay-modal');
-  try{await initMPFields();}
-  catch(e){closeModal('pay-modal');startSubscriptionRedirect(btn);}
-}
-// mensagens pt-BR para os códigos de erro de tokenização do MP
-const MP_ERR_MSGS={'205':'Digite o número do cartão.','208':'Escolha um mês válido.','209':'Escolha um ano válido.','212':'Informe o CPF.','213':'Informe o CPF.','214':'CPF inválido.','221':'Digite o nome impresso no cartão.','224':'Digite o código de segurança.','E301':'Número de cartão inválido.','E302':'Código de segurança inválido.','316':'Nome do titular inválido.','325':'Validade inválida.','326':'Validade inválida.'};
-async function payWithCard(btn){
-  payErr('');
-  const holder=document.getElementById('pay-holder').value.trim();
-  const doc=document.getElementById('pay-doc').value.replace(/\D/g,'');
-  if(!holder){payErr('Digite o nome impresso no cartão.');return;}
-  if(doc.length!==11){payErr('Digite um CPF válido (11 números).');return;}
-  const orig=btn.textContent;
-  btn.disabled=true;btn.textContent='Processando…';
+// ═══ ASSINATURA PRO (Stripe) ═══
+// O pagamento acontece na pagina hospedada do Stripe: o app so redireciona e
+// nenhum script de terceiro roda aqui dentro. Quem ja assina cai no portal do
+// Stripe (renovar, trocar cartao, cancelar) — a funcao decide, nao o app.
+async function irParaStripe(fn,btn,rotulo){
+  const orig=btn&&btn.textContent;
   try{
-    const token=await mpInstance.fields.createCardToken({cardholderName:holder,identificationType:'CPF',identificationNumber:doc});
-    if(!token||!token.id)throw new Error('Não foi possível validar o cartão. Confira os dados.');
+    if(btn&&btn.tagName==='BUTTON'){btn.disabled=true;btn.textContent=rotulo;}
     const {data:{session}}=await sb.auth.getSession();
     if(!session)throw new Error('Sessão expirada. Entre novamente.');
-    const r=await fetch(FN_BASE+'/create-subscription',{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'},body:JSON.stringify({card_token_id:token.id})});
+    const r=await fetch(FN_BASE+'/'+fn,{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'}});
     const j=await r.json().catch(()=>({}));
-    if(!r.ok||!j.ok){
-      if(j.error==='mp_rejected'||j.error==='mp_not_authorized')throw new Error('O cartão foi recusado. Confira os dados ou tente outro cartão.');
-      const d=j.detail&&(j.detail.message||j.detail.error)?(' — '+(j.detail.message||j.detail.error)):'';
-      throw new Error((j.error||('Erro '+r.status))+d);
-    }
-    btn.textContent='Assinatura ativa!';
-    showAlert('Assinatura ativada com sucesso. Bem-vindo ao North Finances!');
-    location.reload();
+    if(!r.ok||!j.url)throw new Error(j.error==='pagamento_nao_configurado'?'O pagamento ainda não está disponível. Tente de novo mais tarde.':(j.error||('Erro '+r.status)));
+    location.href=j.url;
   }catch(e){
-    let msg=(e&&e.message)?e.message:'Não foi possível processar o pagamento.';
-    const causes=Array.isArray(e)?e:((e&&e.cause)||[]);
-    for(const c of causes){if(c&&MP_ERR_MSGS[c.code]){msg=MP_ERR_MSGS[c.code];break;}}
-    payErr(msg);
-    btn.disabled=false;btn.textContent=orig;
+    showAlert('Não foi possível abrir o pagamento:\n'+(e.message||e));
+    if(btn&&btn.tagName==='BUTTON'){btn.disabled=false;btn.textContent=orig;}
   }
 }
-// fluxo antigo (fallback): redirect para o checkout hospedado do Mercado Pago
-async function startSubscriptionRedirect(btn){
-  const orig=btn?btn.textContent:'';
-  try{
-    if(btn&&btn.tagName==='BUTTON'){btn.disabled=true;btn.textContent='Abrindo checkout…';}
-    const {data:{session}}=await sb.auth.getSession();
-    if(!session)throw new Error('Sessão expirada. Entre novamente.');
-    const r=await fetch(FN_BASE+'/create-subscription',{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'}});
-    const j=await r.json().catch(()=>({}));
-    if(!r.ok||!j.init_point){
-      const d=j.detail&&(j.detail.message||j.detail.error)?(' — '+(j.detail.message||j.detail.error)):'';
-      throw new Error((j.error||('Erro '+r.status))+d);
-    }
-    location.href=j.init_point;   // vai para o checkout do Mercado Pago
-  }catch(e){
-    showAlert('Não foi possível abrir o checkout:\n'+(e.message||e));
-    if(btn&&btn.tagName==='BUTTON'){btn.disabled=false;btn.textContent=orig||'Assinar agora';}
-  }
-}
-
-async function cancelSubscription(){
-  if(!(await showConfirm('Cancelar sua assinatura? Você continua com acesso até o fim do período já pago e não será cobrado novamente.',{title:'Cancelar assinatura',confirmLabel:'Cancelar assinatura',danger:true})))return;
-  try{
-    const {data:{session}}=await sb.auth.getSession();
-    const r=await fetch(FN_BASE+'/cancel-subscription',{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'}});
-    const j=await r.json().catch(()=>({}));
-    if(!r.ok)throw new Error(j.error||('Erro '+r.status));
-    showAlert('Assinatura cancelada. Seu acesso continua até o fim do período atual.');
-    location.reload();
-  }catch(e){showAlert('Erro ao cancelar: '+(e.message||e));}
+function startSubscription(btn){irParaStripe('stripe-checkout',btn,'Abrindo pagamento…');}
+function gerenciarAssinatura(btn){irParaStripe('stripe-portal',btn,'Abrindo…');}
+// Volta do Stripe: o aviso de pagamento pode chegar segundos depois do redirect.
+// Reconfere algumas vezes e recarrega quando a assinatura mudar.
+if(/[?&]assinatura=ok/.test(location.search)){
+  history.replaceState(null,'',location.pathname);
+  setTimeout(async function espera(n){
+    try{
+      if(!n)toast('Pagamento recebido. Ativando o Pro…');
+      const {data:{session}}=await sb.auth.getSession();
+      if(!session)return;
+      const sub=await getSubscription(session.user.id);
+      if(sub&&_nfSub&&(sub.status!==_nfSub.status||sub.current_period_end!==_nfSub.current_period_end)){location.reload();return;}
+    }catch(e){}
+    if((n||0)<6)setTimeout(()=>espera((n||0)+1),3000);
+  },3000);
 }
 
 function renderTrialBanner(acc){
@@ -2160,7 +2072,7 @@ function renderTrialBanner(acc){
     el.style.display='block';
     el.innerHTML='<div style="background:linear-gradient(135deg,rgba(200,144,58,.16),rgba(200,144,58,.05));border:1px solid rgba(200,144,58,.35);border-radius:12px;padding:12px 14px;margin-top:14px">'
       +'<div style="font-size:12px;font-weight:800;color:var(--gold)">Teste grátis</div>'
-      +'<div style="font-size:11.5px;color:var(--ink4);margin:4px 0 8px">'+(d>0?('Faltam <strong>'+d+'</strong> dia'+(d===1?'':'s')):'Último dia')+' · depois R$ 9,90/mês</div>'
+      +'<div style="font-size:11.5px;color:var(--ink4);margin:4px 0 8px">'+(d>0?('Faltam <strong>'+d+'</strong> dia'+(d===1?'':'s')):'Último dia')+' · Pro por R$ 19,90/mês</div>'
       +'<button onclick="startSubscription(this)" style="width:100%;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;padding:9px;font-family:var(--ff);font-weight:800;font-size:12px;letter-spacing:-.1px;cursor:pointer">Assinar agora</button>'
       +'</div>';
   }else if(!acc.ok){
@@ -2184,14 +2096,16 @@ function renderSubPanel(sub,acc){
   const info=document.getElementById('sub-info');const act=document.getElementById('sub-actions');
   if(!info||!act)return;
   let html='';
-  if(acc.reason==='trialing'){html='<strong>Plano:</strong> Teste grátis de 31 dias<br><strong>Termina em:</strong> '+fmtDate(acc.end)+' ('+daysLeft(acc.end)+' dias)<br>Depois: <strong>R$ 9,90/mês</strong>';}
-  else if(acc.reason==='active'){html='<strong>Plano:</strong> North Finances — R$ 9,90/mês<br><strong>Status:</strong> Ativa'+(acc.end?'<br><strong>Próxima cobrança:</strong> '+fmtDate(acc.end):'');}
-  else if(acc.reason==='grace'){html='<strong>Status:</strong> Cancelada<br>Seu acesso continua até <strong>'+fmtDate(acc.end)+'</strong>.';}
-  else{html='Assine o North Finances por <strong>R$ 9,90/mês</strong>.';}
+  if(acc.reason==='trialing'){html='<strong>Plano:</strong> Pro em teste grátis<br><strong>Termina em:</strong> '+fmtDate(acc.end)+' ('+daysLeft(acc.end)+' dias)<br>Depois: plano Free, ou Pro por <strong>R$ 19,90/mês</strong>';}
+  else if(acc.reason==='active'){html='<strong>Plano:</strong> North Finances Pro — R$ 19,90/mês<br><strong>Status:</strong> Ativa'+(acc.end?'<br><strong>Próxima cobrança:</strong> '+fmtDate(acc.end):'');}
+  else if(acc.reason==='grace'){html='<strong>Status:</strong> Cancelada<br>Seu acesso ao Pro continua até <strong>'+fmtDate(acc.end)+'</strong>.';}
+  else if(acc.reason==='past_due'){html='<strong>Status:</strong> pagamento recusado<br>Atualize o cartão para voltar ao Pro.';}
+  else{html='Você está no plano Free. Assine o Pro por <strong>R$ 19,90/mês</strong>.';}
   info.innerHTML=html;
   let btns='';
-  if(acc.reason==='trialing'||acc.reason==='grace'||acc.reason==='unknown'){btns+='<button class="btn btn-primary" onclick="startSubscription(this)">Assinar agora</button>';}
-  if(acc.reason==='active'){btns+='<button class="btn btn-secondary" onclick="cancelSubscription()">Cancelar assinatura</button>';}
+  // pagamento recusado tambem passa por aqui: a funcao manda para o portal trocar o cartao
+  if(acc.reason!=='active'){btns+='<button class="btn btn-primary" onclick="startSubscription(this)">'+(acc.reason==='grace'?'Reativar':acc.reason==='past_due'?'Atualizar cartão':'Assinar o Pro')+'</button>';}
+  if(acc.reason==='active'){btns+='<button class="btn btn-secondary" onclick="gerenciarAssinatura(this)">Gerenciar assinatura</button>';}
   act.innerHTML=btns;
 }
 
@@ -3267,7 +3181,7 @@ function doReconcile(){
 //
 // Ao mudar os termos: atualize as duas constantes abaixo com a data do topo de
 // termos.html. O sync-termos.ps1 confere se elas batem e falha se divergirem.
-const TERMOS_VERSAO='2026-11-06';
+const TERMOS_VERSAO='2026-11-09';
 const TERMOS_RESUMO='Declaramos antes de construir: lancar gasto por mensagem no WhatsApp sera o unico caminho do North que nao e de ponta a ponta, porque a Meta e o nosso servidor precisam ler a frase para entende-la. O servidor guarda so o lancamento ja cifrado e descarta o texto. E opcional, e ainda nao esta no ar — nada mudou no que voce ja usa.';
 function renderAvisoTermos(){
   const bar=document.getElementById('termos-bar');if(!bar)return;

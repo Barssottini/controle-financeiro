@@ -76,7 +76,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
   <img src="logo-192.png" alt="North Finances" class="badge">
   <div class="brand">North<span> Finances</span></div>
   <div class="doc-title">Termos de Uso &amp; Privacidade</div>
-  <div class="doc-date">Última atualização: 6 de novembro de 2026</div>
+  <div class="doc-date">Última atualização: 9 de novembro de 2026</div>
 </div>
 
 <div class="wrap">
@@ -86,17 +86,17 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
 
   <h2><span class="num">1</span> Sobre o serviço</h2>
   <p>O <strong>North</strong> ("aplicativo", "serviço", "nós") é uma ferramenta pessoal de <strong>organização e acompanhamento financeiro</strong>. Ele permite registrar receitas, despesas, investimentos, metas e importar extratos bancários para consolidar suas finanças em um só lugar.</p>
-  <p>O serviço é oferecido por <strong>assinatura</strong>, precedida de um <strong>teste gratuito de 31 dias</strong>. Os valores e condições vigentes são apresentados no momento da contratação e o pagamento é processado pelo <strong>Mercado Pago</strong>.</p>
-  <p>O teste começa quando você <strong>confirma o e-mail</strong> do cadastro, e não no instante em que a conta é criada. Se você demorar a clicar no link de confirmação, esse tempo não é descontado do seu prazo — os 31 dias só passam a correr quando o acesso efetivamente se abre para você.</p>
+  <p>O serviço tem um plano gratuito (<strong>Free</strong>) e um plano pago por <strong>assinatura</strong> (<strong>Pro</strong>). Toda conta nova começa com um <strong>teste gratuito de 7 dias</strong> do Pro. Os valores e condições vigentes são apresentados no momento da contratação e o pagamento é processado pelo <strong>Stripe</strong>.</p>
+  <p>O teste começa quando você <strong>confirma o e-mail</strong> do cadastro, e não no instante em que a conta é criada. Se você demorar a clicar no link de confirmação, esse tempo não é descontado do seu prazo — os 7 dias só passam a correr quando o acesso efetivamente se abre para você.</p>
   <h3>Como funciona a cobrança</h3>
   <ul>
-    <li><strong>A assinatura é mensal e se renova automaticamente.</strong> Após o teste gratuito, o valor é cobrado no cartão cadastrado a cada mês, <strong>até que você cancele</strong>. Não há fidelidade nem multa.</li>
-    <li><strong>Cancelamento:</strong> a qualquer momento, em Configurações → Assinatura, em dois cliques. Você mantém o acesso até o fim do período já pago e não é cobrado de novo.</li>
+    <li><strong>A assinatura é mensal e se renova automaticamente.</strong> Quem assina o Pro é cobrado no cartão cadastrado a cada mês, <strong>até que cancele</strong>. Se você assinar durante o teste gratuito, a primeira cobrança só acontece quando ele termina. Não há fidelidade nem multa.</li>
+    <li><strong>Cancelamento:</strong> a qualquer momento, em Configurações → Assinatura → Gerenciar assinatura. Você mantém o acesso até o fim do período já pago e não é cobrado de novo.</li>
     <li><strong>Mudança de preço:</strong> se o valor da assinatura mudar, avisamos dentro do aplicativo com antecedência, e o novo valor só passa a valer no ciclo seguinte. Você pode cancelar antes disso.</li>
     <li><strong>Direito de arrependimento (art. 49 do Código de Defesa do Consumidor):</strong> por se tratar de contratação fora do estabelecimento, você pode desistir em até <strong>7 dias</strong> contados da primeira cobrança e receber a devolução integral do valor pago nesse período. Basta escrever para o e-mail da seção 13.</li>
   </ul>
   <h3>Se a assinatura terminar</h3>
-  <p>Se o teste acabar sem assinatura, se você cancelar ou se um pagamento não for processado, <strong>o acesso ao aplicativo fica bloqueado — mas os seus dados continuam guardados</strong>, cifrados, exatamente como estavam. Assinando de novo, tudo volta no ponto em que parou. <strong>Nada é apagado por falta de pagamento</strong>: a exclusão só acontece se você pedir (seção 8).</p>
+  <p>Se o teste acabar sem assinatura, se você cancelar ou se um pagamento não for processado, <strong>a conta volta ao plano Free</strong>. Os seus dados continuam guardados, cifrados, exatamente como estavam: o que você já cadastrou em recursos do Pro continua visível, entra nas contas e pode ser exportado — só não é possível criar itens novos nesses recursos. Assinando de novo, tudo volta no ponto em que parou. <strong>Nada é apagado por falta de pagamento</strong>: a exclusão só acontece se você pedir (seção 8).</p>
   <div class="highlight">⚠️ <strong>O aplicativo é uma ferramenta de organização, não uma consultoria financeira.</strong> As informações, cálculos, cotações e projeções exibidos têm caráter meramente informativo e não constituem recomendação de compra, venda ou manutenção de qualquer ativo. Toda decisão de investimento é de sua exclusiva responsabilidade.</div>
 
   <h2><span class="num">2</span> Sua conta</h2>
@@ -164,7 +164,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
   <p><strong>Nós não vendemos, alugamos ou compartilhamos seus dados pessoais.</strong> Utilizamos apenas fornecedores técnicos estritamente necessários para o funcionamento do app:</p>
   <ul>
     <li><strong>Supabase</strong> — infraestrutura de banco de dados e autenticação (onde seus dados ficam hospedados, com segurança).</li>
-    <li><strong>Mercado Pago</strong> — processa o pagamento da assinatura. Seus dados de cartão são tratados diretamente pelo Mercado Pago e <strong>não passam pelos nossos servidores</strong>.</li>
+    <li><strong>Stripe</strong> — processa o pagamento da assinatura do Pro, na página de pagamento do próprio Stripe. Seus dados de cartão são tratados diretamente pelo Stripe e <strong>não passam pelos nossos servidores</strong>.</li>
     <li><strong>Resend</strong> — serviço de envio dos nossos e-mails; recebe apenas o seu endereço e o conteúdo da mensagem. Enviamos: códigos de confirmação, alertas de segurança de novo login, avisos sobre a sua conta e um <strong>lembrete mensal</strong>, no dia 1º, para você exportar o extrato do banco. O lembrete pode ser desligado em Configurações → Notificações por e-mail; os demais são essenciais ao serviço.</li>
     <li><strong>Cloudflare Turnstile</strong> — verificação anti-robô nas telas de login e cadastro; processa dados técnicos do navegador (como o IP) apenas para distinguir pessoas de robôs.</li>
     <li><strong>brapi.dev</strong> e <strong>CoinGecko</strong> — fornecem apenas <strong>cotações públicas</strong> de ativos e criptomoedas. Enviamos a eles somente o código do ativo (ex.: "BOVA11"); <strong>nenhum dado seu, saldo ou informação pessoal é compartilhado</strong>.</li>
@@ -172,7 +172,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
     <li><strong>Meta (Facebook/Instagram)</strong> — medição de publicidade, e <strong>somente se você aceitou o aviso de cookies</strong> no site northfinances.com.br. No site, a medição é por cookie. No aplicativo <strong>não há cookie nem script da Meta</strong>: se você chegou pelo site tendo aceitado o aviso, no momento em que o teste grátis começa o nosso servidor informa à Meta que houve um cadastro, enviando o seu e-mail de forma embaralhada (hash), o endereço IP e o navegador usado. Quem entra direto no aplicativo, ou recusou o aviso, <strong>não é informado à Meta em momento nenhum</strong>. A Meta <strong>nunca recebe dado financeiro seu</strong> e não tem acesso ao conteúdo do aplicativo. Veja a seção 9.</li>
   </ul>
   <h3>Transferência internacional de dados</h3>
-  <p>Seus dados financeiros ficam armazenados <strong>no Brasil</strong>, na região de São Paulo. Ainda assim, alguns fornecedores acima são empresas sediadas no exterior e podem tratar dados a partir de fora do país — é o caso de <strong>Supabase</strong>, <strong>Resend</strong>, <strong>Cloudflare</strong>, <strong>GitHub</strong> e <strong>Meta</strong>.</p>
+  <p>Seus dados financeiros ficam armazenados <strong>no Brasil</strong>, na região de São Paulo. Ainda assim, alguns fornecedores acima são empresas sediadas no exterior e podem tratar dados a partir de fora do país — é o caso de <strong>Supabase</strong>, <strong>Stripe</strong>, <strong>Resend</strong>, <strong>Cloudflare</strong>, <strong>GitHub</strong> e <strong>Meta</strong>.</p>
   <p>Essas transferências ocorrem nos termos dos <strong>artigos 33 a 35 da LGPD</strong>, amparadas nas cláusulas contratuais de proteção de dados oferecidas por cada fornecedor e limitadas ao <strong>estritamente necessário para executar o contrato</strong> com você. Vale lembrar o que mais importa aqui: como o conteúdo financeiro é cifrado no seu aparelho, o que trafega e o que fica armazenado nesses serviços é <strong>texto embaralhado</strong> — nenhum deles tem como lê-lo. A <strong>única exceção prevista</strong> é a mensagem enviada pelo canal do WhatsApp, quando ele existir: ela chega em texto claro à Meta e ao nosso servidor, pelo motivo e com os limites explicados na <strong>seção 5.1</strong>.</p>
 
   <h2><span class="num">7</span> Seus direitos (LGPD)</h2>
@@ -263,6 +263,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
     <table>
       <thead><tr><th>Data</th><th>O que mudou</th></tr></thead>
       <tbody>
+        <tr><td class="dt">09/11/2026</td><td>O pagamento da assinatura passa a ser processado pelo Stripe, no lugar do Mercado Pago (seções 1 e 4). Declarados os planos Free e Pro: o fim do teste ou da assinatura devolve a conta ao Free, sem bloquear o acesso nem esconder o que já existe. O teste gratuito passa a ter 7 dias. Removida a menção à separação entre finanças pessoais e da empresa, que saiu do aplicativo.</td></tr>
         <tr><td class="dt">06/11/2026</td><td>Declarado, antes de existir, o único caminho do North que não será de ponta a ponta: o lançamento por mensagem no WhatsApp (nova seção 5.1). A mensagem é legível pela Meta e pelo nosso servidor, que extrai valor, descrição e categoria, cifra o resultado com a sua chave pública e descarta o texto original. O recurso é opcional e ainda não está no ar. As seções 5 e 6 passaram a apontar essa exceção em vez de afirmar que nada é legível.</td></tr>
         <tr><td class="dt">08/09/2026</td><td>Portabilidade deixa de ser lacuna declarada e passa a ser recurso: exportação de tudo em JSON e dos lançamentos em CSV, direto no app, sem precisar solicitar. Acrescentada a separação opcional entre finanças pessoais e da empresa, para quem é MEI ou autônomo.</td></tr>
         <tr><td class="dt">30/08/2026</td><td>Duração do teste gratuito declarada — 31 dias — e o marco em que ele começa: a confirmação do e-mail, não o cadastro. Direito de peticionar à ANPD acrescentado à seção 7. Identificação de quem opera o serviço detalhada na seção 13. Este histórico reordenado, do mais recente para o mais antigo.</td></tr>

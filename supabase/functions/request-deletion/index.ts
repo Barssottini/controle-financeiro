@@ -1,8 +1,10 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import Stripe from "npm:stripe@17.7.0";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
-const MP_TOKEN = Deno.env.get("MP_ACCESS_TOKEN") ?? Deno.env.get("MP_ACESS_TOKEN") ?? "";
+const STRIPE_KEY = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
+const stripe = new Stripe(STRIPE_KEY, { httpClient: Stripe.createFetchHttpClient() });
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -26,7 +28,7 @@ async function sendEmail(email: string) {
   }).catch(() => {});
 }
 
-// Cancela a cobranca recorrente no Mercado Pago (melhor esforco) e marca a assinatura
+// Cancela a cobranca recorrente no Stripe (melhor esforco, vale no fim do periodo pago) e marca a assinatura
 // como cancelada — preservando o acesso ate o fim do que ja foi pago.
 //
 // QUEM PAGOU O MES, USA O MES (24/08/2026). Mesma politica da cancel-subscription.
@@ -37,23 +39,18 @@ async function sendEmail(email: string) {
 async function cancelBilling(admin: any, uid: string) {
   try {
     const { data: sub } = await admin.from("subscriptions")
-      .select("mp_preapproval_id,current_period_end,trial_ends_at")
+      .select("stripe_subscription_id,current_period_end,trial_ends_at")
       .eq("user_id", uid).maybeSingle();
 
-    let mpNextPayment: string | null = null;
-    if (sub?.mp_preapproval_id && MP_TOKEN) {
+    let fimPago: number | null = null;
+    if (sub?.stripe_subscription_id && STRIPE_KEY) {
       try {
-        const r = await fetch(`https://api.mercadopago.com/preapproval/${sub.mp_preapproval_id}`, {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${MP_TOKEN}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "cancelled" }),
-        });
-        const pa = await r.json().catch(() => null);
-        if (pa && typeof pa.next_payment_date === "string") mpNextPayment = pa.next_payment_date;
+        const s = await stripe.subscriptions.update(sub.stripe_subscription_id, { cancel_at_period_end: true });
+        fimPago = (s as any).current_period_end ?? (s as any).items?.data?.[0]?.current_period_end ?? null;
       } catch (_e) { /* melhor esforco */ }
     }
 
-    const maior = Math.max(ms(sub?.current_period_end), ms(mpNextPayment), ms(sub?.trial_ends_at));
+    const maior = Math.max(ms(sub?.current_period_end), fimPago ? fimPago * 1000 : 0, ms(sub?.trial_ends_at));
     const patch: Record<string, unknown> = { status: "canceled" };
     if (maior > Date.now()) patch.current_period_end = new Date(maior).toISOString();
 
