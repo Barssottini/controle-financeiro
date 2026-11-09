@@ -16,11 +16,12 @@ const j = t.indexOf('// ═══ TRANSACTIONS ═══', i);
 if (i < 0 || j < 0) { console.error('nao achei o bloco CONTAS no index.html'); process.exit(2); }
 
 const S = { settings: {}, transactions: [], bills: [], ccItems: [], accounts: [] };
-const avisos = [], paginas = [];
+const avisos = [], paginas = [], modais = [];
 let pro = true;   // o teste liga e desliga o Pro para conferir os dois lados
 const sandbox = {
   exigePro: () => { if (!pro) avisos.push('precisa do Pro'); return pro; },
   showPage: p => paginas.push(p),
+  openModal: id => modais.push(id), closeModal: () => {},
   S,
   persistSettings: () => {}, persistContas: () => {},
   renderContaSwitch: () => {}, renderContasSettings: () => {},
@@ -32,7 +33,7 @@ const sandbox = {
 };
 const nomes = Object.keys(sandbox);
 const F = new Function(...nomes,
-  t.slice(i, j) + '\nreturn {contas,contaPadraoId,contaDe,noConta,addConta,apagarConta,saldoDaConta,nomeDaConta,bancoDe,renderAccBar,novoBanco};');
+  t.slice(i, j) + '\nreturn {contas,contaPadraoId,contaDe,noConta,criarConta,apagarConta,saldoDaConta,nomeDaConta,bancoDe,renderAccBar,novoBanco,precisaEscolherBanco,abrirEscolhaBanco,escolherBanco};');
 const C = F(...nomes.map(n => sandbox[n]));
 
 let falhas = 0;
@@ -61,8 +62,7 @@ checa('com uma conta, todo lancamento aparece', visiveis(), [1, 2]);
 
 // 4. Duas contas: o filtro passa a valer, e "todas" mostra tudo.
 avisos.length = 0;
-sandbox.document.getElementById = id => (id === 'conta-nova' ? { value: 'Carteira' } : null);
-C.addConta();
+C.criarConta('Carteira');
 checa('segunda conta criada', C.contas().length, 2);
 const carteira = C.contas()[1].id;
 S.transactions = [{ id: 1 }, { id: 2, conta: carteira }, { id: 3, conta: principal }];
@@ -73,12 +73,14 @@ checa('filtro da carteira mostra so o dela', visiveis(), [2]);
 S.settings.contaView = principal;
 checa('filtro da principal inclui o lancamento antigo', visiveis(), [1, 3]);
 
-// 5. Nome repetido e recusado.
+// 5. O mesmo banco duas vezes ganha numero ("Itaú" e "Itaú 2"), com id proprio
+// mesmo criado no mesmo milissegundo.
 avisos.length = 0;
-sandbox.document.getElementById = id => (id === 'conta-nova' ? { value: 'carteira' } : null);
-C.addConta();
-checa('nome repetido e recusado', C.contas().length, 2);
-checa('e avisa por que', avisos.length, 1);
+const dup = C.criarConta('carteira');
+checa('mesmo banco de novo ganha numero', dup && dup.nome, 'carteira 2');
+checa('e id diferente da primeira', dup && dup.id !== carteira, true);
+C.apagarConta(dup.id);   // vazia: sai, e o teste segue com duas contas
+checa('apagar a repetida nao leva a outra junto', C.contas().length, 2);
 
 // 6. Apagar conta COM lancamento e recusado — esta e a regra que protege o saldo.
 avisos.length = 0;
@@ -105,8 +107,7 @@ S.accounts = [{ id: 1, nome: 'Principal' }, { id: 2, nome: 'Carteira' }];
 S.transactions = [{ id: 1 }, { id: 2, conta: 2 }];
 pro = false;
 avisos.length = 0;
-sandbox.document.getElementById = id => (id === 'conta-nova' ? { value: 'Poupança' } : null);
-C.addConta();
+C.criarConta('Poupança');
 checa('no Free nao cria conta nova', C.contas().length, 2);
 checa('e avisa que precisa do Pro', avisos.length, 1);
 S.settings.contaView = 'all';
@@ -210,13 +211,46 @@ S.accounts.push({ id: 2, nome: 'Itaú' });
 C.renderAccBar();
 checa('com duas contas: "Ver todas" e o "Adicionar banco"',
   ['Ver todas', 'Adicionar banco'].map(s => barra.innerHTML.includes(s)), [true, true]);
-// no Free o "+" e o aviso do Pro ali mesmo; no Pro leva ao campo de conta nova
-pro = false; avisos.length = 0; paginas.length = 0;
+// no Free o "+" e o aviso do Pro ali mesmo; no Pro abre a lista de bancos
+pro = false; avisos.length = 0; modais.length = 0;
 C.novoBanco();
-checa('no Free, "Adicionar banco" avisa do Pro e nao sai da tela', [avisos.length, paginas.length], [1, 0]);
+checa('no Free, "Adicionar banco" avisa do Pro e nao abre a lista', [avisos.length, modais.length], [1, 0]);
 pro = true;
 C.novoBanco();
-checa('no Pro, "Adicionar banco" leva as Configuracoes', paginas, ['settings']);
+checa('no Pro, "Adicionar banco" abre a lista de bancos', modais, ['banco-modal']);
+
+// 17. Primeira vez: a conta que o app criou sozinho (sem banco) pede o banco
+// antes do lancamento ou da importacao. O banco nomeia ESSA conta — os
+// lancamentos ficam nela — e a pergunta nao volta.
+S.accounts = [{ id: 1, nome: 'Principal' }];
+S.settings = {};
+S.transactions = [{ id: 1, type: 'expense', amount: 10 }];
+checa('conta sem banco pede o banco', C.precisaEscolherBanco(), true);
+let seguiu = 0;
+modais.length = 0;
+C.abrirEscolhaBanco('primeiro', () => seguiu++);
+checa('abre a lista', modais, ['banco-modal']);
+C.escolherBanco(0);   // Nubank
+checa('o banco nomeia a conta que ja existia', C.contas().map(c => [c.id, c.nome]), [[1, 'Nubank']]);
+checa('o lancamento continua nela', C.contaDe(S.transactions[0]), 1);
+checa('e a acao segue (a transacao ou a importacao)', seguiu, 1);
+checa('nao pergunta de novo', C.precisaEscolherBanco(), false);
+pro = false; modais.length = 0;
+S.accounts = [{ id: 1, nome: 'Principal' }]; S.settings = {};
+C.novoBanco();
+checa('no Free, o primeiro banco nomeia a conta (nao e conta extra)', modais, ['banco-modal']);
+pro = true;
+
+// 18. Trocar o banco de uma conta, e o mesmo banco duas vezes.
+S.accounts = [{ id: 1, nome: 'Nubank' }];
+C.abrirEscolhaBanco('trocar', null, 1);
+C.escolherBanco(1);   // Itaú
+checa('trocar muda so o banco da conta', C.contas().map(c => [c.id, c.nome]), [[1, 'Itaú']]);
+C.abrirEscolhaBanco('novo');
+C.escolherBanco(1);   // Itaú de novo
+checa('segundo Itaú vira "Itaú 2"', C.contas().map(c => c.nome), ['Itaú', 'Itaú 2']);
+checa('e o icone continua o do Itaú', banco('Itaú 2'), 'I');
+checa('bancos novos da lista tem icone', ['Banrisul', 'Will Bank', 'Banco Pan', 'Next'].map(banco), ['Br', 'W', 'Pan', 'Nx']);
 
 console.log('CONTAS — ' + (falhas ? falhas + ' FALHA(S)' : 'tudo bate'));
 console.log(L.join('\n'));

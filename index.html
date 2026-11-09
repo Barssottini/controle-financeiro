@@ -133,6 +133,16 @@ button.carregando::after{content:"";position:absolute;left:50%;top:50%;width:16p
   border:2px solid currentColor;border-right-color:transparent;animation:giro .7s linear infinite}
 @keyframes giro{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){button.carregando::after{animation-duration:1.8s}}
+/* escolha do banco: uma grade de botoes com o icone de cada banco, em vez de texto livre */
+.banco-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px;max-height:min(52vh,430px);overflow-y:auto;padding:2px}
+.banco-op{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1.5px solid var(--paper3);border-radius:12px;background:var(--paper);color:var(--ink);
+  font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;text-align:left;transition:border-color .15s,background .15s}
+.banco-op:hover{border-color:var(--gold);background:var(--goldl)}
+.banco-op>span:last-child{min-width:0;line-height:1.25}
+.banco-outro{display:flex;gap:8px;margin-top:12px}
+.banco-outro[hidden]{display:none}
+.conta-linha{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--paper2)}
+.conta-linha .conta-nome{flex:1;min-width:0;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* ═══ RECEPCAO DO PRO ═══ visual unico, preto e ouro da marca, nos dois temas */
 .pro-rec{position:fixed;inset:0;z-index:10050;display:flex;flex-direction:column;align-items:center;overflow-y:auto;
   padding:max(56px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(22px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
@@ -1202,10 +1212,7 @@ html.splash-active{background:#000}
         <h3 class="panel-title">Suas contas</h3>
         <p style="font-size:12px;color:var(--ink3);margin-bottom:10px">Separe o dinheiro por onde ele está — banco, carteira, poupança. A tela de Transações mostra uma barra com os seus bancos; com mais de uma conta, ela filtra os lançamentos por banco e cada lançamento ganha um campo de conta. <strong>Tudo que já existe fica na primeira conta</strong> — nada é reclassificado nem apagado.</p>
         <div id="contas-lista"></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
-          <input class="field" style="flex:1;min-width:0" type="text" id="conta-nova" maxlength="24" placeholder="Ex: Nubank, Carteira, Poupança">
-          <button class="btn btn-secondary btn-sm" style="flex:none" type="button" onclick="addConta()">Adicionar</button>
-        </div>
+        <button class="btn btn-secondary btn-sm" type="button" style="margin-top:12px" onclick="novoBanco()">+ Adicionar banco</button>
       </div>
 
       <div class="panel">
@@ -1681,6 +1688,21 @@ html.splash-active{background:#000}
       <div class="factions">
         <button class="btn btn-secondary" onclick="closeModal('bill-modal')">Cancelar</button>
         <button class="btn btn-primary" onclick="saveBill()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ESCOLHER O BANCO (lista, nao texto livre) -->
+<div class="overlay" id="banco-modal">
+  <div class="modal" style="max-width:560px">
+    <div class="mhead"><h3 id="banco-titulo">Qual é o seu banco?</h3><button class="xbtn" onclick="closeModal('banco-modal')">✕</button></div>
+    <div class="mbody">
+      <p id="banco-sub" style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:14px"></p>
+      <div class="banco-grade" id="banco-grade"></div>
+      <div class="banco-outro" id="banco-outro" hidden>
+        <input class="field" style="flex:1;min-width:0" type="text" id="banco-outro-nome" maxlength="24" placeholder="Nome do banco" onkeydown="if(event.key==='Enter')escolherBanco('outro')">
+        <button class="btn btn-primary btn-sm" type="button" onclick="escolherBanco('outro')">Usar este nome</button>
       </div>
     </div>
   </div>
@@ -3266,6 +3288,7 @@ function showPage(id){
 
 // ═══ MODAL ═══
 function openModal(id){
+  if(id==='tx-modal'&&!S.editId&&precisaEscolherBanco()){abrirEscolhaBanco('primeiro',()=>openModal('tx-modal'));return;}
   // Barra na abertura, nao depois do formulario preenchido. O saveInv/saveBill
   // repete a checagem porque o modal pode ser aberto por outro caminho.
   if(id==='inv-modal'&&!S.invEditId&&!exigePro('investimento'))return;
@@ -3869,6 +3892,14 @@ const BANCOS=[
   {k:['sicoob'],t:'S',bg:'#003641',fg:'#fff'},
   {k:['pagbank','pagseguro'],t:'PB',bg:'#1bb99a',fg:'#fff'},
   {k:['neon'],t:'N',bg:'#0dd8d8',fg:'#063a3a'},
+  {k:['banrisul'],t:'Br',bg:'#0058a3',fg:'#fff'},
+  {k:['brb'],t:'BRB',bg:'#004b8d',fg:'#fff'},
+  {k:['safra'],t:'Sf',bg:'#0a2240',fg:'#c9a96a'},
+  {k:['next'],t:'Nx',bg:'#00e05a',fg:'#0b1d10'},
+  {k:['original'],t:'O',bg:'#00a650',fg:'#fff'},
+  {k:['will bank'],t:'W',bg:'#ffd600',fg:'#1a1a1a'},
+  {k:['banco pan','pan'],t:'Pan',bg:'#0068c9',fg:'#fff'},
+  {k:['agibank'],t:'A',bg:'#1e3a8a',fg:'#fff'},
 ];
 // casa por palavra inteira: "Banco Inter" e Inter; "Interativa" nao
 function bancoDe(nome){
@@ -3877,8 +3908,9 @@ function bancoDe(nome){
   for(const b of BANCOS){if(b.k.some(k=>n.includes(' '+k+' ')))return b;}
   return null;
 }
-function iconeConta(id,cls){
-  const nome=nomeDaConta(id),b=bancoDe(nome),c=cls?' '+cls:'',tt=' title="'+esc(nome)+'"';
+function iconeConta(id,cls){return iconeNome(nomeDaConta(id),cls);}
+function iconeNome(nome,cls){
+  const b=bancoDe(nome),c=cls?' '+cls:'',tt=' title="'+esc(nome)+'"';
   if(b&&b.carteira)return '<span class="cbadge'+c+'" style="background:var(--goldl);color:var(--goldd)"'+tt+'><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"/><circle cx="16" cy="14.5" r="1.2"/></svg></span>';
   if(b)return '<span class="cbadge'+c+'" style="background:'+b.bg+';color:'+b.fg+'"'+tt+'>'+b.t+'</span>';
   return '<span class="cbadge'+c+'" style="background:var(--paper3);color:var(--ink2)"'+tt+'>'+esc((String(nome).trim()[0]||'?').toUpperCase())+'</span>';
@@ -3899,13 +3931,11 @@ function renderAccBar(){
     +'<button type="button" aria-pressed="'+todas+'" class="acc-all'+(todas?' on':'')+'" onclick="setContaView(\'all\')"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Ver todas</button>'
     +BOTAO_NOVO_BANCO;
 }
-// No Free, o aviso do Pro ali mesmo. No Pro, o campo de conta nova nas
-// Configuracoes, onde o addConta() ja recusa nome vazio e repetido.
+// Sem banco escolhido ainda, o primeiro banco nomeia a conta que ja existe (vale
+// no Free). Depois disso, banco novo e conta nova: no Free, o aviso do Pro.
 function novoBanco(){
-  if(!exigePro('conta'))return;
-  showPage('settings');
-  const el=document.getElementById('conta-nova');
-  if(el){el.scrollIntoView({block:'center'});el.focus();}
+  if(precisaEscolherBanco())abrirEscolhaBanco('primeiro');
+  else if(exigePro('conta'))abrirEscolhaBanco('novo');
 }
 function renderIconeForm(){
   const s=document.getElementById('tx-conta'),ic=document.getElementById('tx-conta-ic');
@@ -3937,24 +3967,70 @@ function contaDoForm(anterior){
   const sel=document.getElementById('tx-conta');
   return Number(sel&&sel.value)||contaPadraoId();
 }
-function addConta(){
-  const inp=document.getElementById('conta-nova');
-  const nome=((inp&&inp.value)||'').trim();
-  if(!nome){showAlert('Dê um nome à conta.');return;}
-  if(contas().some(c=>c.nome.toLowerCase()===nome.toLowerCase())){showAlert('Já existe uma conta com esse nome.');return;}
+// Conta nova (Pro). Dois do mesmo banco ganham numero: "Itaú" e "Itaú 2".
+function criarConta(nome){
   // No Free a conta e uma so — a que o app cria sozinho. As que ja existem,
   // se a pessoa foi Pro antes, continuam funcionando e filtrando normalmente.
-  if(!exigePro('conta'))return;
-  contas().push({id:Date.now(),nome});
-  if(inp)inp.value='';
-  persistContas();renderContasSettings();renderContaSwitch();
-  toast('Conta criada');
+  if(!exigePro('conta'))return null;
+  // id unico mesmo criando duas no mesmo milissegundo (apagar uma levaria as duas)
+  const c={id:Math.max(Date.now(),...contas().map(x=>x.id+1)),nome:nomeLivre(nome)};
+  contas().push(c);persistContas();renderContasSettings();renderContaSwitch();
+  toast('Banco adicionado');
+  return c;
 }
-function renomearConta(id,nome){
-  nome=(nome||'').trim();
-  const c=contas().find(c=>c.id===id);
-  if(!c||!nome||c.nome===nome){renderContasSettings();return;}
-  c.nome=nome;persistContas();renderContaSwitch();toast('Conta renomeada');
+function nomeLivre(nome,ignorar){
+  const usados=new Set(contas().filter(c=>c.id!==ignorar).map(c=>c.nome.toLowerCase()));
+  let n=nome,i=2;
+  while(usados.has(n.toLowerCase()))n=nome+' '+(i++);
+  return n;
+}
+// ═══ ESCOLHER O BANCO ═══
+// O banco e escolhido numa lista, nao digitado: o nome sai igual ao que o
+// bancoDe() reconhece e o icone vem certo. "Outro banco" e a unica saida com
+// texto, para banco que nao esta na lista.
+const LISTA_BANCOS=['Nubank','Itaú','Bradesco','Banco do Brasil','Caixa','Santander','Inter','C6 Bank','PicPay','Mercado Pago','BTG Pactual','XP','Sicredi','Sicoob','PagBank','Neon','Banrisul','BRB','Safra','Next','Original','Will Bank','Banco Pan','Agibank'];
+let _escolha={modo:'novo',id:null,depois:null};
+// Primeiro lancamento ou primeira importacao ainda com a conta que o app criou
+// sozinho, sem banco: pergunta o banco antes. Escolhido uma vez, nao volta.
+function precisaEscolherBanco(){
+  const l=contas();
+  return !S.settings.bancoEscolhido&&l.length===1&&!bancoDe(l[0].nome);
+}
+function abrirEscolhaBanco(modo,depois,id){
+  _escolha={modo,id:id||null,depois:depois||null};
+  const T={primeiro:['Qual é o seu banco?','Para começar, escolha o banco da sua conta. Os lançamentos que você já tem ficam nela, e dá para trocar depois em Configurações.'],
+    novo:['Adicionar banco','Escolha o banco da nova conta.'],
+    trocar:['Trocar banco','Os lançamentos desta conta continuam nela; só o banco muda.']}[modo];
+  const tit=document.getElementById('banco-titulo'),sub=document.getElementById('banco-sub'),grade=document.getElementById('banco-grade'),outro=document.getElementById('banco-outro');
+  if(tit)tit.textContent=T[0];
+  if(sub)sub.textContent=T[1];
+  if(grade)grade.innerHTML=LISTA_BANCOS.map((n,i)=>'<button type="button" class="banco-op" onclick="escolherBanco('+i+')">'+iconeNome(n)+'<span>'+esc(n)+'</span></button>').join('')
+    +'<button type="button" class="banco-op" onclick="escolherBanco(\'carteira\')">'+iconeNome('Carteira')+'<span>Carteira (dinheiro)</span></button>'
+    +'<button type="button" class="banco-op" onclick="mostrarOutroBanco()">'+iconeNome('?')+'<span>Outro banco</span></button>';
+  if(outro)outro.hidden=true;
+  openModal('banco-modal');
+}
+function mostrarOutroBanco(){
+  const o=document.getElementById('banco-outro');if(!o)return;
+  o.hidden=false;
+  const inp=document.getElementById('banco-outro-nome');if(inp){inp.value='';inp.focus();}
+}
+function escolherBanco(qual){
+  const nome=qual==='carteira'?'Carteira'
+    :qual==='outro'?((document.getElementById('banco-outro-nome')||{}).value||'').trim().slice(0,24)
+    :LISTA_BANCOS[qual];
+  if(!nome){showAlert('Escreva o nome do banco.');return;}
+  const {modo,id,depois}=_escolha;
+  if(modo==='novo'){if(!criarConta(nome))return;}
+  else{
+    const c=modo==='trocar'?contas().find(x=>x.id===id):contas()[0];
+    if(!c)return;
+    c.nome=nomeLivre(nome,c.id);persistContas();renderContasSettings();renderContaSwitch();
+    toast(modo==='trocar'?'Banco trocado':'Banco escolhido');
+  }
+  S.settings.bancoEscolhido=true;persistSettings();
+  closeModal('banco-modal');
+  if(depois)depois();
 }
 function apagarConta(id){
   if(contas().length<2){showAlert('Você precisa de pelo menos uma conta.');return;}
@@ -3974,9 +4050,9 @@ function renderContasSettings(){
   const box=document.getElementById('contas-lista');
   if(!box)return;
   box.innerHTML=contas().map(c=>
-    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-    +'<input class="field" style="flex:1;min-width:0" type="text" maxlength="24" value="'+esc(c.nome)+'" onchange="renomearConta('+c.id+',this.value)">'
-    +'<button class="btn btn-danger btn-sm" style="flex:none" type="button" onclick="apagarConta('+c.id+')">Apagar</button>'
+    '<div class="conta-linha">'+iconeConta(c.id)+'<span class="conta-nome">'+esc(c.nome)+'</span>'
+    +'<button class="btn btn-secondary btn-sm" type="button" onclick="abrirEscolhaBanco(\'trocar\',null,'+c.id+')">Trocar banco</button>'
+    +'<button class="btn btn-danger btn-sm" type="button" onclick="apagarConta('+c.id+')">Apagar</button>'
     +'</div>').join('');
 }
 
@@ -4988,6 +5064,7 @@ function handleDrop(e){
 function handleFileInput(e){const f=e.target.files[0];if(f)processFile(f);e.target.value='';}
 
 function processFile(file){
+  if(precisaEscolherBanco()){abrirEscolhaBanco('primeiro',()=>processFile(file));return;}
   const reader=new FileReader();
   reader.onload=ev=>{
     const text=ev.target.result;
