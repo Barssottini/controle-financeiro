@@ -223,10 +223,12 @@ button.carregando::after{content:"";position:absolute;left:50%;top:50%;width:16p
   .pro-rec,.pro-rec *{animation:none!important;transition:none!important}
   .pr-traco{stroke-dashoffset:0}.pr-area{opacity:1}.pc-brilho{display:none}
 }
-/* icone do banco: cor da marca + inicial. Nao e a logo — logo de banco e marca
-   registrada; isto basta para reconhecer de relance */
+/* Logos vetoriais dos bancos; carteira e contas personalizadas mantem seus icones. */
 .cbadge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;
   font-size:10.5px;font-weight:800;letter-spacing:-.02em;flex:none;line-height:1}
+.cbadge.bank-logo{position:relative;overflow:hidden}
+.cbadge.bank-logo img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain}
+.cbadge.bank-logo img[hidden]{display:none}
 .cbadge.sm{width:17px;height:17px;border-radius:5px;font-size:7.5px;vertical-align:-4px;margin-right:2px}
 .cbadge svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .cbadge.sm svg{width:11px;height:11px}
@@ -1748,8 +1750,8 @@ html.splash-active{background:#000}
     <section class="pro-rec-passo" hidden>
       <div class="pr-visual pr-bancos" aria-hidden="true">
         <div class="pr-fila">
-          <span class="pr-banco"><span class="cbadge" style="background:#820ad1;color:#fff">Nu</span>Nubank</span>
-          <span class="pr-banco"><span class="cbadge" style="background:#ec7000;color:#fff">I</span>Itaú</span>
+          <span class="pr-banco"><span class="cbadge bank-logo" style="background:#820ad1;color:#fff">Nu<img src="vendor/banks/nubank.svg" alt="" onerror="this.hidden=true"></span>Nubank</span>
+          <span class="pr-banco"><span class="cbadge bank-logo" style="background:#ec7000;color:#fff">I<img src="vendor/banks/itau.svg" alt="" onerror="this.hidden=true"></span>Itaú</span>
           <span class="pr-banco"><span class="cbadge" style="background:#332a1b;color:#e8c47c"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"/><circle cx="16" cy="14.5" r="1.2"/></svg></span>Carteira</span>
         </div>
         <div class="pr-total">Todas as contas<b>R$ 18.342,10</b></div>
@@ -3873,33 +3875,32 @@ function setContaView(v){
   renderContaSwitch();
   try{renderTxList();}catch(e){}   // so Transacoes filtra por conta; o resto e consolidado
 }
-// Banco pelo nome da conta: cor da marca + inicial. Nao e a logo (logo de banco
-// e marca registrada) — e o que basta para reconhecer de relance.
+// Logos locais dos bancos, identificados pelo nome da conta.
 const BANCOS=[
-  {k:['nubank','nu'],t:'Nu',bg:'#820ad1',fg:'#fff'},
-  {k:['itau'],t:'I',bg:'#ec7000',fg:'#fff'},
-  {k:['bradesco'],t:'B',bg:'#cc092f',fg:'#fff'},
-  {k:['banco do brasil','bb'],t:'BB',bg:'#fcf800',fg:'#0038a8'},
-  {k:['caixa','cef'],t:'CX',bg:'#005ca9',fg:'#fff'},
-  {k:['santander'],t:'S',bg:'#ec0000',fg:'#fff'},
-  {k:['inter'],t:'In',bg:'#ff7a00',fg:'#fff'},
-  {k:['c6'],t:'C6',bg:'#242424',fg:'#fff'},
-  {k:['picpay'],t:'P',bg:'#21c25e',fg:'#fff'},
-  {k:['mercado pago'],t:'MP',bg:'#00b1ea',fg:'#fff'},
-  {k:['btg'],t:'BTG',bg:'#05132a',fg:'#fff'},
-  {k:['xp'],t:'XP',bg:'#111111',fg:'#ffd100'},
-  {k:['sicredi'],t:'S',bg:'#3fa110',fg:'#fff'},
-  {k:['sicoob'],t:'S',bg:'#003641',fg:'#fff'},
-  {k:['pagbank','pagseguro'],t:'PB',bg:'#1bb99a',fg:'#fff'},
-  {k:['neon'],t:'N',bg:'#0dd8d8',fg:'#063a3a'},
-  {k:['banrisul'],t:'Br',bg:'#0058a3',fg:'#fff'},
-  {k:['brb'],t:'BRB',bg:'#004b8d',fg:'#fff'},
-  {k:['safra'],t:'Sf',bg:'#0a2240',fg:'#c9a96a'},
-  {k:['next'],t:'Nx',bg:'#00e05a',fg:'#0b1d10'},
-  {k:['original'],t:'O',bg:'#00a650',fg:'#fff'},
-  {k:['will bank'],t:'W',bg:'#ffd600',fg:'#1a1a1a'},
-  {k:['banco pan','pan'],t:'Pan',bg:'#0068c9',fg:'#fff'},
-  {k:['agibank'],t:'A',bg:'#1e3a8a',fg:'#fff'},
+  {logo:'nubank',k:['nubank','nu'],t:'Nu',bg:'#820ad1',fg:'#fff'},
+  {logo:'itau',k:['itau'],t:'I',bg:'#ec7000',fg:'#fff'},
+  {logo:'bradesco',k:['bradesco'],t:'B',bg:'#cc092f',fg:'#fff'},
+  {logo:'bancodobrasil',k:['banco do brasil','bb'],t:'BB',bg:'#fcf800',fg:'#0038a8'},
+  {logo:'caixa',k:['caixa','cef'],t:'CX',bg:'#005ca9',fg:'#fff'},
+  {logo:'santander',k:['santander'],t:'S',bg:'#ec0000',fg:'#fff'},
+  {logo:'inter',k:['inter'],t:'In',bg:'#ff7a00',fg:'#fff'},
+  {logo:'c6bank',k:['c6'],t:'C6',bg:'#242424',fg:'#fff'},
+  {logo:'picpay',k:['picpay'],t:'P',bg:'#21c25e',fg:'#fff'},
+  {logo:'mercadopago',k:['mercado pago'],t:'MP',bg:'#00b1ea',fg:'#fff'},
+  {logo:'btgpactual',k:['btg'],t:'BTG',bg:'#05132a',fg:'#fff'},
+  {logo:'xp',k:['xp'],t:'XP',bg:'#111111',fg:'#ffd100'},
+  {logo:'sicredi',k:['sicredi'],t:'S',bg:'#3fa110',fg:'#fff'},
+  {logo:'sicoob',k:['sicoob'],t:'S',bg:'#003641',fg:'#fff'},
+  {logo:'pagbank',k:['pagbank','pagseguro'],t:'PB',bg:'#1bb99a',fg:'#fff'},
+  {logo:'neon',k:['neon'],t:'N',bg:'#0dd8d8',fg:'#063a3a'},
+  {logo:'banrisul',k:['banrisul'],t:'Br',bg:'#0058a3',fg:'#fff'},
+  {logo:'brb',k:['brb'],t:'BRB',bg:'#004b8d',fg:'#fff'},
+  {logo:'safra',k:['safra'],t:'Sf',bg:'#0a2240',fg:'#c9a96a'},
+  {logo:'next',k:['next'],t:'Nx',bg:'#00e05a',fg:'#0b1d10'},
+  {logo:'original',k:['original'],t:'O',bg:'#00a650',fg:'#fff'},
+  {logo:'willbank',k:['will bank'],t:'W',bg:'#ffd600',fg:'#1a1a1a'},
+  {logo:'pan',k:['banco pan','pan'],t:'Pan',bg:'#0068c9',fg:'#fff'},
+  {logo:'agibank',k:['agibank'],t:'A',bg:'#1e3a8a',fg:'#fff'},
 ];
 // casa por palavra inteira: "Banco Inter" e Inter; "Interativa" nao
 function bancoDe(nome){
@@ -3912,7 +3913,7 @@ function iconeConta(id,cls){return iconeNome(nomeDaConta(id),cls);}
 function iconeNome(nome,cls){
   const b=bancoDe(nome),c=cls?' '+cls:'',tt=' title="'+esc(nome)+'"';
   if(b&&b.carteira)return '<span class="cbadge'+c+'" style="background:var(--goldl);color:var(--goldd)"'+tt+'><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"/><circle cx="16" cy="14.5" r="1.2"/></svg></span>';
-  if(b)return '<span class="cbadge'+c+'" style="background:'+b.bg+';color:'+b.fg+'"'+tt+'>'+b.t+'</span>';
+  if(b)return '<span class="cbadge bank-logo'+c+'" style="background:'+b.bg+';color:'+b.fg+'"'+tt+'>'+b.t+'<img src="vendor/banks/'+b.logo+'.svg" alt="" onerror="this.hidden=true"></span>';
   return '<span class="cbadge'+c+'" style="background:var(--paper3);color:var(--ink2)"'+tt+'>'+esc((String(nome).trim()[0]||'?').toUpperCase())+'</span>';
 }
 const BOTAO_NOVO_BANCO='<button type="button" class="acc-add" onclick="novoBanco()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Adicionar banco</button>';
