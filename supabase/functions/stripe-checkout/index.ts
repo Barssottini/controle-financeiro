@@ -26,6 +26,13 @@ Deno.serve(async (req) => {
       console.error("STRIPE_CHECKOUT: STRIPE_SECRET_KEY nao definida");
       return json({ error: "pagamento_nao_configurado" }, 503);
     }
+    // shortcut: com chave de TESTE, o endereco de producao nao abre pagamento (cartao de
+    // teste daria Pro de graca e cartao real seria recusado); a previa segue testavel. Some
+    // sozinho quando a chave real (sk_live_) entrar. O Origin vem do navegador: trava o uso
+    // comum, nao um pedido montado a mao — ao ir ao ar, zerar as assinaturas de teste.
+    if ((Deno.env.get("STRIPE_SECRET_KEY") ?? "").startsWith("sk_test_") && req.headers.get("Origin") === "https://app.northfinances.com.br") {
+      return json({ error: "pagamento_nao_configurado" }, 503);
+    }
     const supabase = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
     });
