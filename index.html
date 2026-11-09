@@ -1097,16 +1097,14 @@ html.splash-active{background:#000}
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Módulos</span></div>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="set-show-cc" class="chk"> Exibir módulo Cartão de Crédito</label>
-        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--paper2)">
+        <p style="font-size:12px;color:var(--ink3);margin-top:10px">Desative se você não usa cartão de crédito, para deixar o app mais limpo. Os dados não são apagados — só ficam ocultos.</p>
+        <button class="btn btn-primary" style="margin-top:14px" onclick="saveSettings()">Salvar</button>
+        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--paper2)">
           <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:4px">Tipo desta conta</div>
           <p style="font-size:12px;color:var(--ink3);margin-bottom:10px">Define as categorias oferecidas. Trocar não apaga nada — as categorias que você já usou continuam disponíveis.</p>
           <button class="btn btn-secondary btn-sm" onclick="openModal('tipo-modal')">Mudar tipo de conta</button>
           <span id="tipo-atual" style="font-size:12px;color:var(--ink3);margin-left:10px"></span>
         </div>
-        <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-top:16px"><input type="checkbox" id="set-empresarial" class="chk"> Separar finanças pessoais das da empresa</label>
-        <p style="font-size:12px;color:var(--ink3);margin-top:10px">Para quem é MEI ou autônomo e mistura os dois bolsos na mesma conta. Ativa um seletor em cada lançamento e um filtro no menu lateral. <strong>O que já existe continua como pessoal</strong> — nada é reclassificado nem apagado.</p>
-        <p style="font-size:12px;color:var(--ink3);margin-top:10px">Desative se você não usa cartão de crédito, para deixar o app mais limpo. Os dados não são apagados — só ficam ocultos.</p>
-        <button class="btn btn-primary" style="margin-top:14px" onclick="saveSettings()">Salvar</button>
       </div>
 
       <div class="panel">
@@ -1213,7 +1211,6 @@ html.splash-active{background:#000}
       <p style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:16px">Isso define as categorias e o que aparece na tela. Dá para mudar depois em Configurações.</p>
       <button class="tipo-opt" onclick="escolherTipo('pf')"><b>Pessoal</b><span>As minhas finanças: salário, contas de casa, cartão, investimentos.</span></button>
       <button class="tipo-opt" onclick="escolherTipo('pj')"><b>Empresa</b><span>As finanças do meu negócio: faturamento, fornecedores, impostos, pró-labore.</span></button>
-      <button class="tipo-opt" onclick="escolherTipo('both')"><b>As duas coisas</b><span>Sou MEI ou autônomo e misturo o dinheiro pessoal com o do trabalho na mesma conta. Cada lançamento ganha um bolso.</span></button>
     </div>
   </div>
 </div>
@@ -3448,7 +3445,7 @@ const CATS_PJ={
 };
 function tipoConta(){
   const v=S.settings.accountType;
-  return (v==='pj'||v==='both')?v:'pf';
+  return v==='pj'?'pj':'pf';   // 'both' (modo que saiu em 2026-11) cai em pessoal
 }
 // As categorias JA USADAS entram sempre, mesmo fora da lista do tipo. Sem isto,
 // trocar de tipo faria a categoria de um lancamento antigo sumir do select — e
@@ -3460,10 +3457,7 @@ function catsEmUso(){
   return s;
 }
 function catsDaConta(){
-  const tp=tipoConta();
-  const base=tp==='pj'?CATS_PJ:tp==='both'
-    ?{receitas:[...CATS_PF.receitas,...CATS_PJ.receitas],despesas:[...new Set([...CATS_PF.despesas,...CATS_PJ.despesas])]}
-    :CATS_PF;
+  const base=tipoConta()==='pj'?CATS_PJ:CATS_PF;
   const usadas=catsEmUso();
   const conhecidas=new Set([...base.receitas,...base.despesas]);
   const extras=[...usadas].filter(c=>!conhecidas.has(c)).sort();
@@ -3492,15 +3486,13 @@ function renderCatSelects(){
 }
 function escolherTipo(tp){
   S.settings.accountType=tp;
-  S.settings.empresarial=(tp==='both');
   if(tp==='pj')S.settings.billsTab='receive';   // negocio olha primeiro o que entra
   persistSettings();
   closeModal('tipo-modal');
   renderCatSelects();
-  renderCtxSwitch();
   try{renderSettings();}catch(e){}
   try{renderBillsPage();}catch(e){}
-  toast(tp==='pj'?'Conta configurada para o seu negócio':tp==='both'?'Pessoal e empresa separados':'Conta pessoal configurada');
+  toast(tp==='pj'?'Conta configurada para o seu negócio':'Conta pessoal configurada');
 }
 function talvezPedirTipo(){
   if(!S.settings.accountType)openModal('tipo-modal');
@@ -3606,6 +3598,11 @@ function exportarTudo(){
 }
 
 // ═══ BOLSO: PESSOAL OU EMPRESA ═══
+//
+// shortcut: o modo saiu em 2026-11 (as contas do Pro fazem esse papel) e o
+// migrateData() o desliga para todos; nada mais liga S.settings.empresarial.
+// O codigo abaixo ficou dormente — apagar numa limpeza dedicada, junto com os
+// campos "Bolso" dos formularios e o #ctx-switch do menu.
 //
 // Nasce DESLIGADO. Quem usa o app para as próprias finanças não deve ganhar um
 // seletor a mais na tela por causa de um recurso que não pediu — o manual de marca
@@ -5183,15 +5180,17 @@ function migrateData(){
   });
   S.ccItems.forEach(c=>{if(map[c.category]){c.category=map[c.category];ch=true;}});
   S.recurring.forEach(r=>{if(map[r.category]){r.category=map[r.category];ch=true;}});
+  // 2026-11: saiu o modo "pessoal e empresa na mesma conta". Quem usava passa a
+  // ver tudo junto; o bolso gravado em cada lancamento fica no dado, sem uso.
+  if(S.settings&&S.settings.empresarial){S.settings.empresarial=false;S.settings.ctxView='all';persistSettings();}
   return ch;
 }
 
 // ═══ SETTINGS ═══
 function renderSettings(){
   const cc=document.getElementById('set-show-cc');if(cc)cc.checked=!!S.settings.showCC;
-  const emp=document.getElementById('set-empresarial');if(emp)emp.checked=!!S.settings.empresarial;
   const ta=document.getElementById('tipo-atual');
-  if(ta)ta.textContent={pf:'Hoje: pessoal',pj:'Hoje: empresa',both:'Hoje: as duas coisas'}[tipoConta()];
+  if(ta)ta.textContent=tipoConta()==='pj'?'Hoje: empresa':'Hoje: pessoal';
   renderContasSettings();
   renderTemaSel();
   loadEmailPrefs();
@@ -5219,16 +5218,6 @@ async function saveMonthlyReminder(el){
 
 function saveSettings(){
   const cc=document.getElementById('set-show-cc');if(cc)S.settings.showCC=cc.checked;
-  const emp=document.getElementById('set-empresarial');
-  if(emp){
-    S.settings.empresarial=emp.checked;
-    if(!emp.checked)S.settings.ctxView='all';   // desligar volta a mostrar tudo
-    // a chave e o tipo descrevem a mesma coisa: nao podem discordar
-    if(emp.checked)S.settings.accountType='both';
-    else if(S.settings.accountType==='both')S.settings.accountType='pf';
-    renderCatSelects();
-  }
-  renderCtxSwitch();
   persistSettings();
   applyModules();
   toast('Configurações salvas');

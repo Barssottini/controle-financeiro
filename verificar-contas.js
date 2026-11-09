@@ -175,6 +175,26 @@ checa('o ajuste da conciliacao cai no Itau, nao na conta principal', ajuste.cont
 checa('e acerta a diferenca', [ajuste.type, ajuste.amount], ['income', 100]);
 checa('Nubank fica intocado', C.saldoDaConta(1), 1000);
 
+// 15. O modo "pessoal e empresa na mesma conta" saiu em 2026-11. Quem usava nao
+// pode ficar com lancamento escondido atras de um filtro que nao existe mais.
+const fonteBolso = fatia('function tipoConta(){', '// As categorias JA USADAS')
+  + fatia('function ctxDe(x){', 'function txVis(){') + fatia('function migrateData(){', '// ═══ SETTINGS ═══');
+const B = new Function('S', 'guessCategory', 'persistSettings', fonteBolso + '\nreturn {tipoConta,noCtx,migrateData};')(S, d => d, () => {});
+S.settings = { empresarial: true, ctxView: 'pj', accountType: 'both' };
+S.transactions = [
+  { id: 1, type: 'expense', amount: 10, ctx: 'pj', category: 'Outros', description: 'Contador' },
+  { id: 2, type: 'expense', amount: 5, category: 'Outros', description: 'Padaria' },
+];
+S.ccItems = []; S.recurring = [];
+checa('antes: o filtro "Empresa" escondia o lancamento pessoal', S.transactions.filter(B.noCtx).map(x => x.id), [1]);
+B.migrateData();
+checa('quem usava o modo tem ele desligado', [S.settings.empresarial, S.settings.ctxView], [false, 'all']);
+checa('e volta a ver todos os lancamentos', S.transactions.filter(B.noCtx).map(x => x.id), [1, 2]);
+checa('o bolso gravado no lancamento nao e apagado', S.transactions[0].ctx, 'pj');
+checa('"as duas coisas" vira pessoal nas categorias', B.tipoConta(), 'pf');
+S.settings.accountType = 'pj';
+checa('empresa continua empresa', B.tipoConta(), 'pj');
+
 console.log('CONTAS — ' + (falhas ? falhas + ' FALHA(S)' : 'tudo bate'));
 console.log(L.join('\n'));
 process.exitCode = falhas ? 1 : 0;
