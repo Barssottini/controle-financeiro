@@ -227,7 +227,9 @@ button.carregando::after{content:"";position:absolute;left:50%;top:50%;width:16p
 .cbadge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;
   font-size:10.5px;font-weight:800;letter-spacing:-.02em;flex:none;line-height:1}
 .cbadge.bank-logo{position:relative;overflow:hidden}
-.cbadge.bank-logo img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain}
+.banco-op .cbadge,.conta-linha .cbadge{width:32px;height:32px;border-radius:9px}
+.cbadge.bank-logo img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:auto}
+.cbadge.bank-logo .bank-fallback[hidden]{display:none}
 .cbadge.bank-logo img[hidden]{display:none}
 .cbadge.sm{width:17px;height:17px;border-radius:5px;font-size:7.5px;vertical-align:-4px;margin-right:2px}
 .cbadge svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -1750,8 +1752,8 @@ html.splash-active{background:#000}
     <section class="pro-rec-passo" hidden>
       <div class="pr-visual pr-bancos" aria-hidden="true">
         <div class="pr-fila">
-          <span class="pr-banco"><span class="cbadge bank-logo" style="background:#820ad1;color:#fff">Nu<img src="vendor/banks/nubank.svg" alt="" onerror="this.hidden=true"></span>Nubank</span>
-          <span class="pr-banco"><span class="cbadge bank-logo" style="background:#ec7000;color:#fff">I<img src="vendor/banks/itau.svg" alt="" onerror="this.hidden=true"></span>Itaú</span>
+          <span class="pr-banco"><span class="cbadge bank-logo" style="background:#820ad1;color:#fff"><span class="bank-fallback" hidden>Nu</span><img src="vendor/banks/nubank.svg" alt="" onerror="this.hidden=true;this.previousElementSibling.hidden=false"></span>Nubank</span>
+          <span class="pr-banco"><span class="cbadge bank-logo" style="background:#ec7000;color:#fff"><span class="bank-fallback" hidden>I</span><img src="vendor/banks/itau.svg" alt="" onerror="this.hidden=true;this.previousElementSibling.hidden=false"></span>Itaú</span>
           <span class="pr-banco"><span class="cbadge" style="background:#332a1b;color:#e8c47c"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"/><circle cx="16" cy="14.5" r="1.2"/></svg></span>Carteira</span>
         </div>
         <div class="pr-total">Todas as contas<b>R$ 18.342,10</b></div>
@@ -3913,7 +3915,7 @@ function iconeConta(id,cls){return iconeNome(nomeDaConta(id),cls);}
 function iconeNome(nome,cls){
   const b=bancoDe(nome),c=cls?' '+cls:'',tt=' title="'+esc(nome)+'"';
   if(b&&b.carteira)return '<span class="cbadge'+c+'" style="background:var(--goldl);color:var(--goldd)"'+tt+'><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"/><circle cx="16" cy="14.5" r="1.2"/></svg></span>';
-  if(b)return '<span class="cbadge bank-logo'+c+'" style="background:'+b.bg+';color:'+b.fg+'"'+tt+'>'+b.t+'<img src="vendor/banks/'+b.logo+'.svg" alt="" onerror="this.hidden=true"></span>';
+  if(b)return '<span class="cbadge bank-logo'+c+'" style="background:'+b.bg+';color:'+b.fg+'"'+tt+'><span class="bank-fallback" hidden>'+b.t+'</span><img src="vendor/banks/'+b.logo+'.svg" alt="" onerror="this.hidden=true;this.previousElementSibling.hidden=false"></span>';
   return '<span class="cbadge'+c+'" style="background:var(--paper3);color:var(--ink2)"'+tt+'>'+esc((String(nome).trim()[0]||'?').toUpperCase())+'</span>';
 }
 const BOTAO_NOVO_BANCO='<button type="button" class="acc-add" onclick="novoBanco()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Adicionar banco</button>';
