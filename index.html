@@ -398,6 +398,28 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .pf-avatar:has(.pf-tirar:focus-visible) .pf-selo{opacity:0}
 .mobile-avatar{overflow:hidden;padding:0}
 .mobile-avatar img{display:block;width:100%;height:100%;object-fit:cover}
+/* ═══ PRIMEIRO GASTO ═══ */
+.pg{max-width:420px;padding:22px 24px 20px}
+.pg h3{margin:0;font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.2;text-wrap:balance}
+.pg-valor{margin:18px 0 16px;text-align:center;font-size:42px;font-weight:800;letter-spacing:-1.5px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.pg-com{margin:0 0 10px;font-size:13px;font-weight:700;color:var(--ink2)}
+.pg-cats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pg-cat{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;padding:12px 6px;border:1.5px solid var(--paper3);border-radius:12px;background:var(--paper);color:var(--ink);font:600 12.5px var(--ff);text-align:center;cursor:pointer}
+.pg-cat span{font-size:20px}
+.pg-cat.on{border-color:var(--gold);background:var(--goldl)}
+.pg-salvar{width:100%;justify-content:center;margin-top:14px;padding:13px}
+.pg-salvar:disabled{opacity:.45;cursor:default}
+.pg-teclado{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.pg-teclado button{height:46px;border:0;border-radius:12px;background:var(--paper2);color:var(--ink);font:600 19px var(--ff);cursor:pointer}
+.pg-teclado button:active{background:var(--paper3)}
+.pg-chip{display:inline-block;margin:0 auto 14px;padding:8px 14px;border-radius:100px;border:1px solid var(--green);background:var(--greenl);color:var(--ink);font-size:13px;font-weight:700}
+.pg-linha{margin:16px 0 4px;padding:16px;border-radius:14px;background:var(--paper2);text-align:left}
+.pg-passo{position:relative;display:flex;gap:12px;padding-bottom:16px}
+.pg-passo:last-child{padding-bottom:0}
+.pg-passo:not(:last-child)::after{content:"";position:absolute;left:17px;top:40px;bottom:2px;width:2px;background:var(--paper3)}
+.pg-passo i{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--paper);font-style:normal;font-size:16px}
+.pg-passo b{display:block;font-size:14px}
+.pg-passo span{display:block;margin-top:2px;font-size:12.5px;line-height:1.45;color:var(--ink3)}
 /* ═══ CONHECER VOCE ═══ */
 .dash-oi{display:none}
 .panel.dash-foco{padding:4px 22px}
@@ -2024,6 +2046,29 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
   </div>
 </div>
 
+<!-- MODAL: PRIMEIRO GASTO -->
+<div class="overlay" id="pg-modal">
+  <div class="modal pg" role="dialog" aria-modal="true" aria-labelledby="pg-titulo">
+    <div id="pg-passo1">
+      <div class="ck-topo"><span>Último passo</span><button type="button" class="ck-pular" onclick="pularPrimeiroGasto()">Pular</button></div>
+      <h3 id="pg-titulo">Qual foi seu último gasto?</h3>
+      <p class="ck-sub">Chuta o valor, dá para editar depois.</p>
+      <div class="pg-valor" id="pg-valor" aria-live="polite">R$ 0,00</div>
+      <p class="pg-com">Com o quê?</p>
+      <div class="pg-cats" id="pg-cats"></div>
+      <button type="button" class="btn btn-primary pg-salvar" id="pg-salvar" onclick="salvarPrimeiroGasto()" disabled>Salvar meu 1º gasto</button>
+      <div class="pg-teclado" aria-label="Teclado do valor"><button type="button" onclick="pgTecla('1')">1</button><button type="button" onclick="pgTecla('2')">2</button><button type="button" onclick="pgTecla('3')">3</button><button type="button" onclick="pgTecla('4')">4</button><button type="button" onclick="pgTecla('5')">5</button><button type="button" onclick="pgTecla('6')">6</button><button type="button" onclick="pgTecla('7')">7</button><button type="button" onclick="pgTecla('8')">8</button><button type="button" onclick="pgTecla('9')">9</button><button type="button" onclick="pgTecla('00')">00</button><button type="button" onclick="pgTecla('0')">0</button><button type="button" onclick="pgTecla('apagar')" aria-label="Apagar">⌫</button></div>
+    </div>
+    <div id="pg-passo2" class="ck-centro" hidden>
+      <span class="pg-chip" id="pg-chip"></span>
+      <h3>Seu North está pronto.</h3>
+      <p class="ck-sub">E o seu teste do Pro já começou, sem pedir cartão. Veja como funciona:</p>
+      <div class="pg-linha" id="pg-linha"></div>
+      <button type="button" class="btn btn-primary pg-salvar" onclick="fecharLinhaDoTempo()">Começar a usar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: CONHECER VOCE -->
 <div class="overlay" id="conhecer-modal">
   <div class="modal conhecer" role="dialog" aria-modal="true" aria-labelledby="ck-titulo" onkeydown="if(event.key==='Enter'&&event.target.tagName==='INPUT'){event.preventDefault();ckSeguir();}">
@@ -2445,8 +2490,9 @@ async function onSignedIn(session,fresh){
     S.settings.termosVistos=TERMOS_VERSAO;persistSettings();
     showRecoveryDisplay(est.showRecovery);
   }
-  else if(!S.settings.accountType)openModal('tipo-modal');
-  else if(!S.settings.manualSeen)openModal('welcome-modal');
+  else if(!S.settings.accountType||precisaPrimeiroGasto()||!S.settings.manualSeen)proximoPassoEntrada();
+  // a linha do tempo do teste promete este aviso: dois dias antes do fim, uma vez
+  else if(acc.reason==='trialing'&&daysLeft(acc.end)<=2&&!S.settings.avisoFimTeste)avisarFimTeste(acc);
   // uma vez por conta; nao disputa a tela com as boas-vindas do Pro
   else if(!S.settings.conhecerVisto&&!(acc.reason==='active'&&!S.settings.proRecebido))abrirConhecer();
   renderAvisoTermos();
@@ -3597,6 +3643,73 @@ function aplicarConhecer(){
   updateDashboard();renderPerfil();
   return feito;
 }
+// ═══ PRIMEIRO GASTO ═══
+// Entrada da conta nova: tipo → banco → "qual foi seu último gasto?" → linha do
+// tempo do teste → manual. A pessoa vê o app funcionando antes de qualquer tela.
+let _pg={centavos:'',cat:null};
+function precisaPrimeiroGasto(){return !temLancamentos()&&!S.settings.primeiroGastoVisto;}
+function proximoPassoEntrada(){
+  if(!S.settings.accountType){openModal('tipo-modal');return;}
+  if(precisaPrimeiroGasto()){abrirPrimeiroGasto();return;}
+  if(!S.settings.manualSeen)openModal('welcome-modal');
+}
+function catsPrimeiroGasto(){return tipoConta()==='pj'?['Fornecedores','Taxas e tarifas','Outros']:['Alimentação','Transporte','Outros'];}
+function abrirPrimeiroGasto(){
+  if(precisaEscolherBanco()){abrirEscolhaBanco('primeiro',abrirPrimeiroGasto);return;}
+  S.settings.primeiroGastoVisto=true;persistSettings();   // qualquer jeito de fechar conta como visto
+  _pg={centavos:'',cat:catsPrimeiroGasto()[0]};
+  document.getElementById('pg-passo1').hidden=false;
+  document.getElementById('pg-passo2').hidden=true;
+  renderPrimeiroGasto();openModal('pg-modal');
+}
+function pgValor(){return (+_pg.centavos||0)/100;}
+// o valor aparece mesmo com "ocultar valores": é a pessoa digitando
+function brlAberto(v){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);}
+function renderPrimeiroGasto(){
+  document.getElementById('pg-valor').textContent=brlAberto(pgValor());
+  document.getElementById('pg-cats').innerHTML=catsPrimeiroGasto().map(c=>'<button type="button" class="pg-cat'+(c===_pg.cat?' on':'')+'" aria-pressed="'+(c===_pg.cat)+'" onclick="pgCat(\''+c+'\')"><span aria-hidden="true">'+(CAT_ICONS[c]||'📦')+'</span>'+esc(c)+'</button>').join('');
+  document.getElementById('pg-salvar').disabled=!pgValor();
+}
+function pgCat(c){_pg.cat=c;renderPrimeiroGasto();}
+// digita em centavos, como na maquininha: 3, 6, 5, 0 → R$ 36,50
+function pgTecla(k){
+  if(k==='apagar')_pg.centavos=_pg.centavos.slice(0,-1);
+  else _pg.centavos=(_pg.centavos+k).replace(/^0+/,'').slice(0,9);
+  renderPrimeiroGasto();
+}
+document.addEventListener('keydown',e=>{
+  const m=document.getElementById('pg-modal');
+  if(!m||!m.classList.contains('open')||document.getElementById('pg-passo1').hidden)return;
+  if(/^[0-9]$/.test(e.key)){pgTecla(e.key);e.preventDefault();}
+  else if(e.key==='Backspace'){pgTecla('apagar');e.preventDefault();}
+  else if(e.key==='Enter'&&pgValor()){salvarPrimeiroGasto();e.preventDefault();}
+});
+function pularPrimeiroGasto(){closeModal('pg-modal');proximoPassoEntrada();}
+function salvarPrimeiroGasto(){
+  const v=pgValor();if(!v)return;
+  S.transactions.push({id:Date.now(),type:'expense',description:_pg.cat,amount:v,date:_diaChave(new Date()),category:_pg.cat,conta:contaPadraoId()});
+  persist();
+  try{updateDashboard();renderTxList();populateMonthFilter();}catch(e){}
+  const chip=brlAberto(v)+' · '+_pg.cat+' registrado',acc=subAccess(_nfSub);
+  if(acc.reason!=='trialing'){closeModal('pg-modal');toast(chip);proximoPassoEntrada();return;}
+  const fim=new Date(acc.end),aviso=new Date(fim.getTime()-2*86400000),dd=d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  const passo=(ic,tit,txt)=>'<div class="pg-passo"><i aria-hidden="true">'+ic+'</i><div><b>'+tit+'</b><span>'+txt+'</span></div></div>';
+  document.getElementById('pg-chip').textContent='✓ '+chip;
+  document.getElementById('pg-linha').innerHTML=
+    passo('🔓','Hoje: tudo liberado','Investimentos, mais de um banco e contas a pagar e receber. R$ 0,00.')
+    +passo('🔔',dd(aviso)+': a gente te avisa','Um lembrete aqui no app de que o teste está acabando.')
+    +passo('👑',dd(fim)+': você escolhe','Continuar no Pro por R$ 19,90/mês ou ficar no Free. Sem cartão, nada é cobrado sozinho, e nada do que você lançou se perde.');
+  document.getElementById('pg-passo1').hidden=true;
+  document.getElementById('pg-passo2').hidden=false;
+}
+function fecharLinhaDoTempo(){closeModal('pg-modal');proximoPassoEntrada();}
+function avisarFimTeste(acc){
+  S.settings.avisoFimTeste=true;persistSettings();
+  const d=daysLeft(acc.end);
+  showConfirm('Seu teste do Pro acaba '+(d<=1?'amanhã':'em '+d+' dias')+', em '+fmtDate(acc.end)+'. Depois, a conta volta ao Free sem perder nada: o que você cadastrou continua aqui.',{title:'Seu teste está acabando',confirmLabel:'Assinar o Pro',cancelLabel:'Depois'})
+    .then(ok=>{if(ok)startSubscription();});
+}
+
 // ═══ EMPRESA ═══
 // Conta CNPJ: o painel mostra faturamento, custos e lucro, e a linha de foco
 // ganha o DAS, o teto do MEI e as retiradas do dono contra o lucro.
@@ -3723,9 +3836,8 @@ function reckeyGate(){
   const b=document.getElementById('reckey-continue');b.disabled=!ok;b.style.opacity=ok?'1':'.5';
 }
 function reckeyContinue(){
-  setTimeout(talvezPedirTipo,400);
   document.getElementById('reckey-screen').style.display='none';
-  if(!S.settings.manualSeen)openModal('welcome-modal');
+  setTimeout(proximoPassoEntrada,400);
 }
 function showUnlock(session){
   _unlockSession=session;
@@ -4434,6 +4546,7 @@ function renderCatSelects(){
 function escolherTipo(tp){
   // o tipo é definido na criação; só troca enquanto a conta não tem lançamento
   if(S.settings.accountType&&temLancamentos()){closeModal('tipo-modal');return;}
+  const primeira=!S.settings.accountType;
   S.settings.accountType=tp;
   if(tp==='pj')S.settings.billsTab='receive';   // negocio olha primeiro o que entra
   persistSettings();
@@ -4443,9 +4556,7 @@ function escolherTipo(tp){
   try{renderBillsPage();}catch(e){}
   try{updateDashboard();}catch(e){}
   toast(tp==='pj'?'Conta configurada para o seu negócio':'Conta pessoal configurada');
-}
-function talvezPedirTipo(){
-  if(!S.settings.accountType)openModal('tipo-modal');
+  if(primeira)setTimeout(proximoPassoEntrada,350);
 }
 
 // ═══ EXPORTAR OS SEUS DADOS ═══

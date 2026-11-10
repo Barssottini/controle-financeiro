@@ -21,7 +21,7 @@ let tipo = 'pf';
 // DOM de mentira: guarda o que o codigo escreve e devolve os campos que a tela atual desenhou
 const dom = {};
 const el = () => ({ innerHTML: '', textContent: '', hidden: false, value: '', focus() {} });
-['ck-passo', 'ck-pontos', 'ck-voltar', 'ck-pular', 'ck-seguir', 'dash-foco', 'dash-titulo', 'dash-oi', 'pf-sobre'].forEach(id => { dom[id] = el(); });
+['ck-passo', 'ck-pontos', 'ck-voltar', 'ck-pular', 'ck-seguir', 'dash-foco', 'dash-titulo', 'dash-oi', 'pf-sobre', 'pg-valor', 'pg-cats', 'pg-salvar', 'pg-passo1', 'pg-passo2', 'pg-chip', 'pg-linha'].forEach(id => { dom[id] = el(); });
 dom['ck-corpo'] = {
   _h: '',
   get innerHTML() { return this._h; },
@@ -32,6 +32,7 @@ dom['ck-corpo'] = {
   },
 };
 const abertos = [];
+const banco = { precisa: false, aberto: null, depois: null };
 const sandbox = {
   S,
   esc: s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'),
@@ -41,11 +42,16 @@ const sandbox = {
   persistSettings: () => {}, persistGoals: () => {}, persistBudgets: () => {},
   updateDashboard: () => {}, renderPerfil: () => {},
   openModal: id => abertos.push(id), closeModal: () => {}, showPage: () => {},
-  document: { getElementById: id => dom[id] || null },
+  // primeiro gasto
+  persist: () => {}, contaPadraoId: () => 1, renderTxList: () => {}, populateMonthFilter: () => {}, toast: () => {},
+  precisaEscolherBanco: () => banco.precisa, abrirEscolhaBanco: (modo, depois) => { banco.aberto = modo; banco.depois = depois; },
+  subAccess: s => s || { reason: 'unknown' }, daysLeft: d => Math.max(0, Math.ceil((new Date(d) - Date.now()) / 86400000)),
+  _nfSub: null, CAT_ICONS: { 'Alimentação': '🍔' }, showConfirm: () => Promise.resolve(false), startSubscription: () => {}, fmtDate: d => new Date(d).toLocaleDateString('pt-BR'),
+  document: { getElementById: id => dom[id] || null, addEventListener() {} },
 };
 const nomes = Object.keys(sandbox);
 const F = new Function(...nomes, auxiliares + '\n' + t.slice(i, j) +
-  '\nreturn {cicloEfetivo,cicloPagamento,proximoMarco,gastoMedioMensal,renderFoco,renderSaudacao,abrirConhecer,ckSeguir,ckPular,ckObjetivo,ckDia,ckFaixa,_diaChave,monthKeyOf};');
+  '\nreturn {pgTecla,pgCat,salvarPrimeiroGasto,abrirPrimeiroGasto,proximoPassoEntrada,precisaPrimeiroGasto,setSub:s=>{_nfSub=s},cicloEfetivo,cicloPagamento,proximoMarco,gastoMedioMensal,renderFoco,renderSaudacao,abrirConhecer,ckSeguir,ckPular,ckObjetivo,ckDia,ckFaixa,_diaChave,monthKeyOf};');
 const C = F(...nomes.map(n => sandbox[n]));
 
 let falhas = 0;
@@ -177,6 +183,37 @@ C.ckSeguir(); C.ckPular();
 checa('empresa: a terceira ja e a ultima', dom['ck-seguir'].textContent, 'Concluir');
 C.ckSeguir();
 checa('empresa: nenhum limite criado', S.budgets.length, 0);
+
+// 9. Primeiro gasto na entrada
+tipo = 'pf'; S.transactions = []; S.settings = { accountType: 'pf', manualSeen: false }; abertos.length = 0;
+banco.precisa = true;
+C.proximoPassoEntrada();
+checa('conta nova sem banco: a entrada pede o banco primeiro', banco.aberto, 'primeiro');
+banco.precisa = false; banco.depois();
+checa('escolhido o banco, abre o primeiro gasto', abertos.pop(), 'pg-modal');
+checa('abrir ja conta como visto', S.settings.primeiroGastoVisto, true);
+checa('sem valor, salvar fica desligado', dom['pg-salvar'].disabled, true);
+['3', '6', '5', '0'].forEach(C.pgTecla);
+checa('digita em centavos: 3, 6, 5, 0 vira R$ 36,50', dom['pg-valor'].textContent.replace(/\s/g, ' '), 'R$ 36,50');
+C.pgTecla('apagar'); C.pgTecla('0');
+checa('apagar tira o ultimo digito', dom['pg-valor'].textContent.replace(/\s/g, ' '), 'R$ 36,50');
+['9', '9', '9', '9', '9', '9', '9', '9'].forEach(C.pgTecla);
+checa('no maximo 9 digitos', dom['pg-valor'].textContent.replace(/\D/g, '').length, 9);
+for (let k = 0; k < 9; k++) C.pgTecla('apagar');
+['0', '0', '4', '2'].forEach(C.pgTecla);
+checa('zeros a esquerda nao contam', dom['pg-valor'].textContent.replace(/\s/g, ' '), 'R$ 0,42');
+C.pgTecla('apagar'); C.pgTecla('apagar'); ['3', '6', '5', '0'].forEach(C.pgTecla);
+C.pgCat('Transporte');
+const fim = new Date(Date.now() + 6 * 86400000);
+C.setSub({ reason: 'trialing', end: fim.getTime() });
+C.salvarPrimeiroGasto();
+checa('grava o lancamento como despesa de hoje', S.transactions.map(x => [x.type, x.amount, x.category, x.conta]), [['expense', 36.5, 'Transporte', 1]]);
+checa('em teste gratis, mostra a linha do tempo', [dom['pg-passo1'].hidden, dom['pg-passo2'].hidden], [true, false]);
+checa('o selo diz o que foi registrado', dom['pg-chip'].textContent.includes('Transporte registrado'), true);
+checa('a linha do tempo tem a data do fim do teste', dom['pg-linha'].innerHTML.includes(fim.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })), true);
+checa('com lancamento, a entrada nao pede de novo o primeiro gasto', C.precisaPrimeiroGasto(), false);
+C.proximoPassoEntrada();
+checa('e segue para as boas-vindas', abertos.pop(), 'welcome-modal');
 
 console.log(L.join('\n'));
 console.log(falhas ? '\n  ' + falhas + ' falha(s)' : '\n  todos passaram');

@@ -40,7 +40,7 @@ const sandbox = {
   updateDashboard: () => {}, renderPerfil: () => {}, renderCatSelects: () => {}, renderSettings: () => {}, renderBillsPage: () => {},
   toast: m => avisos.push(m),
   openModal: () => {}, closeModal: id => fechados.push(id), showPage: () => {},
-  document: { getElementById: id => dom[id] || null },
+  document: { getElementById: id => dom[id] || null, addEventListener() {} },
 };
 const nomes = Object.keys(sandbox);
 const F = new Function(...nomes, auxiliares + '\n' + t.slice(i, j) +
