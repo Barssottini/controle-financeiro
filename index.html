@@ -1326,7 +1326,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
           <button class="btn btn-secondary" onclick="document.getElementById('conf-arquivo').click()">Conferir fatura</button>
           <button class="btn btn-primary" onclick="openCCModal()">+ Lançar no Crédito</button>
         </div>
-        <input type="file" id="conf-arquivo" accept=".ofx,.qfx,.csv" hidden onchange="lerFatura(this)">
+        <input type="file" id="conf-arquivo" accept=".ofx,.qfx,.csv,.pdf" hidden onchange="lerFatura(this)">
       </div>
       <div class="cards-row" style="grid-template-columns:repeat(3,1fr)">
         <div class="sum-card expense"><div class="sc-label">Em aberto no mês</div><div class="sc-val" id="cc-open-month">R$ 0,00</div></div>
@@ -1367,7 +1367,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
     <!-- IMPORT -->
     <div class="page" id="import">
       <div class="ph">
-        <div><h1 class="pt">Importar Extrato</h1><p class="ps">OFX e CSV — todos os bancos brasileiros, com correção de encoding</p></div>
+        <div><h1 class="pt">Importar Extrato</h1><p class="ps">OFX, CSV e PDF — todos os bancos brasileiros, com correção de encoding</p></div>
       </div>
       <div class="panel">
         <h3 class="panel-title" style="margin-bottom:16px">Selecionar Arquivo</h3>
@@ -1377,9 +1377,9 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
           ondragleave="this.classList.remove('drag-over')"
           ondrop="handleDrop(event)">
           <div style="font-weight:700;margin-bottom:5px">Arraste seu arquivo ou clique para selecionar</div>
-          <div style="font-size:13px;color:var(--ink3)">Formatos aceitos: .OFX · .CSV</div>
+          <div style="font-size:13px;color:var(--ink3)">Formatos aceitos: .OFX · .CSV · .PDF</div>
         </div>
-        <input type="file" id="ffile" accept=".ofx,.csv,.txt" style="display:none" onchange="handleFileInput(event)">
+        <input type="file" id="ffile" accept=".ofx,.csv,.txt,.pdf" style="display:none" onchange="handleFileInput(event)">
         <div id="import-preview"></div>
       </div>
       <div class="panel" style="background:var(--paper2)">
@@ -3796,6 +3796,94 @@ function avisarFimTeste(acc){
     .then(ok=>{if(ok)startSubscription();});
 }
 
+// ═══ EXTRATO EM PDF ═══
+// O PDF vira linhas de texto (PDF.js servido daqui, carregado só quando alguém
+// escolhe um PDF) e cada linha com data e valor vira um lançamento. Cada banco
+// monta o PDF de um jeito, então é heurística: a prévia mostra tudo para conferir.
+const PDF_ILEGIVEL='Não consegui ler esse PDF. Se ele for uma foto ou uma digitalização, não há texto para ler: use o OFX ou o CSV do banco.';
+const MESES_ABR={jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
+// pedaços de texto na mesma altura (até 2 pontos de diferença) formam uma linha
+function linhasDosItens(itens){
+  const its=itens.filter(i=>i.str&&i.str.trim()).sort((a,b)=>b.transform[5]-a.transform[5]||a.transform[4]-b.transform[4]);
+  const out=[];let grupo=[],y=null;
+  const fecha=()=>{if(grupo.length)out.push(grupo.sort((a,b)=>a.transform[4]-b.transform[4]).map(i=>i.str.trim()).join(' '));grupo=[];};
+  its.forEach(i=>{if(y===null||Math.abs(i.transform[5]-y)>2){fecha();y=i.transform[5];}grupo.push(i);});
+  fecha();
+  return out;
+}
+// a caixa de mensagem serve para códigos de 6 dígitos; vira campo de senha só agora
+function pedirSenhaPdf(){
+  const inp=document.getElementById('msg-input'),antes=['type','inputmode','maxlength','placeholder','style'].map(a=>[a,inp.getAttribute(a)]);
+  inp.type='password';inp.removeAttribute('maxlength');inp.setAttribute('inputmode','text');inp.placeholder='Senha do PDF';inp.style.letterSpacing='normal';
+  return showPromptCode('Este PDF tem senha. Muitos bancos usam os números do CPF. A senha só é usada aqui, para abrir o arquivo.','PDF com senha')
+    .finally(()=>antes.forEach(([a,v])=>v===null?inp.removeAttribute(a):inp.setAttribute(a,v)));
+}
+async function linhasDoPdf(file){
+  const pdfjs=await import('./vendor/pdfjs/pdf.min.mjs');
+  pdfjs.GlobalWorkerOptions.workerSrc='vendor/pdfjs/pdf.worker.min.mjs';
+  const dados=new Uint8Array(await file.arrayBuffer());
+  let doc,senha;
+  for(;;){
+    try{doc=await pdfjs.getDocument({data:dados.slice(),password:senha,isEvalSupported:false}).promise;break;}   // slice: o leitor fica com a cópia
+    catch(e){
+      if(!e||e.name!=='PasswordException')throw e;
+      senha=await pedirSenhaPdf();
+      if(senha===null)return null;
+    }
+  }
+  const linhas=[];
+  for(let p=1;p<=doc.numPages;p++)linhas.push(...linhasDosItens((await (await doc.getPage(p)).getTextContent()).items));
+  return linhas;
+}
+function anoDoTexto(linhas){
+  const c={};
+  linhas.join(' ').replace(/\b(20\d{2})\b/g,(_,a)=>{c[a]=(c[a]||0)+1;});
+  const top=Object.entries(c).sort((a,b)=>b[1]-a[1])[0];
+  return top?+top[0]:new Date().getFullYear();
+}
+// data no começo da linha (05/11/2026, 05/11, "05 NOV", "Terça, 10 de novembro");
+// linha só com data vale para as de baixo. Valor no formato 1.234,56, com sinal,
+// "D"/"C" ou nada; com dois valores (lançamento e saldo), vale o primeiro.
+function transacoesDoTexto(linhas,anoBase,hoje){
+  const ano=anoBase||new Date().getFullYear(),limite=_isoDia(new Date((hoje||new Date()).getTime()+7*86400000)),known=knownCats(),rows=[];
+  const reData=/^(?:(?:seg|ter|qua|qui|sex|s[aá]b|dom)[a-zçá-]*,?\s+)?(?:(\d{1,2})\s*[\/.-]\s*(\d{1,2})(?:\s*[\/.-]\s*(\d{2,4}))?|(\d{1,2})\s+(?:de\s+)?(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-zç]*\.?(?:\s+(?:de\s+)?(\d{4}))?)(?=\s|$)/i;
+  const reValor=/([-+])?\s*(?:R\$\s*)?([-+])?\s*(\d{1,3}(?:\.\d{3})*,\d{2})(?:\s*([DC-]))?(?=\s|$)/g;
+  let dataAtual='';
+  for(const bruta of linhas){
+    const l=String(bruta).replace(/\s+/g,' ').trim();if(!l)continue;
+    const md=l.match(reData);let data='';
+    if(md){
+      const d=+(md[1]||md[4]),m=md[2]?+md[2]:MESES_ABR[md[5].toLowerCase().slice(0,3)],anoEscrito=md[3]||md[6];
+      const a=anoEscrito?(+anoEscrito<100?2000+(+anoEscrito):+anoEscrito):ano;
+      if(d>=1&&d<=31&&m>=1&&m<=12){
+        data=a+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+        if(!anoEscrito&&data>limite)data=(a-1)+data.slice(4);   // dezembro num extrato que fecha em janeiro
+      }
+    }
+    const valores=[...l.matchAll(reValor)];
+    if(!valores.length){if(data)dataAtual=data;continue;}
+    if(/saldo|total|limite|resumo|vencimento|pagamento m[ií]nimo/i.test(l))continue;
+    if(!data&&!dataAtual)continue;
+    const v=valores[0],amt=parseValor(v[3]);if(!(amt>0))continue;
+    const neg=v[1]==='-'||v[2]==='-'||v[4]==='D'||v[4]==='-',pos=v[1]==='+'||v[2]==='+'||v[4]==='C';
+    let desc=md?l.replace(md[0],' '):l;
+    valores.forEach(x=>{desc=desc.replace(x[0],' ');});   // o saldo do dia também sai da descrição
+    desc=desc.replace(/R\$/g,' ').replace(/\s+/g,' ').trim()||'Sem descrição';
+    const baixo=desc.toLowerCase(),entrada=PIX_IN_RE.test(baixo)||/recebid|dep[oó]sito|sal[aá]rio|estorno|rendimento/.test(baixo);
+    const type=neg?'expense':pos?'income':entrada?'income':'expense',dc=cleanDesc(desc);
+    rows.push({type,description:dc,amount:amt,date:data||dataAtual,category:PIX_IN_RE.test(baixo)?'Outros':(known[dc]||guessCategory(desc))});
+  }
+  return rows;
+}
+async function importarPdf(file){
+  try{
+    const linhas=await linhasDoPdf(file);if(!linhas)return;
+    parsedBal=null;parsedRows=transacoesDoTexto(linhas,anoDoTexto(linhas));
+    renderImportPreview(file.name);
+  }catch(e){showAlert(PDF_ILEGIVEL);}
+}
+// ═══ FIM DO EXTRATO EM PDF ═══
+
 // ═══ CONFERIR FATURA ═══
 // Compara a fatura do cartão (OFX ou CSV) com o que foi lançado no Cartão. Uma
 // compra bate pelo valor (cheio ou da parcela) com até 3 dias de diferença; se só
@@ -3826,12 +3914,13 @@ function conferirFatura(linhas,itens){
 function lerFatura(input){
   const f=input.files&&input.files[0];input.value='';
   if(!f)return;
-  lerTexto(f,txt=>{
-    const nome=f.name.toLowerCase(),linhas=nome.endsWith('.ofx')||nome.endsWith('.qfx')?parseOFX(txt):parseCSV(txt);
-    if(!linhas.length){showAlert('Não encontrei lançamentos nesse arquivo. Use o OFX ou o CSV da fatura, baixado no app ou no site do banco.');return;}
-    _conf=conferirFatura(linhas,S.ccItems);
-    renderConferencia();openModal('conf-modal');
-  });
+  if(/\.pdf$/i.test(f.name)){linhasDoPdf(f).then(l=>{if(l)mostrarConferencia(transacoesDoTexto(l,anoDoTexto(l)));}).catch(()=>showAlert(PDF_ILEGIVEL));return;}
+  lerTexto(f,txt=>mostrarConferencia(/\.(ofx|qfx)$/i.test(f.name)?parseOFX(txt):parseCSV(txt)));
+}
+function mostrarConferencia(linhas){
+  if(!linhas.length){showAlert('Não encontrei lançamentos nesse arquivo. Use a fatura em OFX, CSV ou PDF, baixada no app ou no site do banco.');return;}
+  _conf=conferirFatura(linhas,S.ccItems);
+  renderConferencia();openModal('conf-modal');
 }
 function renderConferencia(){
   const c=_conf,dd=s=>s.slice(8,10)+'/'+s.slice(5,7);
@@ -6194,6 +6283,7 @@ function handleFileInput(e){const f=e.target.files[0];if(f)processFile(f);e.targ
 
 function processFile(file){
   if(precisaEscolherBanco()){abrirEscolhaBanco('primeiro',()=>processFile(file));return;}
+  if(/\.pdf$/i.test(file.name)){importarPdf(file);return;}
   lerTexto(file,t=>finishParse(t,file.name));
 }
 // lê o arquivo como texto; se os acentos vierem quebrados (Windows-1252), relê
@@ -6352,7 +6442,7 @@ function renderImportPreview(filename){
   parsedFile=filename;
   const prev=document.getElementById('import-preview');
   if(!parsedRows.length){
-    prev.innerHTML='<div style="background:var(--redl);color:var(--red);padding:13px;border-radius:10px;margin-top:6px">Nenhuma transação encontrada em <strong>'+esc(filename)+'</strong>. Verifique se é OFX ou CSV válido.</div>';
+    prev.innerHTML='<div style="background:var(--redl);color:var(--red);padding:13px;border-radius:10px;margin-top:6px">Nenhuma transação encontrada em <strong>'+esc(filename)+'</strong>. Verifique se é um OFX, CSV ou PDF do banco. PDF que é foto ou digitalização não tem texto para ler.</div>';
     return;
   }
   // Duplicata é SEMPRE dentro da mesma conta. O mesmo Uber de R$ 50 no mesmo dia
