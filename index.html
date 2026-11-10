@@ -739,6 +739,27 @@ button.foco-linha:hover .foco-ir{color:var(--gold)}
   .inv-topo{padding-right:36px}
 }
 @media (max-width:600px){.inv-h-valor{font-size:32px}}
+.inv-evo{position:relative;height:130px;margin:18px -4px 0}
+.inv-evo[hidden]{display:none}
+.inv-evo-leg{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:11.5px;line-height:1.5;color:#8a837b}
+.inv-evo-leg:empty{display:none}
+.inv-evo-leg span{display:inline-flex;align-items:center;gap:6px}
+.inv-evo-leg i{width:8px;height:8px;border-radius:50%}
+.rp-graf{position:relative;height:180px;margin-top:18px}
+.rp-vazio{font-size:13px;line-height:1.6;color:var(--ink3);margin:0}
+.sim-campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:0 14px}
+.sim-cdi{font-size:12px;color:var(--ink3)}
+.sim-res{padding:18px 20px;border-radius:12px;background:var(--goldl)}
+.sim-rot{font-size:13px;color:var(--ink2)}
+.sim-valor{margin-top:2px;font-size:30px;font-weight:800;letter-spacing:-.03em;color:var(--goldd);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.sim-det{margin-top:4px;font-size:12.5px;line-height:1.5;color:var(--ink2)}
+.sim-metas{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+.sim-metas:empty{display:none}
+.sim-metas h4{margin:0;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
+.sim-meta{display:grid;gap:3px;padding:12px 14px;border-radius:10px;background:var(--paper2);font-size:13px;line-height:1.5;color:var(--ink2)}
+.sim-meta b{color:var(--ink);font-variant-numeric:tabular-nums}
+.sim-meta-nome{font-weight:700;color:var(--ink)}
+body.values-hidden #inv-evo-chart,body.values-hidden #rp-chart{filter:blur(6px)}
 
 /* GOALS */
 .goal-card{background:var(--paper2);border:1px solid var(--paper3);border-radius:12px;padding:20px;margin-bottom:14px}
@@ -1430,6 +1451,8 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
         <div class="inv-h-rot">Patrimônio investido</div>
         <div class="inv-h-valor" id="inv-patrimony">R$ 0,00</div>
         <div class="inv-h-mes" id="inv-mes"></div>
+        <div class="inv-evo" id="inv-evo" hidden><canvas id="inv-evo-chart" aria-label="Evolução do patrimônio nos últimos meses" role="img"></canvas></div>
+        <div class="inv-evo-leg" id="inv-evo-leg"></div>
         <div class="inv-h-nums">
           <div><span>Aplicado</span><b id="inv-total">R$ 0,00</b></div>
           <div><span>Rendimento total</span><b id="inv-yield-total">R$ 0,00</b></div>
@@ -1439,6 +1462,20 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
       </div>
       <div class="panel" id="inv-alloc-panel" style="display:none"><div class="panel-head"><span class="panel-title">Alocação da carteira</span><div class="bl-tabs inv-alloc-tabs"><button type="button" data-al="tipo" class="on" onclick="trocarAlocacao('tipo')">Por tipo</button><button type="button" data-al="inst" onclick="trocarAlocacao('inst')">Por instituição</button></div></div><div id="inv-alloc"></div></div>
       <div class="panel"><div class="panel-head"><span class="panel-title">Carteira</span></div><div id="inv-list"></div></div>
+      <div class="panel" id="inv-renda-panel" style="display:none"><div class="panel-head"><span class="panel-title">Renda passiva</span></div>
+        <div id="rp-numeros"></div>
+        <div class="rp-graf" id="rp-graf"><canvas id="rp-chart" aria-label="Proventos recebidos por mês" role="img"></canvas></div>
+      </div>
+      <div class="panel" id="inv-sim-panel"><div class="panel-head"><span class="panel-title">Simulador</span><span class="sim-cdi" id="sim-cdi"></span></div>
+        <div class="sim-campos">
+          <div class="fgrp"><label class="flbl" for="sim-p0">Começo com (R$)</label><input class="field" type="number" id="sim-p0" min="0" step="100" inputmode="decimal" oninput="this.dataset.mexeu='1';renderSimulador()"></div>
+          <div class="fgrp"><label class="flbl" for="sim-aporte">Guardo por mês (R$)</label><input class="field" type="number" id="sim-aporte" min="0" step="50" value="500" inputmode="decimal" oninput="renderSimulador()"></div>
+          <div class="fgrp"><label class="flbl" for="sim-anos">Durante</label><select class="field" id="sim-anos" onchange="renderSimulador()"><option value="1">1 ano</option><option value="2">2 anos</option><option value="3">3 anos</option><option value="5" selected>5 anos</option><option value="10">10 anos</option><option value="15">15 anos</option><option value="20">20 anos</option><option value="30">30 anos</option></select></div>
+          <div class="fgrp"><label class="flbl" for="sim-pct">Rendendo (% do CDI)</label><input class="field" type="number" id="sim-pct" min="0" max="300" step="1" value="100" inputmode="decimal" oninput="this.dataset.mexeu='1';renderSimulador()"></div>
+        </div>
+        <div class="sim-res" id="sim-res"></div>
+        <div class="sim-metas" id="sim-metas"></div>
+      </div>
     </div>
 
     <!-- GOALS -->
@@ -4497,6 +4534,7 @@ function setTema(tm){
   try{localStorage.setItem('nf_tema',tm);}catch(e){}
   aplicarTema(tm);renderTemaSel();
   try{renderChart();}catch(e){}   // o grafico pinta as cores no canvas: precisa redesenhar
+  try{renderRendaPassiva();}catch(e){}
 }
 
 function initApp(){
@@ -5708,6 +5746,92 @@ function instituicaoDe(inv){
   return b&&!b.carteira?(LISTA_BANCOS.find(x=>bancoDe(x)===b)||''):'';
 }
 // ═══ FIM DO IMPOSTO E RENDIMENTO ═══
+// ═══ HISTÓRICO, RENDA PASSIVA E SIMULADOR ═══
+// Retrato do mes: valor e custo de acoes, FIIs e cripto na primeira vez que a pagina
+// abriu no mes (i) e na ultima (f). A renda fixa nao precisa de retrato: sai dos aportes.
+function valorAtivos(){
+  let v=0,c=0;
+  S.investments.forEach(inv=>{if((inv.kind||'cdi')!=='asset')return;v+=(+inv.qty||0)*(+inv.price||0);c+=(+inv.qty||0)*(+inv.pm||0);});
+  return{v:Math.round(v*100)/100,c:Math.round(c*100)/100};
+}
+function registrarRetrato(hoje){
+  const m=monthKeyOf(hoje||new Date()),h=Object.assign({},S.settings.invHist||{}),agora=valorAtivos(),velho=h[m];
+  if(velho&&velho.f&&velho.f.v===agora.v&&velho.f.c===agora.c)return false;
+  if(!velho&&!agora.v&&!agora.c&&!Object.keys(h).length)return false;   // sem ativo e sem historico: nada a guardar
+  h[m]={i:(velho&&velho.i)||agora,f:agora};
+  Object.keys(h).sort().slice(0,-36).forEach(k=>delete h[k]);            // tres anos bastam
+  S.settings.invHist=h;
+  return true;
+}
+// valor dos ativos no comeco do mes: o ultimo retrato do mes anterior; sem ele, o primeiro deste mes
+function ativosNoInicio(m){
+  const h=S.settings.invHist||{},ant=Object.keys(h).filter(k=>k<m).sort().pop();
+  return ant?h[ant].f:(h[m]&&h[m].i)||null;
+}
+// valor dos ativos no fim do mes m; mes sem retrato (app fechado) repete o anterior; antes do primeiro, zero
+function ativosNoMes(m,atual){
+  if(m===atual)return valorAtivos().v;
+  const h=S.settings.invHist||{},k=Object.keys(h).filter(x=>x<=m).sort().pop();
+  return k?h[k].f.v:0;
+}
+function evolucaoPatrimonio(hoje){
+  hoje=hoje||new Date();
+  const atual=monthKeyOf(hoje),cdis=S.investments.filter(i=>(i.kind||'cdi')==='cdi');
+  const primeiro=cdis.map(i=>String(i.date||'').slice(0,7)).filter(Boolean).concat(Object.keys(S.settings.invHist||{})).sort()[0];
+  if(!primeiro)return[];
+  const pts=[];
+  for(let k=11;k>=0;k--){
+    const d=new Date(hoje.getFullYear(),hoje.getMonth()-k,1),m=monthKeyOf(d);
+    if(m<primeiro)continue;
+    const fim=m===atual?hoje:new Date(d.getFullYear(),d.getMonth()+1,0,23,59);
+    pts.push({mes:m,rf:cdis.reduce((s,i)=>s+calcYield(i,fim).current,0),at:ativosNoMes(m,atual)});
+  }
+  return pts;
+}
+// quanto a carteira inteira rendeu do dia 1 ate hoje, contra o CDI do mesmo periodo
+function rendimentoMesCarteira(hoje){
+  hoje=hoje||new Date();
+  const m=monthKeyOf(hoje),ini=new Date(hoje.getFullYear(),hoje.getMonth(),1);
+  let rend=0,base=0,entrou=0;
+  S.investments.forEach(inv=>{
+    if((inv.kind||'cdi')!=='cdi')return;
+    const a=calcYield(inv,ini),b=calcYield(inv,hoje);
+    rend+=b.yieldAmt-a.yieldAmt;base+=a.current;entrou+=b.principal-a.principal;
+  });
+  const a0=ativosNoInicio(m),a1=valorAtivos();
+  // shortcut: o ganho dos ativos e a variacao do "ainda nao realizado"; no mes de uma venda ele aparece menor. Refazer guardando as vendas.
+  if(a0){rend+=(a1.v-a1.c)-(a0.v-a0.c);base+=a0.v;entrou+=a1.c-a0.c;}
+  base+=Math.max(0,entrou);   // dinheiro novo do mes entra na base: aporte grande nao vira rendimento percentual absurdo
+  const cdi=S.settings.cdi?S.settings.cdi/100:CDI;
+  return{rend,pct:base>0?rend/base*100:null,cdiPct:(Math.pow(1+cdi,bizDays(ini,hoje)/252)-1)*100};
+}
+function rendaPassiva(hoje){
+  hoje=hoje||new Date();
+  const meses=[];for(let k=11;k>=0;k--)meses.push(monthKeyOf(new Date(hoje.getFullYear(),hoje.getMonth()-k,1)));
+  const porMes=meses.map(m=>provMonthAll(m)),total=porMes.reduce((s,v)=>s+v,0),ini=porMes.findIndex(v=>v>0);
+  // media desde o primeiro provento da janela: quem comecou ha 3 meses nao tem o total dividido por 12
+  return{meses,porMes,total,media:ini<0?0:total/(12-ini)};
+}
+function taxaMensal(pctCdi){const cdi=S.settings.cdi?S.settings.cdi/100:CDI;return Math.pow(1+cdi*(pctCdi/100),1/12)-1;}
+// shortcut: IR pelo prazo total; na vida real cada aporte tem o seu prazo e os ultimos pagam um pouco mais
+function simular(p0,aporte,meses,i){
+  const g=Math.pow(1+i,meses),bruto=p0*g+(i?aporte*(g-1)/i:aporte*meses),aplicado=p0+aporte*meses;
+  const ir=Math.max(0,bruto-aplicado)*aliquotaIR(Math.round(meses*30.4))/100;
+  return{bruto,aplicado,ir,liquido:bruto-ir};
+}
+function mesesAteMeta(p0,aporte,alvo,i){
+  if(p0>=alvo)return 0;
+  for(let n=1;n<=600;n++)if(simular(p0,aporte,n,i).liquido>=alvo)return n;
+  return null;
+}
+// liquido = (1-t)*bruto + t*aplicado, linear no aporte: da para resolver direto
+function aporteParaMeta(p0,alvo,meses,i){
+  if(meses<1)return null;
+  const g=Math.pow(1+i,meses),fator=i?(g-1)/i:meses,t=aliquotaIR(Math.round(meses*30.4))/100;
+  return Math.max(0,(alvo-(1-t)*p0*g-t*p0)/((1-t)*fator+t*meses));
+}
+// ═══ FIM DO HISTÓRICO, RENDA PASSIVA E SIMULADOR ═══
+
 const INV_ICO={
   mais:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
   prov:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M14.6 9.6c-.4-.9-1.4-1.5-2.6-1.5-1.5 0-2.6.8-2.6 1.9 0 2.6 5.3 1.4 5.3 4.1 0 1.1-1.2 2-2.7 2-1.3 0-2.3-.6-2.7-1.5M12 6.6V8M12 16v1.4"/></svg>',
@@ -5740,15 +5864,108 @@ function cartaoInv(inv,n,totC,cor){
     '<div class="inv-meta">'+n.meta+(prov>0?' · <span style="color:var(--green);font-weight:600">'+fmtCur(prov)+' em proventos</span>':'')+'</div>'+
   '</div>';
 }
+const _mesCurto=m=>{const p=m.split('-');return new Date(+p[0],+p[1]-1,1).toLocaleDateString('pt-BR',{month:'short'}).replace('.','');};
+const _mesLongo=m=>{const p=m.split('-');return new Date(+p[0],+p[1]-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});};
+const _dicaGrafico={backgroundColor:'#161412',titleColor:'#faf9f7',bodyColor:'#e6dfd8',footerColor:'#faf9f7',borderColor:'rgba(232,196,124,.28)',borderWidth:1,
+  padding:12,cornerRadius:10,caretSize:0,usePointStyle:true,boxPadding:6,
+  titleFont:{family:'Plus Jakarta Sans',size:12,weight:'700'},bodyFont:{family:'Plus Jakarta Sans',size:12},footerFont:{family:'Plus Jakarta Sans',size:12,weight:'700'}};
+let invEvoChart=null,rpChart=null;
+// topo e escuro nos dois temas: cores fixas (as do tema escuro da alocacao)
+function renderInvEvolucao(hoje){
+  const box=document.getElementById('inv-evo'),leg=document.getElementById('inv-evo-leg');if(!box||typeof Chart==='undefined')return;
+  const pts=evolucaoPatrimonio(hoje),primeiraVez=!invEvoChart;
+  if(invEvoChart){invEvoChart.destroy();invEvoChart=null;}
+  if(pts.length<2||!pts.some(p=>p.rf+p.at>0)){box.hidden=true;if(leg)leg.innerHTML='';return;}
+  box.hidden=false;
+  const temAt=pts.some(p=>p.at>0),OURO='#bd8a35',AZUL='#3f82dc';
+  const area=(label,data,cor,fill)=>({label,data,borderColor:cor,borderWidth:2,fill,cubicInterpolationMode:'monotone',pointRadius:0,pointHitRadius:12,
+    pointHoverRadius:4,pointHoverBackgroundColor:cor,pointHoverBorderColor:'#12110f',pointHoverBorderWidth:2,cor,
+    backgroundColor:c=>{const a=c.chart.chartArea;if(!a)return 'transparent';const g=c.chart.ctx.createLinearGradient(0,a.top,0,a.bottom);g.addColorStop(0,cor+'59');g.addColorStop(1,cor+'05');return g;}});
+  const ds=[area('Caixinhas e CDBs',pts.map(p=>p.rf),OURO,'origin')];
+  if(temAt)ds.push(area('Ações, FIIs e cripto',pts.map(p=>p.at),AZUL,'-1'));
+  invEvoChart=new Chart(document.getElementById('inv-evo-chart').getContext('2d'),{
+    type:'line',data:{labels:pts.map(p=>_mesCurto(p.mes)),datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,devicePixelRatio:Math.max(2,window.devicePixelRatio||1),
+      animation:primeiraVez?{duration:600,easing:'easeOutQuart'}:false,
+      interaction:{intersect:false,mode:'index'},layout:{padding:{top:4}},
+      plugins:{legend:{display:false},tooltip:Object.assign({},_dicaGrafico,{callbacks:{
+        title:it=>_mesLongo(pts[it[0].dataIndex].mes),
+        label:c=>' '+c.dataset.label+': '+fmtCur(c.raw),
+        labelColor:c=>({borderColor:c.dataset.cor,backgroundColor:c.dataset.cor}),
+        footer:it=>temAt?'Total: '+fmtCur(it.reduce((s,i)=>s+i.raw,0)):''}})},
+      scales:{x:{grid:{display:false},border:{display:false},ticks:{color:'#8a837b',font:{family:'Plus Jakarta Sans',size:11},maxRotation:0,autoSkip:true,maxTicksLimit:12}},
+        y:{display:false,stacked:true,min:0}}}
+  });
+  let txt='';
+  if(temAt){
+    const h=Object.keys(S.settings.invHist||{}).sort()[0];
+    txt='<span><i style="background:'+OURO+'"></i>Caixinhas e CDBs</span><span><i style="background:'+AZUL+'"></i>Ações, FIIs e cripto</span>'+
+      (h&&h>pts[0].mes?'<span>Ações e cripto entram a partir de '+_mesLongo(h)+', quando o app começou a guardar o valor delas.</span>':'');
+  }
+  if(leg)leg.innerHTML=txt;
+}
+function renderRendaPassiva(hoje){
+  const panel=document.getElementById('inv-renda-panel');if(!panel)return;
+  const temPagador=S.investments.some(i=>(i.kind||'cdi')==='asset'&&['Ação','FII','ETF'].includes(i.assetCat));
+  if(!temPagador&&provTotalAll()<=0){panel.style.display='none';return;}
+  panel.style.display='';
+  const r=rendaPassiva(hoje),gasto=gastoMedioMensal(),graf=document.getElementById('rp-graf');
+  if(rpChart){rpChart.destroy();rpChart=null;}
+  if(!r.total){
+    document.getElementById('rp-numeros').innerHTML='<p class="rp-vazio">Quando um FII ou uma ação pagar, registre pelo botão de proventos do cartão. Aqui aparecem a média por mês e quanto ela já cobre do seu custo de vida.</p>';
+    graf.hidden=true;return;
+  }
+  const cobre=gasto>0?r.media/gasto*100:null;
+  document.getElementById('rp-numeros').innerHTML='<div class="pf-numeros">'+
+    '<div class="pf-num"><span class="pf-num-rotulo">Média por mês</span><span class="pf-num-valor" style="color:var(--green)">'+fmtCur(r.media)+'</span></div>'+
+    '<div class="pf-num"><span class="pf-num-rotulo">Últimos 12 meses</span><span class="pf-num-valor">'+fmtCur(r.total)+'</span></div>'+
+    (cobre!=null?'<div class="pf-num"><span class="pf-num-rotulo">Do seu custo de vida</span><span class="pf-num-valor">'+(cobre<10?cobre.toFixed(1).replace('.',','):Math.round(cobre))+'%</span><span class="pf-num-extra">dos '+fmtCur(gasto)+' que você gasta por mês</span></div>':'')+
+  '</div>';
+  graf.hidden=false;
+  if(typeof Chart==='undefined')return;
+  const verde=cssVar('--green'),t3=cssVar('--ink3'),escuro=document.documentElement.getAttribute('data-theme')==='dark';
+  rpChart=new Chart(document.getElementById('rp-chart').getContext('2d'),{
+    type:'bar',data:{labels:r.meses.map(_mesCurto),datasets:[{label:'Proventos',data:r.porMes,backgroundColor:verde,borderRadius:6,borderSkipped:false,maxBarThickness:22,cor:verde}]},
+    options:{responsive:true,maintainAspectRatio:false,devicePixelRatio:Math.max(2,window.devicePixelRatio||1),animation:false,
+      plugins:{legend:{display:false},tooltip:Object.assign({},_dicaGrafico,{callbacks:{title:it=>_mesLongo(r.meses[it[0].dataIndex]),label:c=>' Proventos: '+fmtCur(c.raw),labelColor:()=>({borderColor:verde,backgroundColor:verde})}})},
+      scales:{x:{grid:{display:false},border:{display:false},ticks:{color:t3,font:{family:'Plus Jakarta Sans',size:11},maxRotation:0,autoSkip:true}},
+        y:{min:0,grid:{color:escuro?'rgba(255,255,255,.06)':'rgba(13,13,13,.06)',drawTicks:false},border:{display:false,dash:[3,4]},
+          ticks:{color:t3,font:{family:'Plus Jakarta Sans',size:11},padding:10,maxTicksLimit:4,callback:v=>S.settings.showValues?fmtCur(v).replace(',00',''):''}}}}
+  });
+}
+// totC vem da pagina: preenche "Começo com" e "% do CDI" enquanto a pessoa nao mexeu neles
+function renderSimulador(totC){
+  const el=id=>document.getElementById(id),p0El=el('sim-p0'),pctEl=el('sim-pct');if(!p0El)return;
+  if(totC!=null&&p0El.dataset.mexeu!=='1')p0El.value=Math.round(totC);
+  if(totC!=null&&pctEl.dataset.mexeu!=='1'){
+    const cd=S.investments.filter(i=>(i.kind||'cdi')==='cdi').map(i=>[invNumbers(i).current,+i.cdi||0]),v=cd.reduce((s,x)=>s+x[0],0);
+    pctEl.value=v>0?Math.round(cd.reduce((s,x)=>s+x[0]*x[1],0)/v):100;
+  }
+  const p0=Math.max(0,parseFloat(p0El.value)||0),aporte=Math.max(0,parseFloat(el('sim-aporte').value)||0),anos=+el('sim-anos').value||5,pct=Math.max(0,parseFloat(pctEl.value)||0);
+  const i=taxaMensal(pct),r=simular(p0,aporte,anos*12,i),cdiHoje=S.settings.cdi||CDI*100;
+  el('sim-cdi').textContent='CDI de hoje: '+cdiHoje.toFixed(2).replace('.',',')+'% ao ano';
+  el('sim-res').innerHTML='<div class="sim-rot">Em '+anos+(anos>1?' anos':' ano')+' você chega a</div><div class="sim-valor">'+fmtCur(r.liquido)+'</div>'+
+    '<div class="sim-det">'+fmtCur(r.aplicado)+' guardados + '+fmtCur(r.liquido-r.aplicado)+' de rendimento, com o IR de '+fmtCur(r.ir)+' já descontado</div>';
+  const hoje=new Date(),daqui=n=>monthKeyOf(new Date(hoje.getFullYear(),hoje.getMonth()+n,1));
+  const metas=S.goals.filter(g=>+g.target>0).slice(0,4);
+  el('sim-metas').innerHTML=metas.length?'<h4>Suas metas guardando '+fmtCur(aporte)+' por mês</h4>'+metas.map(g=>{
+    const tem=Math.max(0,valorDaMeta(g)||0),alvo=+g.target;
+    let quando,prazo='';
+    if(tem>=alvo)quando='<b>Meta atingida</b>';
+    else{const n=mesesAteMeta(tem,aporte,alvo,i);quando=n==null?'Com esse valor por mês, não chega em 50 anos':'Chega em <b>'+_mesLongo(daqui(n))+'</b> ('+n+(n>1?' meses':' mês')+')';}
+    if(g.deadline&&tem<alvo){
+      const d=new Date(g.deadline+'T00:00:00'),n=(d.getFullYear()-hoje.getFullYear())*12+d.getMonth()-hoje.getMonth();
+      prazo=n>=1?'<span>Para chegar até '+_mesLongo(monthKeyOf(d))+': <b>'+fmtCur(aporteParaMeta(tem,alvo,n,i))+' por mês</b></span>':'<span>O prazo desta meta já passou.</span>';
+    }
+    return '<div class="sim-meta"><span><span class="sim-meta-nome">'+esc(g.name)+'</span> · '+fmtCur(tem)+' de '+fmtCur(alvo)+'</span><span>'+quando+'</span>'+prazo+'</div>';
+  }).join(''):'';
+}
 function renderInvPage(){
   const hoje=new Date();
-  let totI=0,totG=0,mes=0,cdiV=0,cdiPeso=0,nCdi=0,liq=0;
+  let totI=0,totG=0,nCdi=0,liq=0;
   const dados=S.investments.map(inv=>{
     const n=invNumbers(inv);totI+=n.invested;totG+=n.gain;
-    if((inv.kind||'cdi')==='cdi'){
-      n.mes=rendimentoMes(inv,hoje);n.liq=liquidoCDI(inv,hoje);
-      nCdi++;mes+=n.mes;liq+=n.liq.liquido;cdiV+=n.current;cdiPeso+=n.current*(+inv.cdi||0);
-    }
+    if((inv.kind||'cdi')==='cdi'){n.mes=rendimentoMes(inv,hoje);n.liq=liquidoCDI(inv,hoje);nCdi++;liq+=n.liq.liquido;}
     return{inv,n};
   });
   const totC=totI+totG;
@@ -5756,15 +5973,19 @@ function renderInvPage(){
   setCurAnimated('inv-yield-total',totG);
   setCurAnimated('inv-patrimony',totC);
   const yEl=document.getElementById('inv-yield-total');if(yEl)yEl.className=totG>=0.005?'pos':totG<=-0.005?'neg':'';
-  const provMes=provMonthAll(_isoDia(hoje).slice(0,7)),partes=[];
-  if(nCdi)partes.push('<b'+(mes<0?' class="neg"':'')+'>'+(mes<0?'− ':'+ ')+fmtCur(Math.abs(mes))+'</b> este mês na renda fixa'+
-    (cdiV>0?' · '+(nCdi>1?'média de ':'')+Math.round(cdiPeso/cdiV)+'% do CDI':''));
-  if(provMes>0)partes.push('<b>'+fmtCur(provMes)+'</b> em proventos este mês');
+  if(registrarRetrato(hoje))persistSettings();
+  const rm=rendimentoMesCarteira(hoje),provMes=provMonthAll(monthKeyOf(hoje)),partes=[];
+  const pct=v=>(v>=0?'+':'−')+Math.abs(v).toFixed(2).replace('.',',')+'%';
+  if(S.investments.length)partes.push('<b'+(rm.rend<0?' class="neg"':'')+'>'+(rm.rend<0?'− ':'+ ')+fmtCur(Math.abs(rm.rend))+(rm.pct!=null?' ('+pct(rm.pct)+')':'')+'</b> este mês · o CDI rendeu '+pct(rm.cdiPct));
+  if(provMes>0)partes.push('<b>'+fmtCur(provMes)+'</b> em proventos');
   const mEl=document.getElementById('inv-mes');if(mEl)mEl.innerHTML=partes.join(' · ');
   const lb=document.getElementById('inv-liq-box');if(lb)lb.hidden=!nCdi;
   const lv=document.getElementById('inv-liq');if(lv)lv.textContent=fmtCur(liq);
   renderInvProvBanner();
+  renderInvEvolucao(hoje);
   renderInvAllocation();
+  renderRendaPassiva(hoje);
+  renderSimulador(totC);
   const list=document.getElementById('inv-list');
   if(!S.investments.length){list.innerHTML=emptyHTML('Nenhum investimento cadastrado');return;}
   list.innerHTML=INV_GRUPOS.map(([k,nome,cor])=>{

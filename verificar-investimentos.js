@@ -11,17 +11,19 @@ const fs = require('fs');
 const path = require('path');
 const t = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 const i = t.indexOf('// ═══ IMPOSTO E RENDIMENTO DA RENDA FIXA ═══');
-const j = t.indexOf('// ═══ FIM DO IMPOSTO E RENDIMENTO ═══', i);
-if (i < 0 || j < 0) { console.error('nao achei o bloco IMPOSTO E RENDIMENTO no index.html'); process.exit(2); }
+const j = t.indexOf('// ═══ FIM DO HISTÓRICO, RENDA PASSIVA E SIMULADOR ═══', i);
+if (i < 0 || j < 0) { console.error('nao achei os blocos IMPOSTO E RENDIMENTO / HISTÓRICO no index.html'); process.exit(2); }
 const real = re => { const m = t.match(re); if (!m) { console.error('nao achei ' + re); process.exit(2); } return m[0]; };
 const aux = [
   /const CDI=.*;/, /function _pascoa\(ano\)\{[\s\S]*?\n\}/, /function _diaChave\(d\)\{.*\}/, /const _feriadosCache=\{\};/, /function _feriados\(ano\)\{[\s\S]*?\n\}/,
   /function bizDays\(start,end\)\{[\s\S]*?\n\}/, /function _isoDia\(d\)\{.*\}/, /function _diasEntre\(a,b\)\{[\s\S]*?\n\}/,
   /function invAportes\(inv\)\{.*?\}/, /function invProventos\(inv\)\{.*?\}/, /function calcYield\(inv,ate\)\{[\s\S]*?\n\}/,
   /const CRYPTO_IDS=.*;/, /const BANCOS=\[[\s\S]*?\n\];/, /function bancoDe\(nome\)\{[\s\S]*?\n\}/, /const LISTA_BANCOS=.*;/,
+  /function monthKeyOf\(d\)\{.*\}/, /function invProvMonth\(inv,month\)\{.*\}/, /function provMonthAll\(month\)\{.*\}/,
 ].map(real).join('\n');
-const S = { settings: { cdi: 10 } };
-const C = new Function('S', aux + '\n' + t.slice(i, j) + '\nreturn {aliquotaIR,aliquotaIOF,liquidoCDI,rendimentoMes,grupoInv,temProventos,instituicaoDe,calcYield};')(S);
+const S = { settings: { cdi: 10 }, investments: [] };
+const C = new Function('S', aux + '\n' + t.slice(i, j) + '\nreturn {aliquotaIR,aliquotaIOF,liquidoCDI,rendimentoMes,grupoInv,temProventos,instituicaoDe,calcYield,' +
+  'registrarRetrato,evolucaoPatrimonio,rendimentoMesCarteira,rendaPassiva,taxaMensal,simular,mesesAteMeta,aporteParaMeta};')(S);
 
 let falhas = 0;
 const L = [];
@@ -92,6 +94,57 @@ checa('caixinha com provento ja registrado continua com o botao', C.temProventos
 checa('instituicao: o campo vale; sem ele, sai do nome; sem banco no nome, vazio',
   [C.instituicaoDe({ name: 'BOVA11', instituicao: ' XP ' }), C.instituicaoDe({ name: 'Caixinha Nubank' }), C.instituicaoDe({ name: 'Reserva de emergência' }), C.instituicaoDe({ name: 'Dinheiro na carteira' })],
   ['XP', 'Nubank', '', '']);
+
+// 9. Simulador
+const sm = C.simular(0, 100, 12, 0.01);
+const bruto12 = 100 * (Math.pow(1.01, 12) - 1) / 0.01;
+checa('simular: juros compostos e IR pelo prazo (12 meses = 17,5%)', [c2(sm.bruto), sm.aplicado, c2(sm.ir)], [c2(bruto12), 1200, c2((bruto12 - 1200) * .175)]);
+checa('simular sem juros: so o que foi guardado, sem IR', [C.simular(1000, 100, 10, 0).liquido, C.simular(1000, 100, 10, 0).ir], [2000, 0]);
+const ii = C.taxaMensal(100);
+checa('taxa mensal de 100% do CDI a 10% ao ano', c2(Math.pow(1 + ii, 12) * 100), 110);
+const n = C.mesesAteMeta(1000, 300, 8000, ii);
+checa('meses ate a meta: no mes n chega, no n-1 ainda nao', C.simular(1000, 300, n, ii).liquido >= 8000 && C.simular(1000, 300, n - 1, ii).liquido < 8000, true);
+checa('meta ja atingida: zero meses; sem aporte e sem juros: nunca', [C.mesesAteMeta(9000, 0, 8000, ii), C.mesesAteMeta(100, 0, 8000, 0)], [0, null]);
+const ap = C.aporteParaMeta(1000, 8000, 20, ii);
+checa('aporte para a meta no prazo: com ele, o simulador chega exato', c2(C.simular(1000, ap, 20, ii).liquido), 8000);
+checa('quem ja tem mais que a meta nao precisa guardar nada', C.aporteParaMeta(9000, 8000, 12, ii), 0);
+
+// 10. Retrato dos ativos e rendimento do mes da carteira
+const bova = { id: 9, kind: 'asset', name: 'BOVA11', qty: 10, pm: 100, price: 110, assetCat: 'ETF', ticker: 'BOVA11' };
+S.investments = [bova]; S.settings = { cdi: 10 };
+checa('primeiro retrato do mes guarda inicio e fim', [C.registrarRetrato(hoje), S.settings.invHist['2026-11']], [true, { i: { v: 1100, c: 1000 }, f: { v: 1100, c: 1000 } }]);
+checa('sem mudanca, nada a gravar', C.registrarRetrato(hoje), false);
+bova.price = 120;
+checa('preco mudou: o fim acompanha, o inicio fica', [C.registrarRetrato(hoje), S.settings.invHist['2026-11'].i.v, S.settings.invHist['2026-11'].f.v], [true, 1100, 1200]);
+S.settings.invHist['2026-10'] = { i: { v: 900, c: 1000 }, f: { v: 1000, c: 1000 } };
+const rmc = C.rendimentoMesCarteira(hoje);
+checa('mes da carteira: ganho dos ativos desde o fim do mes anterior', [c2(rmc.rend), c2(rmc.pct)], [200, 20]);
+checa('CDI do mes ate hoje: positivo e menor que 1%', rmc.cdiPct > 0 && rmc.cdiPct < 1, true);
+bova.qty = 20; bova.pm = 110;   // comprou mais 10 a 120 neste mes
+const rmc2 = C.rendimentoMesCarteira(hoje);
+checa('compra no mes nao vira rendimento', c2(rmc2.rend), c2((20 * 120 - 2200) - (1000 - 1000)));
+const muitos = {}; for (let k = 0; k < 40; k++) muitos['20' + (23 + Math.floor(k / 12)) + '-' + String(k % 12 + 1).padStart(2, '0')] = { i: { v: 1, c: 1 }, f: { v: 1, c: 1 } };
+S.settings.invHist = muitos; bova.price = 121; C.registrarRetrato(hoje);
+checa('guarda no maximo 36 meses', Object.keys(S.settings.invHist).length, 36);
+S.investments = []; S.settings = { cdi: 10 };
+checa('sem ativo e sem historico: nao cria retrato vazio', [C.registrarRetrato(hoje), S.settings.invHist], [false, undefined]);
+
+// 11. Evolucao do patrimonio
+S.investments = [cdi(8200, '2026-03-01'), Object.assign({}, bova, { qty: 10, price: 130 })];
+S.settings = { cdi: 10, invHist: { '2026-09': { i: { v: 1000, c: 1000 }, f: { v: 1050, c: 1000 } } } };
+const ev = C.evolucaoPatrimonio(hoje);
+checa('evolucao comeca no mes da primeira aplicacao', [ev.length, ev[0].mes, ev[ev.length - 1].mes], [9, '2026-03', '2026-11']);
+checa('ativos: zero antes do primeiro retrato, repete o ultimo no mes sem retrato, valor de hoje no mes atual',
+  [ev.find(p => p.mes === '2026-08').at, ev.find(p => p.mes === '2026-09').at, ev.find(p => p.mes === '2026-10').at, ev[ev.length - 1].at], [0, 1050, 1050, 1300]);
+checa('renda fixa cresce mes a mes', ev.every((p, k) => k === 0 || p.rf > ev[k - 1].rf), true);
+checa('no maximo 12 meses', C.evolucaoPatrimonio(new Date(2028, 0, 15)).length, 12);
+
+// 12. Renda passiva
+S.investments = [Object.assign({}, bova, { assetCat: 'FII', proventos: [{ id: 1, date: '2026-09-15', amount: 30 }, { id: 2, date: '2026-10-15', amount: 30 }, { id: 3, date: '2026-11-14', amount: 36 }] })];
+const rp = C.rendaPassiva(hoje);
+checa('renda passiva: total de 12 meses e media desde o primeiro provento', [rp.total, rp.media, rp.porMes.length, rp.meses[11]], [96, 32, 12, '2026-11']);
+S.investments = [];
+checa('sem provento: media zero', C.rendaPassiva(hoje).media, 0);
 
 console.log(L.join('\n'));
 console.log(falhas ? '\n  ' + falhas + ' falha(s)' : '\n  todos passaram');
