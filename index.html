@@ -379,6 +379,70 @@ body.values-hidden #dash-chart{filter:blur(6px)}
   .seg-acao{width:100%;padding-left:52px}
   #mfa-enroll{padding-left:0}
 }
+/* ═══ CONHECER VOCE ═══ */
+.dash-oi{display:none}
+.panel.dash-foco{padding:4px 22px}
+.dash-foco[hidden]{display:none}
+.foco-linha{display:flex;align-items:center;gap:14px;width:100%;padding:14px 0;border:0;border-bottom:1px solid var(--paper2);background:none;color:var(--ink);text-align:left;font-family:var(--ff)}
+.foco-linha:last-child{border-bottom:0}
+button.foco-linha{cursor:pointer}
+button.foco-linha:hover .foco-ir{color:var(--gold)}
+.foco-ic{flex:none;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--goldl);color:var(--goldd)}
+.foco-ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.foco-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.foco-txt b{font-size:14px;font-weight:700}
+.foco-txt small{font-size:12.5px;line-height:1.45;color:var(--ink3)}
+.foco-txt small.neg{color:var(--red)}
+.foco-barra{display:block;height:6px;margin-top:4px;border-radius:6px;background:var(--paper2);overflow:hidden}
+.foco-barra i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#c8903a,#e8c47c)}
+.foco-ir{flex:none;font-size:19px;color:var(--ink3);transition:color .15s}
+.pf-sobre-linhas{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.pf-sobre-item{display:flex;flex-direction:column;gap:3px;min-width:0;padding:14px 16px;border-radius:12px;background:var(--paper2)}
+.pf-sobre-item span{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.pf-sobre-item b{font-size:14.5px;font-weight:700;color:var(--ink)}
+.pf-convite{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px 20px}
+.pf-convite p{flex:1 1 280px;margin:0;font-size:13px;line-height:1.55;color:var(--ink3)}
+.conhecer{max-width:460px;padding:22px 24px 20px}
+.ck-topo{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--goldd)}
+.ck-fechar{width:32px;height:32px;border:0;border-radius:9px;background:var(--paper2);color:var(--ink3);font-size:20px;line-height:1;cursor:pointer}
+.ck-fechar:hover{color:var(--ink)}
+.conhecer h3{margin:0;font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.2;text-wrap:balance}
+.ck-sub{margin:8px 0 18px;font-size:13.5px;line-height:1.55;color:var(--ink3)}
+.ck-opcoes{display:grid;gap:8px}
+.ck-op{display:flex;flex-direction:column;gap:2px;width:100%;padding:12px 14px;border:1.5px solid var(--paper3);border-radius:12px;background:var(--paper);color:var(--ink);text-align:left;font-family:var(--ff);cursor:pointer;transition:border-color .15s,background .15s}
+.ck-op:hover{border-color:var(--ink4)}
+.ck-op.on{border-color:var(--gold);background:var(--goldl)}
+.ck-op b{font-size:14px;font-weight:700}
+.ck-op small{font-size:12px;color:var(--ink3)}
+.ck-extra{display:flex;flex-direction:column;gap:6px;margin-top:14px;padding:14px;border-radius:12px;background:var(--paper2)}
+.ck-extra:empty{display:none}
+.ck-extra label{font-size:12px;font-weight:700;color:var(--ink2)}
+.ck-extra label:not(:first-child){margin-top:6px}
+.ck-extra small{font-size:12px;line-height:1.45;color:var(--ink3)}
+.ck-dias{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.ck-dia{height:38px;border:1.5px solid var(--paper3);border-radius:10px;background:var(--paper);color:var(--ink);font:600 13px var(--ff);cursor:pointer}
+.ck-dia:hover{border-color:var(--ink4)}
+.ck-dia.on{border-color:var(--gold);background:var(--gold);color:#0d0d0d}
+.ck-variados{margin-top:8px}
+.ck-variados .ck-op,.ck-faixas .ck-op{align-items:center;text-align:center;padding:11px 8px}
+.ck-faixas{grid-template-columns:1fr 1fr}
+.ck-faixas .ck-op:last-child{grid-column:1/-1}
+.ck-rodape{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:22px}
+.ck-pontos{display:flex;gap:6px}
+.ck-pontos i{width:6px;height:6px;border-radius:6px;background:var(--paper3);transition:width .3s,background .3s}
+.ck-pontos i.on{width:18px;background:var(--gold)}
+.ck-botoes{display:flex;align-items:center;gap:6px}
+.ck-botoes [hidden]{display:none}
+.ck-pular{padding:9px 8px;border:0;background:none;color:var(--ink3);font:600 13px var(--ff);cursor:pointer}
+.ck-pular:hover{color:var(--ink)}
+.ck-centro{text-align:center}
+.ck-ok{width:56px;height:56px;margin:0 auto 14px;border-radius:18px;display:grid;place-items:center;background:var(--goldl);color:var(--goldd)}
+.ck-ok svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.ck-feito{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;text-align:left}
+.ck-feito li{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:12px;background:var(--paper2)}
+.ck-feito li::before{content:"✓";flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--greenl);color:var(--green);font-size:12px;font-weight:800}
+.ck-feito b{display:block;font-size:13.5px}
+.ck-feito span{display:block;margin-top:2px;font-size:12.5px;line-height:1.45;color:var(--ink3)}
 
 /* MAIN */
 .main{margin-left:var(--sw);flex:1;padding:36px 34px;max-width:calc(100vw - var(--sw))}
@@ -679,6 +743,10 @@ html.splash-active{background:#000}
   .sidebar.open{box-shadow:12px 0 40px rgba(0,0,0,.35)}
   .main{padding-top:76px;padding-bottom:112px}
   #dashboard>.ph{display:none}
+  /* sem titulo no celular, a saudacao abre a faixa escura do saldo; cor fixa
+     porque a faixa e escura nos dois temas */
+  .dash-oi:not([hidden]){display:block;order:-2;margin:-20px -15px 0;padding:4px 16px 0;background:#0d0d0d;color:#faf9f7;font-size:20px;font-weight:800;letter-spacing:-.4px}
+  .dash-oi:not([hidden])+#dash-cards{margin-top:0}
   #dashboard{display:flex;flex-direction:column}
   #dashboard:not(.active){display:none}
   #dash-cards{order:-1;gap:12px;margin:-20px -15px 28px;padding:10px 16px 20px;background:var(--ink);border-radius:0 0 28px 28px}
@@ -1051,7 +1119,7 @@ html.splash-active{background:#000}
     <!-- DASHBOARD -->
     <div class="page active" id="dashboard">
       <div class="ph">
-        <div><h1 class="pt">Dashboard</h1><p class="ps" id="dash-date"></p></div>
+        <div><h1 class="pt" id="dash-titulo">Dashboard</h1><p class="ps" id="dash-date"></p></div>
         <button class="btn btn-primary" onclick="openModal('tx-modal')">+ Nova Transação</button>
       </div>
       <div class="reminder-bar" id="reminder-bar">
@@ -1071,12 +1139,14 @@ html.splash-active{background:#000}
         <button class="btn btn-sm btn-secondary" style="flex:none" onclick="marcarTermosVistos()">Entendi</button>
       </div>
       <div id="bills-alert"></div>
+      <p class="dash-oi" id="dash-oi" hidden></p>
       <div class="cards-row" id="dash-cards">
         <div class="sum-card balance"><div class="sc-label">Saldo do período</div><div class="sc-val" id="total-balance">R$ 0,00</div><div class="sc-sub" id="balance-sub">receitas − despesas</div><button type="button" id="balance-eye" class="balance-eye" onclick="toggleShowValues()" aria-label="Ocultar valores"></button></div>
         <div class="sum-card income"><span class="summary-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20V4M5 11l7-7 7 7"/></svg></span><div class="sc-label">Receitas</div><div class="sc-val" id="total-income">R$ 0,00</div><div class="sc-sub" id="income-sub">total geral</div></div>
         <div class="sum-card expense"><span class="summary-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v16M5 13l7 7 7-7"/></svg></span><div class="sc-label">Despesas</div><div class="sc-val" id="total-expense">R$ 0,00</div><div class="sc-sub" id="expense-sub">total geral</div></div>
         <div class="sum-card cc" id="card-cc"><div class="sc-label">Cartão de Crédito</div><div class="sc-val" id="total-cc">R$ 0,00</div><div class="sc-sub" id="cc-sub">fatura acumulada</div></div>
       </div>
+      <div class="panel dash-foco" id="dash-foco" hidden></div>
       <div class="panel">
         <div class="panel-head">
           <span class="panel-title">Receitas × Despesas</span>
@@ -1313,6 +1383,8 @@ html.splash-active{background:#000}
           <div class="pf-plano-acoes" id="sub-actions"></div>
         </div>
       </section>
+
+      <div class="panel" id="pf-sobre"></div>
 
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Seus números</span></div>
@@ -1931,6 +2003,22 @@ html.splash-active{background:#000}
   </div>
 </div>
 
+<!-- MODAL: CONHECER VOCE -->
+<div class="overlay" id="conhecer-modal">
+  <div class="modal conhecer" role="dialog" aria-modal="true" aria-labelledby="ck-titulo" onkeydown="if(event.key==='Enter'&&event.target.tagName==='INPUT'){event.preventDefault();ckSeguir();}">
+    <div class="ck-topo"><span id="ck-passo">1 de 4</span><button type="button" class="ck-fechar" onclick="closeModal('conhecer-modal')" aria-label="Fechar">×</button></div>
+    <div id="ck-corpo"></div>
+    <div class="ck-rodape">
+      <div class="ck-pontos" id="ck-pontos" aria-hidden="true"></div>
+      <div class="ck-botoes">
+        <button type="button" class="ck-pular" id="ck-voltar" onclick="ckVoltar()">Voltar</button>
+        <button type="button" class="ck-pular" id="ck-pular" onclick="ckPular()">Pular</button>
+        <button type="button" class="btn btn-primary" id="ck-seguir" onclick="ckSeguir()">Seguir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: MENSAGENS (substitui alert/confirm/prompt nativos do navegador) -->
 <div class="overlay" id="msg-modal" style="z-index:10010">
   <div class="modal" style="max-width:380px">
@@ -2338,6 +2426,8 @@ async function onSignedIn(session,fresh){
   }
   else if(!S.settings.accountType)openModal('tipo-modal');
   else if(!S.settings.manualSeen)openModal('welcome-modal');
+  // uma vez por conta; nao disputa a tela com as boas-vindas do Pro
+  else if(!S.settings.conhecerVisto&&!(acc.reason==='active'&&!S.settings.proRecebido))abrirConhecer();
   renderAvisoTermos();
   talvezRecepcaoPro(acc);
 }
@@ -3176,6 +3266,7 @@ function renderPerfil(){
     bloco('Histórico',n(meses)+(meses===1?' mês':' meses'))+
     bloco('Bancos',n(lista.length),'<span class="pf-num-bancos">'+lista.map(c=>iconeConta(c.id)).join('')+'</span>')+
     bloco('Metas',n(S.goals.length));
+  renderSobreVoce();
   document.getElementById('seg-aparelho').textContent=deviceLabel();
   document.getElementById('seg-login').textContent=u.last_sign_in_at?new Date(u.last_sign_in_at).toLocaleString('pt-BR',{dateStyle:'long',timeStyle:'short'}):'—';
 }
@@ -3194,6 +3285,212 @@ function salvarNome(e){
   if(novo!==(S.settings.nome||'')){S.settings.nome=novo;persistSettings();toast(novo?'Nome salvo':'Nome removido');}
   fecharNome();renderPerfil();
   document.getElementById('mobile-initial').textContent=iniciaisPerfil();
+}
+
+// ═══ CONHECER VOCÊ ═══
+// Perguntas opcionais, e cada resposta muda algo que a pessoa vê: o nome vira
+// saudação, o objetivo vira meta no painel, o dia do pagamento vira a contagem
+// até ele, e a renda vira limites sugeridos no Orçamento. Pergunta que não muda
+// nada na tela não entra (LGPD: só o que tem uso). Fica em S.settings, cifrado.
+const OBJETIVOS={
+  reserva:{rotulo:'Montar minha reserva',desc:'Um colchão para imprevistos',meta:'Reserva de emergência'},
+  dividas:{rotulo:'Sair das dívidas',desc:'Quitar o que está pendente',meta:'Quitar as dívidas'},
+  juntar:{rotulo:'Juntar para algo',desc:'Viagem, carro, casa…',meta:'Meu objetivo'},
+  investir:{rotulo:'Investir mais',desc:'Fazer o dinheiro render',meta:'Próximo marco do patrimônio'},
+  organizar:{rotulo:'Só organizar',desc:'Saber para onde vai o dinheiro'},
+};
+const FAIXAS={
+  ate2:{rotulo:'Até R$ 2.000',base:1500},
+  '2a4':{rotulo:'R$ 2.000 a R$ 4.000',base:3000},
+  '4a7':{rotulo:'R$ 4.000 a R$ 7.000',base:5500},
+  '7a12':{rotulo:'R$ 7.000 a R$ 12.000',base:9500},
+  '12a20':{rotulo:'R$ 12.000 a R$ 20.000',base:16000},
+  mais20:{rotulo:'Mais de R$ 20.000',base:25000},
+};
+// 80% da renda em gastos e 20% para guardar
+const ORC_SUGERIDO=[['Moradia',.25],['Alimentação',.15],['Transporte',.10],['Contas',.08],['Saúde',.07],['Lazer',.08],['Outros',.07]];
+const ICO_ALVO='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>';
+const ICO_CAL='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+const ICO_OK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+function primeiroNome(){return String(S.settings.nome||'').trim().split(/\s+/)[0]||'';}
+function saudacao(){const h=new Date().getHours(),n=primeiroNome();return (h>=5&&h<12?'Bom dia':h>=12&&h<18?'Boa tarde':'Boa noite')+(n?', '+n:'');}
+function renderSaudacao(){
+  const n=primeiroNome(),t=document.getElementById('dash-titulo'),m=document.getElementById('dash-oi');
+  if(t)t.textContent=n?saudacao():'Dashboard';
+  if(m){m.textContent=saudacao();m.hidden=!n;}
+}
+function valorDaMeta(g){const c=g.link?null:calcGoalCDI(g);return g.link?goalLinkedValue(g.link):(c?c.withYield:g.current);}
+// gasto médio dos últimos 3 meses fechados, contado como o cartão Despesas conta
+function gastoMedioMensal(){
+  const atual=monthKeyOf(new Date()),mes={};
+  S.transactions.forEach(t=>{const m=String(t.date||'').slice(0,7);if(t.type==='expense'&&m&&m<atual)mes[m]=(mes[m]||0)+(+t.amount||0);});
+  const ks=Object.keys(mes).sort().slice(-3);
+  return ks.length?ks.reduce((s,k)=>s+mes[k],0)/ks.length:0;
+}
+function proximoMarco(v){return [1e3,5e3,1e4,25e3,5e4,1e5,25e4,5e5,1e6,25e5,5e6,1e7].find(x=>x>v*1.05)||Math.ceil(v*1.5/1e6)*1e6;}
+// último e próximo pagamento; dia 31 vira o último dia nos meses mais curtos
+function cicloPagamento(dia,hoje){
+  const h=hoje?new Date(hoje):new Date();h.setHours(0,0,0,0);
+  const em=(a,m)=>new Date(a,m,Math.min(dia,new Date(a,m+1,0).getDate()));
+  let ultimo=em(h.getFullYear(),h.getMonth());
+  if(ultimo>h)ultimo=em(h.getFullYear(),h.getMonth()-1);
+  const proximo=em(ultimo.getFullYear(),ultimo.getMonth()+1);
+  return {ultimo,proximo,hoje:+ultimo===+h,faltam:Math.round((proximo-h)/86400000)};
+}
+function renderFoco(){
+  const box=document.getElementById('dash-foco');if(!box)return;
+  let h='';
+  const g=S.goals.find(x=>x.id===S.settings.metaFoco);
+  if(g&&g.target>0){
+    const v=valorDaMeta(g),pct=Math.max(0,Math.min(100,Math.round(v/g.target*100)));
+    h+='<button type="button" class="foco-linha" onclick="showPage(\'goals\')"><span class="foco-ic">'+ICO_ALVO+'</span><span class="foco-txt"><b>'+esc(g.name)+'</b><small>'+fmtCur(v)+' de '+fmtCur(g.target)+' · '+pct+'%</small><span class="foco-barra"><i style="width:'+pct+'%"></i></span></span><span class="foco-ir" aria-hidden="true">›</span></button>';
+  }
+  const dia=S.settings.diaPagamento;
+  if(dia){
+    const c=cicloPagamento(dia),de=_diaChave(c.ultimo),ate=_diaChave(new Date());
+    let entrou=0,saiu=0;
+    S.transactions.forEach(t=>{if(t.date>=de&&t.date<=ate){if(t.type==='income')entrou+=t.amount;else if(t.type==='expense')saiu+=t.amount;}});
+    const sobra=entrou-saiu,dia0=c.ultimo.getDate();
+    const titulo=c.hoje?'Hoje é dia de pagamento':c.faltam===1?'Falta 1 dia para o seu pagamento':'Faltam '+c.faltam+' dias para o seu pagamento';
+    const linha=!entrou?'Lance o que entrou desde o dia '+dia0+' para ver quanto dá para gastar por dia.'
+      :sobra<0?'Desde o dia '+dia0+', os gastos passaram '+fmtCur(-sobra)+' do que entrou.'
+      :'Desde o dia '+dia0+', sobraram '+fmtCur(sobra)+': dá '+fmtCur(sobra/c.faltam)+' por dia até '+c.proximo.toLocaleDateString('pt-BR',{day:'numeric',month:'numeric'})+'.';
+    h+='<div class="foco-linha"><span class="foco-ic">'+ICO_CAL+'</span><span class="foco-txt"><b>'+titulo+'</b><small'+(entrou&&sobra<0?' class="neg"':'')+'>'+linha+'</small></span></div>';
+  }
+  box.innerHTML=h;box.hidden=!h;
+}
+function metaDoObjetivo(obj){
+  const f=S.goals.find(x=>x.id===S.settings.metaFoco);
+  if(f&&S.settings.objetivo===obj)return f;
+  if(obj==='reserva')return S.goals.find(x=>x.type==='emergency')||null;
+  if(obj==='investir')return S.goals.find(x=>x.link==='all')||null;
+  return null;
+}
+function renderSobreVoce(){
+  const box=document.getElementById('pf-sobre');if(!box)return;
+  const s=S.settings,pj=tipoConta()==='pj';
+  const item=(r,v)=>'<div class="pf-sobre-item"><span>'+r+'</span><b>'+v+'</b></div>';
+  if(['objetivo','diaPagamento','faixaRenda'].some(k=>s[k]!==undefined)){
+    box.innerHTML='<div class="panel-head"><span class="panel-title">Sobre você</span><button type="button" class="btn btn-secondary btn-sm" onclick="abrirConhecer()">Editar respostas</button></div><div class="pf-sobre-linhas">'
+      +item('Objetivo',OBJETIVOS[s.objetivo]?OBJETIVOS[s.objetivo].rotulo:'Não respondido')
+      +item('Dia do pagamento',s.diaPagamento?'Dia '+s.diaPagamento:s.diaPagamento===null?'Dias variados':'Não respondido')
+      +(pj?'':item('Renda por mês',FAIXAS[s.faixaRenda]?FAIXAS[s.faixaRenda].rotulo:s.faixaRenda===null?'Prefiro não dizer':'Não respondido'))+'</div>';
+  }else{
+    box.innerHTML='<div class="panel-head"><span class="panel-title">Conte um pouco sobre você</span></div><div class="pf-convite"><p>'
+      +(pj?'3 perguntas, uns 20 segundos. Com elas o North cria a sua meta e mostra quanto dá para gastar até o próximo recebimento.':'4 perguntas, uns 30 segundos. Com elas o North cria a sua meta, mostra quanto dá para gastar até o pagamento e sugere limites no Orçamento.')
+      +'</p><button type="button" class="btn btn-primary" onclick="abrirConhecer()">Começar</button></div>';
+  }
+}
+
+let _ck=null;
+const CK_CAMPOS={nome:['nome'],objetivo:['objetivo','valor','metaNome'],dia:['dia'],renda:['faixa']};
+function ckPassos(){return tipoConta()==='pj'?['nome','objetivo','dia']:['nome','objetivo','dia','renda'];}
+function abrirConhecer(){
+  const s=S.settings;
+  _ck={i:0,feito:null,d:{nome:s.nome||'',objetivo:s.objetivo,dia:s.diaPagamento,faixa:s.faixaRenda,valor:0,metaNome:''}};
+  if(_ck.d.objetivo)ckSugerir();
+  _ck.ini=Object.assign({},_ck.d);
+  s.conhecerVisto=true;persistSettings();   // qualquer jeito de fechar conta como visto
+  ckRender();openModal('conhecer-modal');
+  const c=document.getElementById('ck-nome');if(c)c.focus();
+}
+// valor da meta: o da meta que já existe, senão a sugestão
+function ckSugerir(){
+  const d=_ck.d,g=metaDoObjetivo(d.objetivo);
+  d.metaNome=d.objetivo==='juntar'&&g?g.name:'';
+  d.valor=g?g.target:d.objetivo==='reserva'?Math.round(gastoMedioMensal()*6/100)*100:d.objetivo==='investir'?proximoMarco(goalLinkedValue('all')):0;
+}
+function ckLer(){
+  const d=_ck.d,q=id=>document.getElementById(id);
+  if(q('ck-nome'))d.nome=q('ck-nome').value.trim().replace(/\s+/g,' ').slice(0,40);
+  if(q('ck-valor'))d.valor=parseFloat(q('ck-valor').value)||0;
+  if(q('ck-meta-nome'))d.metaNome=q('ck-meta-nome').value.trim().slice(0,60);
+}
+function ckObjetivo(k){_ck.d.objetivo=k;ckSugerir();ckRender();}
+function ckDia(n){_ck.d.dia=n;ckRender();}
+function ckFaixa(k){_ck.d.faixa=k;ckRender();}
+function ckVoltar(){ckLer();if(_ck.i>0){_ck.i--;ckRender();}}
+function ckPular(){CK_CAMPOS[ckPassos()[_ck.i]].forEach(k=>{_ck.d[k]=_ck.ini[k];});ckAvancar();}
+function ckSeguir(){
+  if(_ck.i>=ckPassos().length){closeModal('conhecer-modal');showPage('dashboard');return;}
+  ckLer();ckAvancar();
+}
+function ckAvancar(){
+  _ck.i++;
+  if(_ck.i===ckPassos().length)_ck.feito=aplicarConhecer();
+  ckRender();
+}
+function ckExtra(d){
+  const val='<input class="field" id="ck-valor" type="number" min="0" step="0.01" inputmode="decimal" placeholder="R$" value="'+(d.valor>0?d.valor:'')+'">';
+  if(d.objetivo==='reserva'){const m=gastoMedioMensal();return '<label for="ck-valor">Valor da reserva</label>'+val+'<small>'+(m?'Sugestão: 6 vezes o seu gasto médio, de '+fmtCur(m)+' por mês.':'O ideal é juntar uns 6 meses do que você gasta.')+'</small>';}
+  if(d.objetivo==='dividas')return '<label for="ck-valor">Quanto você deve, somando tudo?</label>'+val+'<small>Com o valor, o North cria a meta para quitar e acompanha o progresso.</small>';
+  if(d.objetivo==='juntar')return '<label for="ck-meta-nome">Para quê?</label><input class="field" id="ck-meta-nome" maxlength="60" placeholder="Viagem, carro, casa…" value="'+esc(d.metaNome||'')+'"><label for="ck-valor">Quanto custa, mais ou menos?</label>'+val;
+  if(d.objetivo==='investir')return '<label for="ck-valor">Próximo marco do seu patrimônio</label>'+val+'<small>'+(ehPro()||S.investments.length?'O progresso acompanha a aba Investimentos sozinho.':'Você atualiza o quanto já juntou na aba Metas.')+'</small>';
+  return '';
+}
+function ckRender(){
+  const passos=ckPassos(),i=_ck.i,d=_ck.d,fim=i>=passos.length,p=passos[i];
+  const op=(on,click,titulo,desc)=>'<button type="button" class="ck-op'+(on?' on':'')+'" aria-pressed="'+on+'" onclick="'+click+'"><b>'+titulo+'</b>'+(desc?'<small>'+desc+'</small>':'')+'</button>';
+  let h;
+  if(fim){
+    const f=_ck.feito||[],n=primeiroNome();
+    h='<div class="ck-centro"><div class="ck-ok">'+ICO_OK+'</div><h3 id="ck-titulo">'+(f.length?'Pronto'+(n?', '+esc(n):'')+'!':'Tudo bem')+'</h3><p class="ck-sub">'+(f.length?'O North agora tem a sua cara.':'Quando quiser, as perguntas ficam no seu perfil.')+'</p></div>'
+      +(f.length?'<ul class="ck-feito">'+f.map(([t,s])=>'<li><div><b>'+esc(t)+'</b><span>'+esc(s)+'</span></div></li>').join('')+'</ul>':'');
+  }else if(p==='nome'){
+    h='<h3 id="ck-titulo">Como quer ser chamado?</h3><p class="ck-sub">É assim que o North vai falar com você.</p><input class="field" id="ck-nome" maxlength="40" placeholder="Seu nome" autocomplete="name" aria-label="Seu nome" value="'+esc(d.nome)+'">';
+  }else if(p==='objetivo'){
+    h='<h3 id="ck-titulo">Qual é o seu objetivo agora?</h3><p class="ck-sub">O North cria a meta certa e mostra o progresso no painel.</p><div class="ck-opcoes">'
+      +Object.entries(OBJETIVOS).map(([k,o])=>op(d.objetivo===k,"ckObjetivo('"+k+"')",o.rotulo,o.desc)).join('')+'</div><div class="ck-extra">'+ckExtra(d)+'</div>';
+  }else if(p==='dia'){
+    let dias='';for(let n=1;n<=31;n++)dias+='<button type="button" class="ck-dia'+(d.dia===n?' on':'')+'" aria-pressed="'+(d.dia===n)+'" onclick="ckDia('+n+')">'+n+'</button>';
+    h='<h3 id="ck-titulo">Em que dia você recebe?</h3><p class="ck-sub">O painel mostra quantos dias faltam e quanto dá para gastar por dia até lá.</p><div class="ck-dias">'+dias+'</div><div class="ck-opcoes ck-variados">'+op(d.dia===null,'ckDia(null)','Recebo em dias variados')+'</div>';
+  }else{
+    h='<h3 id="ck-titulo">Quanto você ganha por mês, mais ou menos?</h3><p class="ck-sub">Opcional. Serve para sugerir limites no seu Orçamento. Fica cifrado, como todo o resto: nem a equipe do North vê.</p><div class="ck-opcoes ck-faixas">'
+      +Object.entries(FAIXAS).map(([k,f])=>op(d.faixa===k,"ckFaixa('"+k+"')",f.rotulo)).join('')+op(d.faixa===null,'ckFaixa(null)','Prefiro não dizer')+'</div>';
+  }
+  document.getElementById('ck-corpo').innerHTML=h;
+  document.getElementById('ck-passo').textContent=fim?'Tudo certo':(i+1)+' de '+passos.length;
+  document.getElementById('ck-pontos').innerHTML=fim?'':passos.map((_,k)=>'<i'+(k===i?' class="on"':'')+'></i>').join('');
+  document.getElementById('ck-voltar').hidden=fim||i===0;
+  document.getElementById('ck-pular').hidden=fim;
+  document.getElementById('ck-seguir').textContent=fim?'Ver meu painel':i===passos.length-1?'Concluir':'Seguir';
+}
+// grava as respostas e devolve o que mudou, para a tela final mostrar
+function aplicarConhecer(){
+  const d=_ck.d,s=S.settings,feito=[];
+  const antes=d.objetivo?metaDoObjetivo(d.objetivo):null;   // antes de trocar o objetivo salvo
+  s.nome=d.nome;
+  if(d.objetivo!==undefined)s.objetivo=d.objetivo;
+  if(d.dia!==undefined)s.diaPagamento=d.dia;     // null = recebe em dias variados
+  if(d.faixa!==undefined)s.faixaRenda=d.faixa;   // null = prefere não dizer
+  if(s.nome)feito.push(['Saudação no painel','“'+saudacao()+'”']);
+  const o=OBJETIVOS[s.objetivo];
+  if(o&&o.meta&&d.valor>0){
+    let g=antes;
+    const nome=s.objetivo==='juntar'?(d.metaNome||o.meta):o.meta;
+    if(g){g.target=d.valor;if(s.objetivo==='juntar')g.name=nome;}
+    else{
+      const auto=s.objetivo==='investir'&&(ehPro()||S.investments.length>0);
+      g={id:Math.max(Date.now(),...S.goals.map(x=>(+x.id||0)+1)),name:nome,type:s.objetivo==='reserva'?'emergency':'meta',target:d.valor,current:0,deadline:'',cdi:0,cdiStartDate:null,cdiPrincipal:null,link:auto?'all':''};
+      S.goals.push(g);
+    }
+    s.metaFoco=g.id;persistGoals();
+    feito.push([(antes?'Meta atualizada: ':'Meta criada: ')+g.name,fmtCur(g.target)+', com o progresso no painel']);
+  }else s.metaFoco=null;
+  if(s.diaPagamento){
+    const c=cicloPagamento(s.diaPagamento);
+    feito.push(['Contagem até o pagamento',(c.hoje?'Hoje é dia de pagamento':c.faltam===1?'Falta 1 dia':'Faltam '+c.faltam+' dias')+'. O painel mostra quanto dá para gastar por dia.']);
+  }
+  const f=FAIXAS[s.faixaRenda];
+  if(f&&tipoConta()!=='pj'&&!S.budgets.length){   // nunca mexe em limite que a pessoa já fez
+    ORC_SUGERIDO.forEach(([cat,p])=>S.budgets.push({id:newId(),category:cat,limit:Math.round(f.base*p/10)*10}));
+    persistBudgets();
+    feito.push(['Limites sugeridos no Orçamento','Para a sua renda, guardando 20% dela. Ajuste quando quiser.']);
+  }
+  persistSettings();
+  updateDashboard();renderPerfil();
+  return feito;
 }
 async function requestAccountDeletion(btn){
   const ok=await showConfirm('Sua conta entrará em período de exclusão de 15 dias. Durante esse prazo o acesso ao app fica bloqueado, mas você pode reativar a qualquer momento entrando com seu e-mail e senha.\n\nPassados os 15 dias, todos os seus dados são apagados definitivamente e não há como recuperar.\n\nVamos te enviar um e-mail confirmando o pedido.',{title:'Excluir minha conta',confirmLabel:'Sim, quero excluir',cancelLabel:'Voltar',danger:true});
@@ -3853,6 +4150,7 @@ function renderCamposPeriodo(){
 function renderTopoDash(per){
   renderEyeToggle();
   document.getElementById('mobile-initial').textContent=iniciaisPerfil();
+  renderSaudacao();
   const sel=document.getElementById('mobile-month');
   const atual=monthKeyOf(new Date());
   const escolhido=S.settings.dashboardMonth||atual;
@@ -4973,7 +5271,7 @@ function goalLinkedValue(link){
 const GOAL_LINK_LABELS={xp:'XP',cripto:'Cripto',cdi:'Caixinhas',all:'Patrimônio total'};
 function renderGoalCard(g){
   const cdiResult=g.link?null:calcGoalCDI(g);
-  const effectiveCurrent=g.link?goalLinkedValue(g.link):(cdiResult?cdiResult.withYield:g.current);
+  const effectiveCurrent=valorDaMeta(g);
   const pct=Math.min(100,Math.round(effectiveCurrent/g.target*100));
   const rem=Math.max(0,g.target-effectiveCurrent);
   const done=pct>=100;
@@ -5099,6 +5397,7 @@ function flashItem(id){
 function updateDashboard(){
   const per=periodoDash();
   renderTopoDash(per);
+  renderFoco();
   const vis=txVis().filter(x=>noPeriodo(x,per));
   const income=vis.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=vis.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
