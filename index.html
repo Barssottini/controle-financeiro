@@ -415,6 +415,13 @@ button.foco-linha:hover .foco-ir{color:var(--gold)}
 .foco-barra{display:block;height:6px;margin-top:4px;border-radius:6px;background:var(--paper2);overflow:hidden}
 .foco-barra i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#c8903a,#e8c47c)}
 .foco-ir{flex:none;font-size:19px;color:var(--ink3);transition:color .15s}
+.foco-ic.ok{background:var(--greenl);color:var(--green)}
+.foco-ic.neg{background:var(--redl);color:var(--red)}
+.foco-txt small.alerta{color:var(--warn)}
+.foco-barra i.alerta{background:var(--warnb)}
+.foco-barra i.neg{background:var(--red)}
+.foco-linha>.btn{flex:none}
+.pf-trocar-tipo{padding:0;border:0;background:none;color:#e8c47c;font:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .pf-sobre-linhas{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
 .pf-sobre-item{display:flex;flex-direction:column;gap:3px;min-width:0;padding:14px 16px;border-radius:12px;background:var(--paper2)}
 .pf-sobre-item span{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
@@ -1533,7 +1540,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
   <div class="modal" style="max-width:460px">
     <div class="mhead"><h3>Como você vai usar o North?</h3></div>
     <div class="mbody">
-      <p style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:16px">Isso define as categorias e o que aparece na tela, e vale para esta conta: depois de escolhido, o tipo não muda.</p>
+      <p style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:16px">Isso define as categorias e o que aparece na tela. Dá para trocar até o primeiro lançamento; depois, o tipo fica fixo.</p>
       <button class="tipo-opt" onclick="escolherTipo('pf')"><b>Pessoal</b><span>As minhas finanças: salário, contas de casa, cartão, investimentos.</span></button>
       <button class="tipo-opt" onclick="escolherTipo('pj')"><b>Empresa</b><span>As finanças do meu negócio: faturamento, fornecedores, impostos, pró-labore.</span></button>
     </div>
@@ -3267,7 +3274,8 @@ function renderPerfil(){
   document.getElementById('pf-iniciais').textContent=iniciaisPerfil();
   renderAvatares();
   document.getElementById('pf-email').textContent=u.email||document.getElementById('udisp').textContent.trim();
-  document.getElementById('pf-desde').textContent=(u.created_at?'Membro desde '+new Date(u.created_at).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})+' · ':'')+(tipoConta()==='pj'?'Conta empresa':'Conta pessoal');
+  document.getElementById('pf-desde').innerHTML=(u.created_at?'Membro desde '+new Date(u.created_at).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})+' · ':'')+(tipoConta()==='pj'?'Conta empresa':'Conta pessoal')
+    +(temLancamentos()?'':' · <button type="button" class="pf-trocar-tipo" onclick="openModal(\'tipo-modal\')">trocar</button>');
   document.getElementById('pf-cartao-nome').textContent=nome||'North Pro';
   const n=v=>v.toLocaleString('pt-BR');
   const bloco=(rotulo,valor,extra,cls)=>'<div class="pf-num'+(cls?' '+cls:'')+'"><span class="pf-num-rotulo">'+rotulo+'</span><b class="pf-num-valor">'+valor+'</b>'+(extra||'')+'</div>';
@@ -3385,7 +3393,7 @@ function valorDaMeta(g){const c=g.link?null:calcGoalCDI(g);return g.link?goalLin
 // gasto médio dos últimos 3 meses fechados, contado como o cartão Despesas conta
 function gastoMedioMensal(){
   const atual=monthKeyOf(new Date()),mes={};
-  S.transactions.forEach(t=>{const m=String(t.date||'').slice(0,7);if(t.type==='expense'&&m&&m<atual)mes[m]=(mes[m]||0)+(+t.amount||0);});
+  S.transactions.forEach(t=>{const m=String(t.date||'').slice(0,7);if(t.type==='expense'&&t.category!==CAT_RETIRADA&&m&&m<atual)mes[m]=(mes[m]||0)+(+t.amount||0);});
   const ks=Object.keys(mes).sort().slice(-3);
   return ks.length?ks.reduce((s,k)=>s+mes[k],0)/ks.length:0;
 }
@@ -3416,7 +3424,7 @@ function cicloEfetivo(dia,hoje){
   const antes=entradas(menos(c.ultimo,3),menos(c.ultimo,1)).map(t=>t.date).sort()[0];
   return {inicio:antes||_diaChave(c.ultimo),proximo:c.proximo,faltam:c.faltam,hoje:c.hoje};
 }
-function renderFoco(){
+function renderFoco(ctx){
   const box=document.getElementById('dash-foco');if(!box)return;
   let h='';
   const g=S.goals.find(x=>x.id===S.settings.metaFoco);
@@ -3436,6 +3444,13 @@ function renderFoco(){
       :'Desde o dia '+dia0+', sobraram '+fmtCur(sobra)+': dá '+fmtCur(sobra/c.faltam)+' por dia até '+c.proximo.toLocaleDateString('pt-BR',{day:'numeric',month:'numeric'})+'.';
     h+='<div class="foco-linha"><span class="foco-ic">'+ICO_CAL+'</span><span class="foco-txt"><b>'+titulo+'</b><small'+(entrou&&sobra<0?' class="neg"':'')+'>'+linha+'</small></span></div>';
   }
+  if(tipoConta()==='pj'){
+    const r=S.settings.regime;
+    if(r===undefined)h+='<div class="foco-linha"><span class="foco-ic">'+ICO_PREDIO+'</span><span class="foco-txt"><b>Qual é o regime da sua empresa?</b><small>Com ele, o painel lembra do DAS e, no MEI, acompanha o teto do ano.</small></span><button type="button" class="btn btn-secondary btn-sm" onclick="abrirConhecer(\'regime\')">Responder</button></div>';
+    if(r==='mei'||r==='simples')h+=linhaFoco(linhaDAS());
+    if(r==='mei')h+=linhaFoco(linhaTeto());
+    if(ctx&&(ctx.lucro>0||ctx.retir>0))h+=linhaFoco(linhaRetiradas(ctx));
+  }
   box.innerHTML=h;box.hidden=!h;
 }
 function metaDoObjetivo(obj){
@@ -3449,24 +3464,26 @@ function renderSobreVoce(){
   const box=document.getElementById('pf-sobre');if(!box)return;
   const s=S.settings,pj=tipoConta()==='pj';
   const item=(r,v)=>'<div class="pf-sobre-item"><span>'+r+'</span><b>'+v+'</b></div>';
-  if(['objetivo','diaPagamento','faixaRenda'].some(k=>s[k]!==undefined)){
-    box.innerHTML='<div class="panel-head"><span class="panel-title">Sobre você</span><button type="button" class="btn btn-secondary btn-sm" onclick="abrirConhecer()">Editar respostas</button></div><div class="pf-sobre-linhas">'
-      +item('Objetivo',OBJETIVOS[s.objetivo]?OBJETIVOS[s.objetivo].rotulo:'Não respondido')
-      +item('Dia do pagamento',s.diaPagamento?'Dia '+s.diaPagamento:s.diaPagamento===null?'Dias variados':'Não respondido')
-      +(pj?'':item('Renda por mês',FAIXAS[s.faixaRenda]?FAIXAS[s.faixaRenda].rotulo:s.faixaRenda===null?'Prefiro não dizer':'Não respondido'))+'</div>';
+  if(['objetivo','diaPagamento','faixaRenda','regime'].some(k=>s[k]!==undefined)){
+    const ob=objetivos()[s.objetivo];
+    box.innerHTML='<div class="panel-head"><span class="panel-title">'+(pj?'Sobre a empresa':'Sobre você')+'</span><button type="button" class="btn btn-secondary btn-sm" onclick="abrirConhecer()">Editar respostas</button></div><div class="pf-sobre-linhas">'
+      +item('Objetivo',ob?ob.rotulo:'Não respondido')
+      +(pj?item('Regime',REGIMES[s.regime]?REGIMES[s.regime].rotulo:s.regime===null?'Não sei':'Não respondido')
+        :item('Dia do pagamento',s.diaPagamento?'Dia '+s.diaPagamento:s.diaPagamento===null?'Dias variados':'Não respondido')
+        +item('Renda por mês',FAIXAS[s.faixaRenda]?FAIXAS[s.faixaRenda].rotulo:s.faixaRenda===null?'Prefiro não dizer':'Não respondido'))+'</div>';
   }else{
     box.innerHTML='<div class="panel-head"><span class="panel-title">Conte um pouco sobre você</span></div><div class="pf-convite"><p>'
-      +(pj?'3 perguntas, uns 20 segundos. Com elas o North cria a sua meta e mostra quanto dá para gastar até o próximo recebimento.':'4 perguntas, uns 30 segundos. Com elas o North cria a sua meta, mostra quanto dá para gastar até o pagamento e sugere limites no Orçamento.')
+      +(pj?'3 perguntas, uns 20 segundos. Com elas o North cria a meta da empresa, lembra do DAS e, no MEI, acompanha o teto do ano.':'4 perguntas, uns 30 segundos. Com elas o North cria a sua meta, mostra quanto dá para gastar até o pagamento e sugere limites no Orçamento.')
       +'</p><button type="button" class="btn btn-primary" onclick="abrirConhecer()">Começar</button></div>';
   }
 }
 
 let _ck=null;
-const CK_CAMPOS={nome:['nome'],objetivo:['objetivo','valor','metaNome'],dia:['dia'],renda:['faixa']};
-function ckPassos(){return tipoConta()==='pj'?['nome','objetivo','dia']:['nome','objetivo','dia','renda'];}
-function abrirConhecer(){
+const CK_CAMPOS={nome:['nome'],objetivo:['objetivo','valor','metaNome'],dia:['dia'],renda:['faixa'],regime:['regime']};
+function ckPassos(){return tipoConta()==='pj'?['nome','regime','objetivo']:['nome','objetivo','dia','renda'];}
+function abrirConhecer(passo){
   const s=S.settings;
-  _ck={i:0,feito:null,d:{nome:s.nome||'',objetivo:s.objetivo,dia:s.diaPagamento,faixa:s.faixaRenda,valor:0,metaNome:''}};
+  _ck={i:Math.max(0,ckPassos().indexOf(passo)),feito:null,d:{nome:s.nome||'',objetivo:s.objetivo,dia:s.diaPagamento,faixa:s.faixaRenda,regime:s.regime,valor:0,metaNome:''}};
   if(_ck.d.objetivo)ckSugerir();
   _ck.ini=Object.assign({},_ck.d);
   s.conhecerVisto=true;persistSettings();   // qualquer jeito de fechar conta como visto
@@ -3477,7 +3494,7 @@ function abrirConhecer(){
 function ckSugerir(){
   const d=_ck.d,g=metaDoObjetivo(d.objetivo);
   d.metaNome=d.objetivo==='juntar'&&g?g.name:'';
-  d.valor=g?g.target:d.objetivo==='reserva'?Math.round(gastoMedioMensal()*6/100)*100:d.objetivo==='investir'?proximoMarco(goalLinkedValue('all')):0;
+  d.valor=g?g.target:d.objetivo==='reserva'?Math.round(gastoMedioMensal()*(tipoConta()==='pj'?3:6)/100)*100:d.objetivo==='investir'?proximoMarco(goalLinkedValue('all')):0;
 }
 function ckLer(){
   const d=_ck.d,q=id=>document.getElementById(id);
@@ -3488,6 +3505,7 @@ function ckLer(){
 function ckObjetivo(k){_ck.d.objetivo=k;ckSugerir();ckRender();}
 function ckDia(n){_ck.d.dia=n;ckRender();}
 function ckFaixa(k){_ck.d.faixa=k;ckRender();}
+function ckRegime(k){_ck.d.regime=k;ckRender();}
 function ckVoltar(){ckLer();if(_ck.i>0){_ck.i--;ckRender();}}
 function ckPular(){CK_CAMPOS[ckPassos()[_ck.i]].forEach(k=>{_ck.d[k]=_ck.ini[k];});ckAvancar();}
 function ckSeguir(){
@@ -3501,7 +3519,10 @@ function ckAvancar(){
 }
 function ckExtra(d){
   const val='<input class="field" id="ck-valor" type="number" min="0" step="0.01" inputmode="decimal" placeholder="R$" value="'+(d.valor>0?d.valor:'')+'">';
-  if(d.objetivo==='reserva'){const m=gastoMedioMensal();return '<label for="ck-valor">Valor da reserva</label>'+val+'<small>'+(m?'Sugestão: 6 vezes o seu gasto médio, de '+fmtCur(m)+' por mês.':'O ideal é juntar uns 6 meses do que você gasta.')+'</small>';}
+  if(d.objetivo==='reserva'){
+    const m=gastoMedioMensal(),pj=tipoConta()==='pj';
+    return '<label for="ck-valor">Valor da reserva</label>'+val+'<small>'+(pj?(m?'Sugestão: 3 meses dos custos médios da empresa, de '+fmtCur(m)+' por mês.':'O ideal é guardar uns 3 meses dos custos da empresa.'):(m?'Sugestão: 6 vezes o seu gasto médio, de '+fmtCur(m)+' por mês.':'O ideal é juntar uns 6 meses do que você gasta.'))+'</small>';
+  }
   if(d.objetivo==='dividas')return '<label for="ck-valor">Quanto você deve, somando tudo?</label>'+val+'<small>Com o valor, o North cria a meta para quitar e acompanha o progresso.</small>';
   if(d.objetivo==='juntar')return '<label for="ck-meta-nome">Para quê?</label><input class="field" id="ck-meta-nome" maxlength="60" placeholder="Viagem, carro, casa…" value="'+esc(d.metaNome||'')+'"><label for="ck-valor">Quanto custa, mais ou menos?</label>'+val;
   if(d.objetivo==='investir')return '<label for="ck-valor">Próximo marco do seu patrimônio</label>'+val+'<small>'+(ehPro()||S.investments.length?'O progresso acompanha a aba Investimentos sozinho.':'Você atualiza o quanto já juntou na aba Metas.')+'</small>';
@@ -3519,7 +3540,10 @@ function ckRender(){
     h='<h3 id="ck-titulo">Como quer ser chamado?</h3><p class="ck-sub">É assim que o North vai falar com você.</p><input class="field" id="ck-nome" maxlength="40" placeholder="Seu nome" autocomplete="name" aria-label="Seu nome" value="'+esc(d.nome)+'">';
   }else if(p==='objetivo'){
     h='<h3 id="ck-titulo">Qual é o seu objetivo agora?</h3><p class="ck-sub">O North cria a meta certa e mostra o progresso no painel.</p><div class="ck-opcoes">'
-      +Object.entries(OBJETIVOS).map(([k,o])=>op(d.objetivo===k,"ckObjetivo('"+k+"')",o.rotulo,o.desc)).join('')+'</div><div class="ck-extra">'+ckExtra(d)+'</div>';
+      +Object.entries(objetivos()).map(([k,o])=>op(d.objetivo===k,"ckObjetivo('"+k+"')",o.rotulo,o.desc)).join('')+'</div><div class="ck-extra">'+ckExtra(d)+'</div>';
+  }else if(p==='regime'){
+    h='<h3 id="ck-titulo">Qual é o regime da sua empresa?</h3><p class="ck-sub">Com ele, o painel lembra do DAS e, no MEI, acompanha o teto de faturamento do ano.</p><div class="ck-opcoes">'
+      +Object.entries(REGIMES).map(([k,o])=>op(d.regime===k,"ckRegime('"+k+"')",o.rotulo,o.desc)).join('')+op(d.regime===null,'ckRegime(null)','Não sei')+'</div>';
   }else if(p==='dia'){
     let dias='';for(let n=1;n<=31;n++)dias+='<button type="button" class="ck-dia'+(d.dia===n?' on':'')+'" aria-pressed="'+(d.dia===n)+'" onclick="ckDia('+n+')">'+n+'</button>';
     h='<h3 id="ck-titulo">Em que dia você recebe?</h3><p class="ck-sub">O painel mostra quantos dias faltam e quanto dá para gastar por dia até lá.</p><div class="ck-dias">'+dias+'</div><div class="ck-opcoes ck-variados">'+op(d.dia===null,'ckDia(null)','Recebo em dias variados')+'</div>';
@@ -3542,8 +3566,9 @@ function aplicarConhecer(){
   if(d.objetivo!==undefined)s.objetivo=d.objetivo;
   if(d.dia!==undefined)s.diaPagamento=d.dia;     // null = recebe em dias variados
   if(d.faixa!==undefined)s.faixaRenda=d.faixa;   // null = prefere não dizer
+  if(d.regime!==undefined)s.regime=d.regime;     // null = não sabe
   if(s.nome)feito.push(['Saudação no painel','“'+saudacao()+'”']);
-  const o=OBJETIVOS[s.objetivo];
+  const o=objetivos()[s.objetivo];
   if(o&&o.meta&&d.valor>0){
     let g=antes;
     const nome=s.objetivo==='juntar'?(d.metaNome||o.meta):o.meta;
@@ -3560,6 +3585,8 @@ function aplicarConhecer(){
     const c=cicloEfetivo(s.diaPagamento);
     feito.push(['Contagem até o pagamento',(c.hoje?'Hoje é dia de pagamento':c.faltam===1?'Falta 1 dia':'Faltam '+c.faltam+' dias')+'. O painel mostra quanto dá para gastar por dia.']);
   }
+  if(tipoConta()==='pj'&&(s.regime==='mei'||s.regime==='simples'))
+    feito.push([s.regime==='mei'?'Lembrete do DAS e teto do MEI':'Lembrete do DAS',s.regime==='mei'?'O painel avisa antes do vencimento e mostra quanto do teto do ano já foi faturado.':'O painel avisa antes do vencimento e fica verde quando você lança o pagamento.']);
   const f=FAIXAS[s.faixaRenda];
   if(f&&tipoConta()!=='pj'&&!S.budgets.length){   // nunca mexe em limite que a pessoa já fez
     ORC_SUGERIDO.forEach(([cat,p])=>S.budgets.push({id:newId(),category:cat,limit:Math.round(f.base*p/10)*10}));
@@ -3570,6 +3597,73 @@ function aplicarConhecer(){
   updateDashboard();renderPerfil();
   return feito;
 }
+// ═══ EMPRESA ═══
+// Conta CNPJ: o painel mostra faturamento, custos e lucro, e a linha de foco
+// ganha o DAS, o teto do MEI e as retiradas do dono contra o lucro.
+const CAT_RETIRADA='Retiradas do dono';   // saída para o dono: não é custo da empresa
+// teto anual do MEI (LC 123/2006, art. 18-A, § 1º). No ano de abertura ele é
+// proporcional (R$ 6.750 por mês de atividade); aqui vale o ano cheio.
+// shortcut: valor fixo no código; conferir todo começo de ano se a lei mudou.
+const TETO_MEI=81000;
+const OBJETIVOS_PJ={
+  reserva:{rotulo:'Ter reserva de caixa',desc:'Meses de custo guardados',meta:'Reserva de caixa'},
+  dividas:{rotulo:'Quitar dívidas da empresa',desc:'Empréstimos, fornecedores atrasados',meta:'Quitar as dívidas da empresa'},
+  juntar:{rotulo:'Juntar para um investimento',desc:'Equipamento, reforma, estoque…',meta:'Investimento da empresa'},
+  investir:{rotulo:'Fazer o caixa render',desc:'Aplicar o dinheiro parado da empresa',meta:'Próximo marco do caixa investido'},
+  organizar:{rotulo:'Só organizar',desc:'Saber para onde vai o dinheiro da empresa'},
+};
+const REGIMES={
+  mei:{rotulo:'MEI',desc:'Microempreendedor individual'},
+  simples:{rotulo:'Simples Nacional',desc:'ME ou EPP no Simples'},
+  outro:{rotulo:'Lucro Presumido ou Real',desc:'Outro regime de impostos'},
+};
+const ICO_RECIBO='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>';
+const ICO_TETO='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-5"/></svg>';
+const ICO_SAIDA='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h5v16h-5"/><path d="M3 12h11M10 8l4 4-4 4"/></svg>';
+const ICO_PREDIO='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5l8-2v18M12 9h8v12M8 8h.01M8 12h.01M8 16h.01M16 13h.01M16 17h.01"/></svg>';
+function objetivos(){return tipoConta()==='pj'?OBJETIVOS_PJ:OBJETIVOS;}
+function temLancamentos(){return S.transactions.length>0||(S.ccItems||[]).length>0;}
+function linhaFoco(o){
+  return '<div class="foco-linha"><span class="foco-ic'+(o.cls?' '+o.cls:'')+'">'+o.ic+'</span><span class="foco-txt"><b>'+o.titulo+'</b><small'+(o.subCls?' class="'+o.subCls+'"':'')+'>'+o.sub+'</small>'
+    +(o.barra?'<span class="foco-barra"><i'+(o.barra.cls?' class="'+o.barra.cls+'"':'')+' style="width:'+o.barra.pct+'%"></i></span>':'')+'</span></div>';
+}
+// DAS vence dia 20; em fim de semana ou feriado, passa para o próximo dia útil
+function vencimentoDAS(ano,mes){
+  const d=new Date(ano,mes,20);
+  while(d.getDay()===0||d.getDay()===6||_feriados(d.getFullYear()).has(_diaChave(d)))d.setDate(d.getDate()+1);
+  return d;
+}
+// pago = despesa do mês em Impostos, ou com "DAS" na descrição (como vem do extrato)
+function linhaDAS(agora){
+  const h=agora?new Date(agora):new Date();h.setHours(0,0,0,0);
+  const mes=monthKeyOf(h),venc=vencimentoDAS(h.getFullYear(),h.getMonth());
+  const nomeMes=h.toLocaleDateString('pt-BR',{month:'long'}),dd=d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  const pago=S.transactions.some(t=>t.type==='expense'&&String(t.date||'').startsWith(mes)&&(t.category==='Impostos'||/\bDAS\b/i.test(t.description||'')));
+  if(pago)return {ic:ICO_OK,cls:'ok',titulo:'DAS de '+nomeMes+' pago',sub:'O próximo vence em '+dd(vencimentoDAS(h.getFullYear(),h.getMonth()+1))+'.'};
+  const faltam=Math.round((venc-h)/86400000);
+  if(faltam>0)return {ic:ICO_RECIBO,titulo:faltam===1?'Falta 1 dia para o DAS':'Faltam '+faltam+' dias para o DAS',sub:'Vence em '+dd(venc)+'. Depois de pagar, lance em Impostos e esta linha fica verde.',subCls:faltam<=3?'alerta':''};
+  if(faltam===0)return {ic:ICO_RECIBO,titulo:'O DAS vence hoje',sub:'Depois de pagar, lance em Impostos e esta linha fica verde.',subCls:'alerta'};
+  return {ic:ICO_RECIBO,cls:'neg',titulo:'O DAS de '+nomeMes+' venceu',sub:'Venceu em '+dd(venc)+'. Ainda dá para pagar, com juros; depois, lance em Impostos.',subCls:'neg'};
+}
+// faturamento = todas as entradas do ano, de todas as contas (conta para mais, o lado seguro)
+function linhaTeto(agora){
+  const ano=String((agora?new Date(agora):new Date()).getFullYear());
+  const fat=S.transactions.filter(t=>t.type==='income'&&String(t.date||'').startsWith(ano)).reduce((s,t)=>s+(+t.amount||0),0);
+  const pct=Math.round(fat/TETO_MEI*100),barra={pct:Math.min(100,pct),cls:pct>=100?'neg':pct>=80?'alerta':''};
+  const base=fmtCur(fat)+' de '+fmtCur(TETO_MEI)+' faturados em '+ano+' ('+pct+'%)';
+  if(pct>=100)return {ic:ICO_TETO,cls:'neg',titulo:'Passou do teto do MEI',sub:base+'. Fale com seu contador: acima do teto, a empresa deixa de ser MEI.',subCls:'neg',barra};
+  if(pct>=80)return {ic:ICO_TETO,titulo:'Perto do teto do MEI',sub:base+'. Faltam '+fmtCur(TETO_MEI-fat)+' para o limite do ano.',subCls:'alerta',barra};
+  return {ic:ICO_TETO,titulo:'Teto do MEI',sub:base+'.',barra};
+}
+// regra de bolso: o dono não retira mais do que a empresa lucrou no período
+function linhaRetiradas(c){
+  const {lucro,retir}=c;
+  if(lucro<=0)return {ic:ICO_SAIDA,cls:'neg',titulo:'Retiradas do dono',sub:'A empresa ainda não deu lucro no período e já saíram '+fmtCur(retir)+' para você.',subCls:'neg'};
+  if(retir>lucro)return {ic:ICO_SAIDA,cls:'neg',titulo:'Retiradas passaram do lucro',sub:'Saíram '+fmtCur(retir)+' para você no período, '+fmtCur(retir-lucro)+' a mais do que a empresa lucrou.',subCls:'neg',barra:{pct:100,cls:'neg'}};
+  const pct=Math.round(retir/lucro*100);
+  return {ic:ICO_SAIDA,titulo:'Retiradas do dono',sub:fmtCur(retir)+' de '+fmtCur(lucro)+' de lucro no período. Ainda dá para retirar '+fmtCur(lucro-retir)+'.',barra:{pct,cls:pct>=80?'alerta':''}};
+}
+
 async function requestAccountDeletion(btn){
   const ok=await showConfirm('Sua conta entrará em período de exclusão de 15 dias. Durante esse prazo o acesso ao app fica bloqueado, mas você pode reativar a qualquer momento entrando com seu e-mail e senha.\n\nPassados os 15 dias, todos os seus dados são apagados definitivamente e não há como recuperar.\n\nVamos te enviar um e-mail confirmando o pedido.',{title:'Excluir minha conta',confirmLabel:'Sim, quero excluir',cancelLabel:'Voltar',danger:true});
   if(!ok)return;
@@ -4294,7 +4388,7 @@ const CATS_PF={
 };
 const CATS_PJ={
   receitas:['Vendas','Serviços','Outras receitas'],
-  despesas:['Fornecedores','Impostos','Folha e pró-labore','Aluguel e estrutura','Marketing','Ferramentas e software','Taxas e tarifas','Outros']
+  despesas:['Fornecedores','Impostos','Folha e pró-labore','Aluguel e estrutura','Marketing','Ferramentas e software','Taxas e tarifas',CAT_RETIRADA,'Outros']
 };
 function tipoConta(){
   const v=S.settings.accountType;
@@ -4338,8 +4432,8 @@ function renderCatSelects(){
   });
 }
 function escolherTipo(tp){
-  // o tipo é definido uma vez, na criação da conta
-  if(S.settings.accountType){closeModal('tipo-modal');return;}
+  // o tipo é definido na criação; só troca enquanto a conta não tem lançamento
+  if(S.settings.accountType&&temLancamentos()){closeModal('tipo-modal');return;}
   S.settings.accountType=tp;
   if(tp==='pj')S.settings.billsTab='receive';   // negocio olha primeiro o que entra
   persistSettings();
@@ -4347,6 +4441,7 @@ function escolherTipo(tp){
   renderCatSelects();
   try{renderSettings();}catch(e){}
   try{renderBillsPage();}catch(e){}
+  try{updateDashboard();}catch(e){}
   toast(tp==='pj'?'Conta configurada para o seu negócio':'Conta pessoal configurada');
 }
 function talvezPedirTipo(){
@@ -5478,20 +5573,28 @@ function flashItem(id){
 function updateDashboard(){
   const per=periodoDash();
   renderTopoDash(per);
-  renderFoco();
   const vis=txVis().filter(x=>noPeriodo(x,per));
   const income=vis.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const expense=vis.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  // empresa: retirada do dono é saída, mas não é custo; o lucro é faturamento − custos
+  const pj=tipoConta()==='pj';
+  const retir=pj?vis.filter(t=>t.type==='expense'&&t.category===CAT_RETIRADA).reduce((s,t)=>s+t.amount,0):0;
+  const custos=expense-retir,lucro=income-custos;
+  renderFoco(pj?{lucro,retir}:null);
+  const rot=(sel,txt)=>{const el=document.querySelector('#dash-cards '+sel+' .sc-label');if(el)el.textContent=txt;};
+  rot('.balance',pj?(lucro<0?'Prejuízo do período':'Lucro do período'):'Saldo do período');
+  rot('.income',pj?'Faturamento':'Receitas');
+  rot('.expense',pj?'Custos e despesas':'Despesas');
   const cc=ccVis().filter(x=>noPeriodo(x,per)).reduce((s,c)=>s+c.amount,0);
   // o rótulo acompanha o número: sem isso o cartão diria "total geral" sobre um recorte
   const sub1=document.getElementById('income-sub');if(sub1)sub1.textContent=per.rotulo;
   const sub2=document.getElementById('expense-sub');if(sub2)sub2.textContent=per.rotulo;
   const sub3=document.getElementById('cc-sub');if(sub3)sub3.textContent=per.v==='all'?'fatura acumulada':per.rotulo;
-  document.getElementById('balance-sub').textContent=per.rotulo+' · receitas − despesas';
+  document.getElementById('balance-sub').textContent=pj?per.rotulo+(income>0?' · margem de '+Math.round(lucro/income*100)+'%':''):per.rotulo+' · receitas − despesas';
   setCurAnimated('total-income',income);
-  setCurAnimated('total-expense',expense);
+  setCurAnimated('total-expense',pj?custos:expense);
   setCurAnimated('total-cc',cc);
-  setCurAnimated('total-balance',income-expense);
+  setCurAnimated('total-balance',pj?lucro:income-expense);
 
   const recent=[...txVis()].sort(txCompare).slice(0,5);   // sempre as últimas, independente do recorte
   document.getElementById('recent-list').innerHTML=recent.length?recent.map(t=>txHTML(t)).join(''):emptyHTML('Nenhuma transação cadastrada');
@@ -5504,7 +5607,7 @@ function updateDashboard(){
 // ═══ GASTOS POR CATEGORIA ═══
 const CAT_ICONS={'Salário':'💼','Investimentos':'📈','Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Contas':'💡','Cartão de Crédito':'💳','Lazer':'🎬','Saúde':'💊','Outros':'📦','Sem categoria':'🏷️',
   'Vendas':'🧾','Serviços':'🛠️','Outras receitas':'💰','Fornecedores':'📦','Impostos':'🏛️',
-  'Folha e pró-labore':'👥','Aluguel e estrutura':'🏢','Marketing':'📣','Ferramentas e software':'💻','Taxas e tarifas':'🏦'};
+  'Folha e pró-labore':'👥','Aluguel e estrutura':'🏢','Marketing':'📣','Ferramentas e software':'💻','Taxas e tarifas':'🏦','Retiradas do dono':'👤'};
 function monthKeyOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function prevMonthOf(key){const[y,m]=key.split('-').map(Number);return monthKeyOf(new Date(y,m-2,1));}
 function monthLabel(key){const[y,m]=key.split('-');return new Date(y,parseInt(m)-1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});}
