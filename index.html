@@ -1494,6 +1494,10 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="set-show-cc" class="chk"> Exibir módulo Cartão de Crédito</label>
         <p style="font-size:12px;color:var(--ink3);margin-top:10px">Desative se você não usa cartão de crédito, para deixar o app mais limpo. Os dados não são apagados — só ficam ocultos.</p>
         <button class="btn btn-primary" style="margin-top:14px" onclick="saveSettings()">Salvar</button>
+        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--paper2)">
+          <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="set-mes-pagamento" class="chk" onchange="trocarMesPagamento(this)"> Começar o mês no dia do pagamento</label>
+          <p id="set-mes-pagamento-ajuda" style="font-size:12px;color:var(--ink3);margin-top:10px"></p>
+        </div>
       </div>
 
       <div class="panel">
@@ -4355,9 +4359,9 @@ function periodoDash(){
   const faixa=(v,desde,ate,rotulo)=>({v:v,desde:desde,ate:ate,rotulo:rotulo,
     diario:!!desde&&!!ate&&_diasEntre(desde,ate)<=DIAS_MAX_DIARIO});
   if(v==='month'){
-    const key=S.settings.dashboardMonth||monthKeyOf(hoje);
-    const [ano,mes]=key.split('-').map(Number);
-    return faixa(v,key+'-01',_isoDia(new Date(ano,mes,0)),monthLabel(key));
+    const key=S.settings.dashboardMonth||mesAtual();
+    const [de,ate]=faixaDoMes(key);
+    return faixa(v,de,ate,rotuloMes(key));
   }
   if(v==='custom'){
     const de=(document.getElementById('per-de')||{}).value||'';
@@ -4404,13 +4408,13 @@ function renderSeletorPeriodo(){
   // opções que saíram do menu: 3 meses vira 90 dias, 9 meses vira 12 meses
   if(S.settings.chartPeriod==='3')S.settings.chartPeriod='90d';
   if(S.settings.chartPeriod==='9')S.settings.chartPeriod='12';
-  const hoje=new Date(),ano=hoje.getFullYear(),atual=monthKeyOf(hoje);
+  const hoje=new Date(),ano=hoje.getFullYear(),atual=mesAtual();
   const escolhido=S.settings.dashboardMonth||atual;
   const anos=new Set([ano,+escolhido.slice(0,4)]);
   [...S.transactions,...(S.ccItems||[])].forEach(x=>{const a=+String((x&&x.date)||'').slice(0,4);if(a>2000&&a<=ano)anos.add(a);});
   per.innerHTML=[...anos].sort((a,b)=>b-a).map(a=>'<optgroup label="'+a+'">'+NOMES_MES.map((nome,i)=>{
     const k=a+'-'+String(i+1).padStart(2,'0');
-    return '<option value="'+k+'">'+nome+' de '+a+(k===atual?' (este mês)':'')+'</option>';
+    return '<option value="'+k+'">'+nome+' de '+a+faixaCurta(k)+(k===atual?' (este mês)':'')+'</option>';
   }).join('')+'</optgroup>').join('')+'<option value="personalizado">Personalizado…</option>';
   const modo=S.settings.chartPeriod||'6';
   per.value=modo==='month'?escolhido:'personalizado';
@@ -4437,12 +4441,12 @@ function renderTopoDash(per){
   renderAvatares();
   renderSaudacao();
   const sel=document.getElementById('mobile-month');
-  const atual=monthKeyOf(new Date());
+  const atual=mesAtual();
   const escolhido=S.settings.dashboardMonth||atual;
   const meses=new Set([atual,escolhido]);
   const hoje=new Date();
   for(let i=-12;i<=12;i++)meses.add(monthKeyOf(new Date(hoje.getFullYear(),hoje.getMonth()+i,1)));
-  S.transactions.forEach(t=>{if(/^\d{4}-\d{2}-\d{2}$/.test(t.date||''))meses.add(t.date.slice(0,7));});
+  S.transactions.forEach(t=>{if(/^\d{4}-\d{2}-\d{2}$/.test(t.date||''))meses.add(mesDe(t.date));});
   sel.replaceChildren();
   if(per.v!=='month')sel.add(new Option(per.rotulo,'range'));
   [...meses].sort().reverse().forEach(m=>sel.add(new Option(monthLabel(m),m)));
@@ -4456,7 +4460,7 @@ function selecionarMesDash(key){
   showPage('dashboard');
 }
 function mudarMesDash(delta){
-  const key=S.settings.chartPeriod==='month'?(S.settings.dashboardMonth||monthKeyOf(new Date())):monthKeyOf(new Date());
+  const key=S.settings.chartPeriod==='month'?(S.settings.dashboardMonth||mesAtual()):mesAtual();
   const [ano,mes]=key.split('-').map(Number);
   selecionarMesDash(monthKeyOf(new Date(ano,mes-1+delta,1)));
 }
@@ -5721,25 +5725,54 @@ const CAT_ICONS={'Salário':'💼','Investimentos':'📈','Alimentação':'🍔'
   'Folha e pró-labore':'👥','Aluguel e estrutura':'🏢','Marketing':'📣','Ferramentas e software':'💻','Taxas e tarifas':'🏦','Retiradas do dono':'👤'};
 function monthKeyOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function prevMonthOf(key){const[y,m]=key.split('-').map(Number);return monthKeyOf(new Date(y,m-2,1));}
+// ═══ MÊS NO DIA DO PAGAMENTO ═══
+// Ligado, o "mês" vai do dia do pagamento à véspera do próximo: com pagamento no
+// dia 5, um gasto do dia 3 conta no mês anterior. Dia 31 vira o último dia nos meses curtos.
+function cicloAtivo(){return S.settings.mesNoPagamento&&S.settings.diaPagamento?S.settings.diaPagamento:0;}
+function mesDe(data){
+  const s=String(data||'').slice(0,10),dia=cicloAtivo();
+  if(!dia||!/^\d{4}-\d{2}-\d{2}$/.test(s))return s.slice(0,7);
+  const [a,m,d]=s.split('-').map(Number);
+  return d>=Math.min(dia,new Date(a,m,0).getDate())?s.slice(0,7):monthKeyOf(new Date(a,m-2,1));
+}
+function mesAtual(){return mesDe(_isoDia(new Date()));}
+function faixaDoMes(key){
+  const [a,m]=key.split('-').map(Number),dia=cicloAtivo();
+  if(!dia)return [key+'-01',_isoDia(new Date(a,m,0))];
+  return [_isoDia(new Date(a,m-1,Math.min(dia,new Date(a,m,0).getDate()))),_isoDia(new Date(a,m,Math.min(dia,new Date(a,m+1,0).getDate())-1))];
+}
+function faixaCurta(key){
+  if(!cicloAtivo())return '';
+  const dm=s=>Number(s.slice(8,10))+'/'+Number(s.slice(5,7)),[de,ate]=faixaDoMes(key);
+  return ' ('+dm(de)+' a '+dm(ate)+')';
+}
+function rotuloMes(key){return monthLabel(key)+faixaCurta(key);}
+function trocarMesPagamento(el){
+  S.settings.mesNoPagamento=!!el.checked;
+  S.settings.dashboardMonth=mesAtual();
+  persistSettings();
+  try{renderCamposPeriodo();updateDashboard();renderTxList();populateMonthFilter();renderBudgetPage();}catch(e){}
+  toast(el.checked?'O mês agora começa no dia '+S.settings.diaPagamento:'O mês voltou a ser o do calendário');
+}
 function monthLabel(key){const[y,m]=key.split('-');return new Date(y,parseInt(m)-1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});}
 function spentByCat(month){
   const out={};
-  txVis().filter(t=>(t.date||'').startsWith(month)&&t.type==='expense')
+  txVis().filter(t=>mesDe(t.date)===month&&t.type==='expense')
     .forEach(t=>{const c=t.category||'Sem categoria';out[c]=(out[c]||0)+t.amount;});
-  ccVis().filter(c=>(c.date||'').startsWith(month))
+  ccVis().filter(c=>mesDe(c.date)===month)
     .forEach(c=>{const k=c.category||'Sem categoria';out[k]=(out[k]||0)+c.amount;});
   return out;
 }
 function populateCatMonths(){
   const sel=document.getElementById('cat-month');if(!sel)return;
-  const cur=monthKeyOf(new Date());
+  const cur=mesAtual();
   const months=new Set([cur]);
-  S.transactions.filter(t=>t.type==='expense').forEach(t=>{if(t.date)months.add(t.date.substring(0,7));});
-  S.ccItems.forEach(c=>{if(c.date)months.add(c.date.substring(0,7));});
+  S.transactions.filter(t=>t.type==='expense').forEach(t=>{if(t.date)months.add(mesDe(t.date));});
+  S.ccItems.forEach(c=>{if(c.date)months.add(mesDe(c.date));});
   const keep=sel.value;
   sel.innerHTML='';
   [...months].sort().reverse().slice(0,12).forEach(m=>{
-    const opt=document.createElement('option');opt.value=m;opt.textContent=monthLabel(m);sel.appendChild(opt);
+    const opt=document.createElement('option');opt.value=m;opt.textContent=rotuloMes(m);sel.appendChild(opt);
   });
   sel.value=[...sel.options].some(o=>o.value===keep)?keep:cur;
 }
@@ -5760,7 +5793,7 @@ const PIE_COLORS=['#c8903a','#e0bc7d','#8a6b28','#8a8378','#c2b193','#5f5a50','#
 function renderCatBreakdown(){
   const box=document.getElementById('cat-breakdown');if(!box)return;
   const sel=document.getElementById('cat-month');
-  const month=(sel&&sel.value)||monthKeyOf(new Date());
+  const month=(sel&&sel.value)||mesAtual();
   const cur=spentByCat(month);
   const entries=Object.entries(cur).sort((a,b)=>b[1]-a[1]);
   if(!entries.length){box.innerHTML=emptyHTML('Nenhum gasto registrado em '+monthLabel(month));return;}
@@ -5829,7 +5862,7 @@ function renderTxList(){
   const fm=document.getElementById('fmonth')?.value||'';
   const filtered=txVis().filter(noConta).filter(t=>
     (!q||t.description.toLowerCase().includes(q))&&
-    (!ft||t.type===ft)&&(!fc||t.category===fc)&&(!fm||t.date.substring(0,7)===fm)
+    (!ft||t.type===ft)&&(!fc||t.category===fc)&&(!fm||mesDe(t.date)===fm)
   ).sort(txCompare);
   const lbl=document.getElementById('tx-count-lbl');
   if(lbl)lbl.textContent=filtered.length+' transaç'+(filtered.length===1?'ão':'ões');
@@ -5840,11 +5873,10 @@ function renderTxList(){
   const mostrarBanco=contas().length>1&&(!S.settings.contaView||S.settings.contaView==='all');
   let html='',lastM='';
   filtered.forEach(t=>{
-    const m=t.date.substring(0,7);
+    const m=mesDe(t.date);
     if(m!==lastM){
       lastM=m;
-      const[y,mo]=m.split('-');
-      const label=new Date(y,parseInt(mo)-1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+      const label=rotuloMes(m);
       html+='<div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);padding:18px 8px 8px;border-bottom:1px solid var(--paper2)">'+label+'</div>';
     }
     html+=txHTML(t,true,mostrarBanco);
@@ -5855,12 +5887,11 @@ function renderTxList(){
 function populateMonthFilter(){
   const sel=document.getElementById('fmonth');if(!sel)return;
   while(sel.options.length>1)sel.remove(1);
-  const months=new Set(S.transactions.map(t=>t.date.substring(0,7)));
+  const months=new Set(S.transactions.map(t=>mesDe(t.date)));
   [...months].sort().reverse().forEach(m=>{
-    const[y,mo]=m.split('-');
     const opt=document.createElement('option');
     opt.value=m;
-    opt.textContent=new Date(y,parseInt(mo)-1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    opt.textContent=rotuloMes(m);
     sel.appendChild(opt);
   });
 }
@@ -6329,6 +6360,13 @@ function migrateData(){
 // ═══ SETTINGS ═══
 function renderSettings(){
   const cc=document.getElementById('set-show-cc');if(cc)cc.checked=!!S.settings.showCC;
+  const mp=document.getElementById('set-mes-pagamento'),dp=S.settings.diaPagamento;
+  if(mp){
+    mp.checked=!!cicloAtivo();mp.disabled=!dp;
+    document.getElementById('set-mes-pagamento-ajuda').textContent=dp
+      ?'Painel, transações e orçamento contam do dia '+dp+' até a véspera do próximo pagamento, em vez do mês do calendário. Contas a pagar e cartão seguem o calendário.'
+      :'Diga em que dia você recebe, em "Sobre você" no topo desta página, para ligar esta opção.';
+  }
   renderContasSettings();
   renderTemaSel();
   loadEmailPrefs();
@@ -6365,14 +6403,14 @@ function saveSettings(){
 // ═══ ORÇAMENTO POR CATEGORIA ═══
 function populateBudgetMonths(){
   const sel=document.getElementById('budget-month');if(!sel)return;
-  const cur=monthKeyOf(new Date());
+  const cur=mesAtual();
   const months=new Set([cur]);
-  S.transactions.filter(t=>t.type==='expense').forEach(t=>{if(t.date)months.add(t.date.substring(0,7));});
-  S.ccItems.forEach(c=>{if(c.date)months.add(c.date.substring(0,7));});
+  S.transactions.filter(t=>t.type==='expense').forEach(t=>{if(t.date)months.add(mesDe(t.date));});
+  S.ccItems.forEach(c=>{if(c.date)months.add(mesDe(c.date));});
   const keep=sel.value;
   sel.innerHTML='';
   [...months].sort().reverse().slice(0,12).forEach(m=>{
-    const opt=document.createElement('option');opt.value=m;opt.textContent=monthLabel(m);sel.appendChild(opt);
+    const opt=document.createElement('option');opt.value=m;opt.textContent=rotuloMes(m);sel.appendChild(opt);
   });
   sel.value=[...sel.options].some(o=>o.value===keep)?keep:cur;
 }
@@ -6419,7 +6457,7 @@ function renderBudgetPage(){
   populateBudgetMonths();
   const list=document.getElementById('budget-list');if(!list)return;
   const sel=document.getElementById('budget-month');
-  const month=(sel&&sel.value)||monthKeyOf(new Date());
+  const month=(sel&&sel.value)||mesAtual();
   const summary=document.getElementById('budget-summary');
   if(!S.budgets.length){
     summary.innerHTML='';
