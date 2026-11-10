@@ -122,6 +122,8 @@
 .acc-add{display:flex;align-items:center;gap:6px;flex:none;padding:8px 10px;border:none;background:none;color:var(--goldd);
   font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .acc-add:hover{text-decoration:underline;text-underline-offset:3px}
+/* título do painel inteiro; quem desce de linha são os seletores de período */
+#dashboard .panel-head>.panel-title{flex:none;margin-right:12px}
 .acc-add svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
 span.acc-chip{cursor:default}
 /* botao esperando uma funcao async (ver BOTAO CARREGANDO no script): o texto
@@ -611,7 +613,7 @@ html.splash-active{background:#000}
   #dash-cards #card-cc .sc-val{font-size:21px}
   #dashboard .panel-head{flex-wrap:wrap;gap:12px}
   #dashboard .panel{border-radius:20px;padding:20px;margin-bottom:24px}
-  #dashboard .panel-head>div{flex-wrap:wrap;max-width:100%}
+  #dashboard .panel-head>div{flex-wrap:wrap;max-width:100%;justify-content:flex-start!important}
   #per-custom{flex-wrap:wrap}
 }
 </style>
@@ -985,21 +987,20 @@ html.splash-active{background:#000}
       <div class="panel">
         <div class="panel-head">
           <span class="panel-title">Receitas × Despesas</span>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
             <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="chart-type" onchange="S.settings.chartType=this.value;persistSettings();renderChart()">
               <option value="line">Gráfico de linhas</option>
               <option value="bar">Gráfico de barras</option>
             </select>
-            <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="chart-period" onchange="trocarPeriodo()">
-              <option value="month">Mês selecionado</option>
+            <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="chart-period" onchange="trocarPeriodo()" aria-label="Período do painel"></select>
+            <select class="field" style="width:auto;padding:7px 12px;font-size:12px;display:none" id="chart-range" onchange="trocarPeriodo()" aria-label="Período personalizado">
               <option value="7d">Últimos 7 dias</option>
-              <option value="30d">Últimos 30 dias</option>
-              <option value="3">Últimos 3 meses</option>
-              <option value="6" selected>Últimos 6 meses</option>
-              <option value="9">Últimos 9 meses</option>
+              <option value="30d" selected>Últimos 30 dias</option>
+              <option value="90d">Últimos 90 dias</option>
+              <option value="6">Últimos 6 meses</option>
               <option value="12">Últimos 12 meses</option>
               <option value="all">Todo o período</option>
-              <option value="custom">Personalizado…</option>
+              <option value="custom">Escolher datas…</option>
             </select>
             <span id="per-custom" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--ink3)">
               <input class="field" type="date" id="per-de" style="width:auto;padding:6px 9px;font-size:12px" onchange="trocarPeriodo()">
@@ -1268,15 +1269,6 @@ html.splash-active{background:#000}
         <div class="panel-head"><span class="panel-title">Dispositivos conectados</span></div>
         <p style="font-size:13px;color:var(--ink3);margin-bottom:12px">Usou o app num computador público ou perdeu um aparelho? Encerre a sessão em todos os dispositivos de uma vez (inclusive este).</p>
         <button class="btn btn-secondary" onclick="logoutAllDevices()">Sair de todos os dispositivos</button>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head"><span class="panel-title">Sincronização</span></div>
-        <p style="font-size:13px;color:var(--ink3);margin-bottom:12px">Se este aparelho e a nuvem ficarem diferentes, você força qual lado vale. <strong>Cuidado:</strong> o lado sobrescrito é substituído por inteiro, sem misturar.</p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-secondary" onclick="forcePullCloud()">Baixar da nuvem (substituir este aparelho)</button>
-          <button class="btn btn-secondary" onclick="forcePushCloud()">Enviar este aparelho (substituir a nuvem)</button>
-        </div>
       </div>
 
       <div class="panel" id="sub-panel">
@@ -1879,7 +1871,7 @@ let _nfUser=null,_nfSub=null;   // usados pela tela de Perfil
 
 function setSync(state){
   const el=document.getElementById('sync-status');if(!el)return;
-  const m={ok:'☁️ Sincronizado',saving:'☁️ Salvando...',offline:'Offline — usando dados locais'};
+  const m={ok:'☁️ Sincronizado',saving:'☁️ Salvando...',offline:'Sem conexão — salvo neste aparelho'};
   el.textContent=m[state]||'';
   el.style.color=state==='offline'?'#f87171':'var(--ink4)';
 }
@@ -1963,18 +1955,151 @@ async function nfEstablishKey(uid){
   return {ok:false,reason:'password'};
 }
 
+// ═══ SINCRONIA ═══
+// A nuvem guarda um bloco cifrado com tudo. Cada aparelho guarda tambem a "base":
+// o ultimo estado que ele sabe que bateu com a nuvem, e a versao dela (o updated_at
+// da linha). Gravar so vale se a nuvem ainda estiver nessa versao. Se outro aparelho
+// gravou antes, este junta as duas versoes item por item (base x este aparelho x
+// nuvem) e grava a juncao. Alteracao feita sem conexao fica marcada (bf_sujo) e
+// entra na juncao quando a conexao volta, mesmo depois de fechar e reabrir o app.
+// Nenhum lado precisa "vencer": o que mudou em cada um e mantido.
+const COLECOES=['transactions','ccItems','investments','goals','budgets','bills','recurring','accounts'];
+let _aplicandoNuvem=false,_geracao=0,_salvando=false,_salvarDeNovo=false,_nuvemIlegivel=false,_tentativa=null,_espera=15000;
+// ═══ JUNCAO DE VERSOES ═══
+// JSON com as chaves em ordem: a mesma informacao em outra ordem nao conta como mudanca
+function _ordenado(v){
+  if(Array.isArray(v))return '['+v.map(_ordenado).join(',')+']';
+  if(v&&typeof v==='object')return '{'+Object.keys(v).filter(k=>v[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+_ordenado(v[k])).join(',')+'}';
+  return JSON.stringify(v===undefined?null:v);
+}
+function _igual(a,b){return _ordenado(a)===_ordenado(b);}
+// Junta uma colecao (lista de itens com id). O que so mudou de um lado vale desse
+// lado; o que mudou dos dois vale o deste aparelho, que e o que esta em uso; o que
+// foi apagado de um lado e ficou intacto do outro sai; apagado de um lado e mudado
+// do outro fica — na duvida, nao se perde dado.
+function mesclarLista(base,local,remoto){
+  base=base||[];local=local||[];remoto=remoto||[];
+  // item sem id nao da para casar: nao arrisca, fica o lado que mudou
+  if([...base,...local,...remoto].some(x=>!x||x.id==null))return _igual(local,base)?remoto:local;
+  const B=new Map(base.map(x=>[x.id,x])),L=new Map(local.map(x=>[x.id,x])),R=new Map(remoto.map(x=>[x.id,x]));
+  const out=[],usados=new Set();
+  const poe=x=>{out.push(x);usados.add(x.id);};
+  for(const r of remoto){
+    if(!L.has(r.id)){if(!(B.has(r.id)&&_igual(B.get(r.id),r)))poe(r);continue;}
+    if(!B.has(r.id)){poe(r);continue;}   // criado dos dois lados com o mesmo id: o daqui entra abaixo
+    poe(_igual(L.get(r.id),B.get(r.id))?r:L.get(r.id));
+  }
+  for(const l of local){
+    if(R.has(l.id)){
+      // O id novo e "o maior + 1": dois aparelhos fora de sincronia criam itens
+      // diferentes com o mesmo numero. Os dois ficam; o daqui ganha id novo.
+      // shortcut: referencia a esse item dentro do aparelho (ex.: meta ligada a investimento) nao e reapontada; so ocorre se os dois criaram o mesmo tipo de item ao mesmo tempo
+      if(!B.has(l.id)&&!_igual(l,R.get(l.id))){let id=Date.now();while(usados.has(id)||L.has(id)||R.has(id))id++;poe({...l,id});}
+      continue;
+    }
+    if(B.has(l.id)&&_igual(l,B.get(l.id)))continue;   // apagado la e intacto aqui: sai
+    poe(l);
+  }
+  return out;
+}
+function mesclarObj(base,local,remoto){
+  const out={...(remoto||{})},b=base||{},l=local||{};
+  new Set([...Object.keys(l),...Object.keys(b)]).forEach(k=>{
+    if(_igual(l[k],b[k]))return;
+    if(l[k]===undefined)delete out[k];else out[k]=l[k];
+  });
+  return out;
+}
+function mesclar3(base,local,remoto){
+  base=base||{};remoto=remoto||{};
+  const m={settings:mesclarObj(base.settings,local.settings,remoto.settings)};
+  COLECOES.forEach(k=>{m[k]=mesclarLista(base[k],local[k],remoto[k]);});
+  return m;
+}
+// ═══ FIM DA JUNCAO ═══
+const NUVEM={
+  async ler(uid){
+    const {data,error}=await sb.from('user_data').select('enc_data,updated_at').eq('user_id',uid).maybeSingle();
+    if(error)throw error;
+    return data?{existe:true,blob:data.enc_data,versao:data.updated_at}:{existe:false,blob:null,versao:null};
+  },
+  // Grava so se a nuvem ainda estiver na versao conhecida. Devolve a versao nova,
+  // ou null se outro aparelho gravou antes.
+  async gravar(uid,blob,versao){
+    const {data,error}=await sb.from('user_data').update({enc_data:blob,data:null,updated_at:new Date().toISOString()})
+      .eq('user_id',uid).eq('updated_at',versao).select('updated_at');
+    if(error)throw error;
+    return data&&data.length?data[0].updated_at:null;
+  },
+  async criar(uid,blob){
+    const {data,error}=await sb.from('user_data').insert({user_id:uid,enc_data:blob,data:null,updated_at:new Date().toISOString()}).select('updated_at');
+    if(error)throw error;
+    return data[0].updated_at;
+  },
+};
+function estadoAtual(){const o={settings:S.settings};COLECOES.forEach(k=>{o[k]=S[k];});return o;}
+function estaSujo(){try{return localStorage.getItem('bf_sujo')==='1';}catch(e){return false;}}
+function marcarSujo(){_geracao++;try{localStorage.setItem('bf_sujo','1');}catch(e){}}
+function marcarLimpo(){try{localStorage.removeItem('bf_sujo');}catch(e){}}
+function lerBase(){try{return JSON.parse(localStorage.getItem('bf_base')||'null');}catch(e){return null;}}
+function lerVersao(){try{return localStorage.getItem('bf_versao');}catch(e){return null;}}
+function guardarBase(texto,versao){
+  try{localStorage.setItem('bf_base',texto);if(versao)localStorage.setItem('bf_versao',versao);else localStorage.removeItem('bf_versao');}catch(e){}
+}
+// Poe a juncao na tela e no aparelho sem contar como mudanca nova deste aparelho
+function aplicarEstado(m){
+  _aplicandoNuvem=true;
+  try{applyCloud(m);}finally{_aplicandoNuvem=false;}
+  try{renderContaSwitch();const p=document.querySelector('.page.active');if(p)showPage(p.id);}catch(e){}
+}
+// Sem await daqui ate aplicar: o que a pessoa fizer nesse meio-tempo entra na proxima rodada
+function juntarComNuvem(remoto,versao){
+  const local=estadoAtual(),m=mesclar3(lerBase(),local,remoto);
+  if(!_igual(m,local))aplicarEstado(m);
+  guardarBase(JSON.stringify(remoto),versao);
+}
 async function cloudSaveNow(){
+  if(_salvando){_salvarDeNovo=true;return;}
+  _salvando=true;
   try{
     const {data:{session}}=await sb.auth.getSession();
     if(!session)return;
-    if(!_mk){setSync('offline');return;}   // sem a chave, não sobe nada (fica local até destravar)
-    const payload={transactions:S.transactions,ccItems:S.ccItems,investments:S.investments,goals:S.goals,budgets:S.budgets,bills:S.bills,recurring:S.recurring,accounts:S.accounts,settings:S.settings};
-    const encBlob=await nfEnc(_mk,JSON.stringify(payload));
-    const {error}=await sb.from('user_data').upsert({user_id:session.user.id,enc_data:encBlob,data:null,updated_at:new Date().toISOString()});
-    if(error)throw error;
-    setSync('ok');
-  }catch(e){setSync('offline');}
+    // sem a chave, ou com a nuvem cifrada por outra chave, nao sobe nada: fica marcado no aparelho
+    if(!_mk||_nuvemIlegivel){setSync('offline');return;}
+    const uid=session.user.id;
+    for(let i=0;i<5;i++){
+      const ger=_geracao,texto=JSON.stringify(estadoAtual()),versao=lerVersao();
+      const nova=versao?await NUVEM.gravar(uid,await nfEnc(_mk,texto),versao):null;
+      if(nova){
+        guardarBase(texto,nova);
+        if(ger===_geracao)marcarLimpo();else _salvarDeNovo=true;
+        _espera=15000;setSync('ok');return;
+      }
+      // outro aparelho gravou antes (ou ainda nao se conhece a versao): junta e tenta de novo
+      const r=await NUVEM.ler(uid);
+      if(!r.existe){
+        const v=await NUVEM.criar(uid,await nfEnc(_mk,texto));
+        guardarBase(texto,v);if(ger===_geracao)marcarLimpo();
+        setSync('ok');return;
+      }
+      let remoto={};
+      if(r.blob){try{remoto=JSON.parse(await nfDec(_mk,r.blob));}catch(e){_nuvemIlegivel=true;setSync('offline');return;}}
+      juntarComNuvem(remoto,r.versao);
+      if(_igual(estadoAtual(),remoto)){if(ger===_geracao)marcarLimpo();setSync('ok');return;}   // a nuvem ja tem tudo
+    }
+    agendarNovaTentativa();setSync('offline');
+  }catch(e){agendarNovaTentativa();setSync('offline');}
+  finally{_salvando=false;if(_salvarDeNovo){_salvarDeNovo=false;scheduleCloudSave();}}
 }
+// Falhou (sem conexao): tenta de novo sozinho, cada vez esperando mais, ate 5 min
+function agendarNovaTentativa(){
+  clearTimeout(_tentativa);
+  _tentativa=setTimeout(()=>{if(estaSujo())cloudSaveNow();},_espera);
+  _espera=Math.min(_espera*2,300000);
+}
+window.addEventListener('online',()=>{if(cloudReady&&estaSujo())cloudSaveNow();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&cloudReady&&estaSujo())cloudSaveNow();});
+// ═══ FIM DA SINCRONIA ═══
 function dataCount(d){
   if(!d)return 0;
   return (d.transactions||[]).length+(d.investments||[]).length+(d.goals||[]).length
@@ -2004,7 +2129,7 @@ function applyCloud(d){
 // A guarda abaixo grava de quem e o cache e o apaga quando quem entra e outro.
 // Ela vale mesmo sem logout — navegador fechado, sessao derrubada, conta apagada.
 const NF_DONO='bf_owner';
-const NF_CHAVES=['bf_tx','bf_cc','bf_inv','bf_goals','bf_settings','bf_budgets','bf_bills','bf_recurring','bf_accounts'];
+const NF_CHAVES=['bf_tx','bf_cc','bf_inv','bf_goals','bf_settings','bf_budgets','bf_bills','bf_recurring','bf_accounts','bf_base','bf_versao','bf_sujo'];
 function nfLimparCacheLocal(){
   NF_CHAVES.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});
   S.transactions=[];S.ccItems=[];S.investments=[];S.goals=[];S.budgets=[];S.bills=[];S.recurring=[];S.accounts=[];
@@ -2017,46 +2142,29 @@ function nfGarantirDono(uid){
 async function loadCloud(uid){
   try{
     nfGarantirDono(uid);   // antes de qualquer leitura local
-    const {data,error}=await sb.from('user_data').select('enc_data').eq('user_id',uid).maybeSingle();
-    if(error)throw error;
+    const r=await NUVEM.ler(uid);
     let cloud=null;
-    if(data&&data.enc_data&&_mk){try{cloud=JSON.parse(await nfDec(_mk,data.enc_data));}catch(e){cloud=null;}}
+    if(r.blob&&_mk){try{cloud=JSON.parse(await nfDec(_mk,r.blob));}catch(e){cloud=null;}}
     loadData(); // estado local (S) deste aparelho
-    // A NUVEM é a fonte da verdade AO ABRIR: se ela tem dados, este aparelho ADOTA o estado dela.
-    // (Substitui o antigo "quem tem mais itens vence", que ficava re-sobrescrevendo o estado correto,
-    //  menor, com um estado velho e maior de outro aparelho.) Nuvem vazia + local com dados → sobe os
-    //  locais. Para forçar um lado de propósito, use Configurações → Sincronização (Baixar/Enviar).
+    // Bloco na nuvem que esta chave nao abre: nunca sobrescrever, seria apagar dados
+    // cifrados com outra chave. Fica tudo no aparelho ate a chave certa aparecer.
+    if(r.blob&&!cloud){_nuvemIlegivel=true;setSync('offline');return;}
+    if(estaSujo()){
+      // Este aparelho tem alteracoes que nao chegaram a nuvem (faltou conexao). Em vez
+      // de escolher um lado, junta com o que a nuvem tem agora e grava a juncao.
+      juntarComNuvem(cloud||{},r.versao);
+      await cloudSaveNow();return;
+    }
     if(dataCount(cloud)>0){
-      applyCloud(cloud);
-      setSync('ok');
+      _aplicandoNuvem=true;try{applyCloud(cloud);}finally{_aplicandoNuvem=false;}
+      guardarBase(JSON.stringify(cloud),r.versao);setSync('ok');
     }else if(dataCount(S)>0){
+      guardarBase(JSON.stringify(cloud||{}),r.versao);marcarSujo();   // nuvem vazia e aparelho com dados: sobe
       await cloudSaveNow();return;
     }else{
-      setSync('ok');
+      guardarBase(JSON.stringify(cloud||{}),r.versao);setSync('ok');
     }
   }catch(e){setSync('offline');}
-}
-
-// Força manual de sincronização (para resolver divergência entre aparelhos sem merge).
-async function forcePullCloud(){
-  if(!(await showConfirm('Isto DESCARTA os dados deste aparelho e traz a versão que está na nuvem. Use se este aparelho está errado e a nuvem está certa.',{title:'Baixar da nuvem',confirmLabel:'Baixar e substituir',cancelLabel:'Cancelar',danger:true})))return;
-  try{
-    const {data:{user}}=await sb.auth.getUser();
-    if(!user||!_mk){showAlert('Você precisa estar logado e com a conta destravada.');return;}
-    const {data,error}=await sb.from('user_data').select('enc_data').eq('user_id',user.id).maybeSingle();
-    if(error)throw error;
-    if(!data||!data.enc_data){showAlert('Não há dados na nuvem para baixar.');return;}
-    const cloud=JSON.parse(await nfDec(_mk,data.enc_data));
-    applyCloud(cloud);   // SUBSTITUI o local pelo da nuvem (sem misturar)
-    await showAlert('Pronto. Este aparelho agora está igual à nuvem.');
-    location.reload();
-  }catch(e){showAlert('Não consegui baixar da nuvem agora. Verifique a conexão e tente de novo.');}
-}
-async function forcePushCloud(){
-  if(!(await showConfirm('Isto SUBSTITUI o que está na nuvem pelos dados deste aparelho. Use se este aparelho está certo e a nuvem (ou outro aparelho) está errada.',{title:'Enviar este aparelho',confirmLabel:'Enviar e substituir',cancelLabel:'Cancelar',danger:true})))return;
-  if(!_mk){showAlert('Você precisa estar com a conta destravada.');return;}
-  await cloudSaveNow();
-  showAlert('Enviado. A nuvem agora tem os dados deste aparelho.');
 }
 
 // ═══ AUTH ═══
@@ -2890,6 +2998,13 @@ async function doResetWithCode(){
 }
 
 async function doLogout(){
+  // Sair apaga o cache do aparelho. Alteracao que ainda nao chegou a nuvem (faltou
+  // conexao) iria junto: tenta enviar e, se nao der, pergunta antes.
+  if(estaSujo()){
+    for(let i=0;i<20&&_salvando;i++)await new Promise(r=>setTimeout(r,250));
+    try{await cloudSaveNow();}catch(e){}
+    if(estaSujo()&&!(await showConfirm('Algumas alterações feitas neste aparelho ainda não chegaram à nuvem, porque a conexão falhou. Se você sair agora, elas serão perdidas.',{title:'Sair sem enviar?',confirmLabel:'Sair mesmo assim',cancelLabel:'Continuar no app',danger:true})))return;
+  }
   clearInterval(sessionCheckTimer);
   try{
     const{data:{user}}=await sb.auth.getUser();
@@ -3497,14 +3612,9 @@ function _ptBR(iso){const p=String(iso||'').split('-');return p.length===3?p[2]+
 // Acima de ~2 meses, barra por dia vira mancha: 2 anos dariam 730 colunas.
 const DIAS_MAX_DIARIO=62;
 function periodoDash(){
-  const el=document.getElementById('chart-period');
-  // Põe o select de volta na preferência salva. Isso é o que torna a ORDEM de
-  // desenho irrelevante: sem isto, se o painel fosse desenhado antes do gráfico
-  // na carga, os cartões leriam o valor padrão do HTML e mostrariam um recorte
-  // diferente do que o gráfico logo abaixo desenha.
-  if(el&&S.settings.chartPeriod&&el.value!==S.settings.chartPeriod
-     &&[...el.options].some(o=>o.value===S.settings.chartPeriod))el.value=S.settings.chartPeriod;
-  const v=(el&&el.value)||S.settings.chartPeriod||'6';
+  // A preferência salva é a fonte: cartões e gráfico leem daqui, então a ORDEM em
+  // que forem desenhados não muda o recorte. Os seletores só a mostram.
+  const v=S.settings.chartPeriod||'6';
   const hoje=new Date(),ate=_isoDia(hoje);
   const faixa=(v,desde,ate,rotulo)=>({v:v,desde:desde,ate:ate,rotulo:rotulo,
     diario:!!desde&&!!ate&&_diasEntre(desde,ate)<=DIAS_MAX_DIARIO});
@@ -3549,13 +3659,35 @@ function mesesDoHistorico(){
   const n=(hoje.getFullYear()-ini.getFullYear())*12+(hoje.getMonth()-ini.getMonth())+1;
   return Math.max(1,n);
 }
+// Menu principal: os meses de janeiro a dezembro (do ano atual e dos anos com
+// lançamento). "Personalizado…" abre o segundo seletor, com os intervalos.
+const NOMES_MES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function renderSeletorPeriodo(){
+  const per=document.getElementById('chart-period'),rng=document.getElementById('chart-range');
+  if(!per)return;
+  // opções que saíram do menu: 3 meses vira 90 dias, 9 meses vira 12 meses
+  if(S.settings.chartPeriod==='3')S.settings.chartPeriod='90d';
+  if(S.settings.chartPeriod==='9')S.settings.chartPeriod='12';
+  const hoje=new Date(),ano=hoje.getFullYear(),atual=monthKeyOf(hoje);
+  const escolhido=S.settings.dashboardMonth||atual;
+  const anos=new Set([ano,+escolhido.slice(0,4)]);
+  [...S.transactions,...(S.ccItems||[])].forEach(x=>{const a=+String((x&&x.date)||'').slice(0,4);if(a>2000&&a<=ano)anos.add(a);});
+  per.innerHTML=[...anos].sort((a,b)=>b-a).map(a=>'<optgroup label="'+a+'">'+NOMES_MES.map((nome,i)=>{
+    const k=a+'-'+String(i+1).padStart(2,'0');
+    return '<option value="'+k+'">'+nome+' de '+a+(k===atual?' (este mês)':'')+'</option>';
+  }).join('')+'</optgroup>').join('')+'<option value="personalizado">Personalizado…</option>';
+  const modo=S.settings.chartPeriod||'6';
+  per.value=modo==='month'?escolhido:'personalizado';
+  if(rng){rng.style.display=modo==='month'?'none':'';if(modo!=='month')rng.value=modo;}
+}
 function renderCamposPeriodo(){
-  const el=document.getElementById('chart-period');
+  renderSeletorPeriodo();
+  const custom=S.settings.chartPeriod==='custom';
   const box=document.getElementById('per-custom');
-  if(box)box.style.display=(el&&el.value==='custom')?'inline-flex':'none';
+  if(box)box.style.display=custom?'inline-flex':'none';
   const de=document.getElementById('per-de'),ate=document.getElementById('per-ate');
   // primeira abertura: ultimos 30 dias ja preenchidos, para a pessoa so ajustar
-  if(de&&ate&&el&&el.value==='custom'&&!de.value&&!ate.value){
+  if(de&&ate&&custom&&!de.value&&!ate.value){
     const h=new Date();
     ate.value=_isoDia(h);
     de.value=_isoDia(new Date(h.getFullYear(),h.getMonth(),h.getDate()-29));
@@ -3582,8 +3714,8 @@ function renderTopoDash(per){
 function selecionarMesDash(key){
   if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(key))return;
   S.settings.dashboardMonth=key;
-  document.getElementById('chart-period').value='month';
-  trocarPeriodo();
+  S.settings.chartPeriod='month';
+  aplicarPeriodo();
   showPage('dashboard');
 }
 function mudarMesDash(delta){
@@ -3598,8 +3730,12 @@ async function copiarConvite(){
   catch(e){link.focus();link.select();status.textContent='Selecione e copie o link acima.';}
 }
 function trocarPeriodo(){
-  const el=document.getElementById('chart-period');
-  if(el){S.settings.chartPeriod=el.value;}
+  const per=document.getElementById('chart-period'),rng=document.getElementById('chart-range');
+  if(per&&/^\d{4}-\d{2}$/.test(per.value)){S.settings.chartPeriod='month';S.settings.dashboardMonth=per.value;}
+  else if(per&&per.value==='personalizado')S.settings.chartPeriod=(rng&&rng.value)||'30d';
+  aplicarPeriodo();
+}
+function aplicarPeriodo(){
   renderCamposPeriodo();
   const de=document.getElementById('per-de'),ate=document.getElementById('per-ate');
   if(de)S.settings.periodoDe=de.value||'';
@@ -5380,6 +5516,8 @@ function _guardar(chave,valor){
       console.warn('localStorage cheio ao gravar '+chave,e);
     }
   }
+  if(_aplicandoNuvem)return;   // gravando o que veio da nuvem (ou a juncao): nao e mudanca nova deste aparelho
+  if(cloudReady)marcarSujo();
   scheduleCloudSave();
 }
 function persist(){_guardar('bf_tx',S.transactions);}
