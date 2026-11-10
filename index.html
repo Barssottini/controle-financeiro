@@ -110,11 +110,11 @@
 /* barra de bancos na tela de Transacoes: escolhe o banco; "Ver todas" ao lado */
 /* quebra linha em vez de rolar de lado: no celular o "Ver todas" ficava fora da tela */
 .acc-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:-4px 0 18px}
-.acc-chip{display:flex;align-items:center;gap:9px;flex:none;padding:6px 15px 6px 6px;border-radius:100px;border:1.5px solid var(--paper3);
+.acc-chip{display:flex;align-items:center;gap:9px;flex:none;padding:4px 15px 4px 4px;border-radius:100px;border:1.5px solid var(--paper3);
   background:var(--paper);color:var(--ink2);font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;transition:border-color .15s,background .15s}
 .acc-chip:hover{border-color:var(--ink4)}
 .acc-chip.on{border-color:var(--gold);background:var(--goldl);color:var(--ink)}
-.acc-all{display:flex;align-items:center;gap:7px;flex:none;padding:8px 16px;border-radius:100px;border:1.5px dashed var(--paper3);
+.acc-all{display:flex;align-items:center;gap:7px;flex:none;padding:11px 16px;border-radius:100px;border:1.5px dashed var(--paper3);
   background:transparent;color:var(--ink3);font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .acc-all svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
 .acc-all:hover{color:var(--ink);border-color:var(--ink4)}
@@ -226,16 +226,18 @@ button.carregando::after{content:"";position:absolute;left:50%;top:50%;width:16p
   .pr-traco{stroke-dashoffset:0}.pr-area{opacity:1}.pc-brilho{display:none}
 }
 /* Logos vetoriais dos bancos; carteira e contas personalizadas mantem seus icones. */
-.cbadge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;
-  font-size:10.5px;font-weight:800;letter-spacing:-.02em;flex:none;line-height:1}
+/* medidas multiplas de 4: em 125% e 150% de ampliacao viram pixels inteiros e o logo nao borra */
+.cbadge{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;
+  font-size:12px;font-weight:800;letter-spacing:-.02em;flex:none;line-height:1}
 .cbadge.bank-logo{position:relative;overflow:hidden}
-.banco-op .cbadge,.conta-linha .cbadge{width:32px;height:32px;border-radius:9px}
+.banco-op .cbadge{width:40px;height:40px;border-radius:11px}
+.conta-linha .cbadge{width:36px;height:36px;border-radius:10px}
 .cbadge.bank-logo img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:auto}
 .cbadge.bank-logo .bank-fallback[hidden]{display:none}
 .cbadge.bank-logo img[hidden]{display:none}
-.cbadge.sm{width:17px;height:17px;border-radius:5px;font-size:7.5px;vertical-align:-4px;margin-right:2px}
-.cbadge svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.cbadge.sm svg{width:11px;height:11px}
+.cbadge.sm{width:20px;height:20px;border-radius:6px;font-size:8.5px;vertical-align:-5px;margin-right:3px}
+.cbadge svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cbadge.sm svg{width:12px;height:12px}
 body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:100vh}
 
 /* LOGIN */
@@ -342,7 +344,7 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .pf-num-largo .pf-num-valor{color:var(--goldd)}
 .pf-num-extra{font-size:12px;color:var(--ink3)}
 .pf-num-bancos{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
-.pf-num-bancos .cbadge{width:22px;height:22px;border-radius:7px}
+.pf-num-bancos .cbadge{width:28px;height:28px;border-radius:8px}
 .seg-linha{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--paper2)}
 .seg-ic{flex:none;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--paper2);color:var(--ink3)}
 .seg-ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -386,6 +388,12 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .pf-camera:hover{background:#3a3226;transform:scale(1.06)}
 .pf-camera:focus-visible{outline:2px solid #e8c47c;outline-offset:2px}
 .pf-camera svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* X ao lado da camera: so aparece com o mouse em cima da foto (no toque, tirar fica no lapis) */
+.pf-tirar{position:absolute;top:-4px;right:26px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;padding:0;border:2px solid #12110f;background:#2c261d;color:#faf9f7;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .15s,background .15s}
+.pf-tirar svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round}
+.pf-tirar:hover{background:#b83228}
+.pf-tirar:focus-visible{opacity:1;pointer-events:auto;outline:2px solid #e8c47c;outline-offset:2px}
+@media (hover:hover){.pf-avatar:hover .pf-tirar{opacity:1;pointer-events:auto}}
 .mobile-avatar{overflow:hidden;padding:0}
 .mobile-avatar img{display:block;width:100%;height:100%;object-fit:cover}
 /* ═══ CONHECER VOCE ═══ */
@@ -1365,7 +1373,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
       <section class="pf-hero" id="pf-hero" aria-label="Sua conta">
         <div class="pf-topo">
           <div class="pf-quem">
-            <div class="pf-avatar"><span id="pf-iniciais" aria-hidden="true">N</span><img id="pf-foto" alt="Sua foto de perfil" hidden><b class="pf-selo" aria-hidden="true">PRO</b><button type="button" class="pf-camera" onclick="document.getElementById('pf-foto-campo').click()" aria-label="Trocar foto de perfil" title="Trocar foto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><input type="file" id="pf-foto-campo" accept="image/*" hidden onchange="escolherFoto(this)"></div>
+            <div class="pf-avatar"><span id="pf-iniciais" aria-hidden="true">N</span><img id="pf-foto" alt="Sua foto de perfil" hidden><b class="pf-selo" aria-hidden="true">PRO</b><button type="button" class="pf-camera" onclick="document.getElementById('pf-foto-campo').click()" aria-label="Trocar foto de perfil" title="Trocar foto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button type="button" class="pf-tirar" id="pf-foto-tirar" onclick="removerFoto()" aria-label="Remover foto" title="Remover foto" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button><input type="file" id="pf-foto-campo" accept="image/*" hidden onchange="escolherFoto(this)"></div>
             <div class="pf-dados">
               <div class="pf-nome-linha" id="pf-nome-linha">
                 <h2 id="pf-nome" onclick="editarNome()">—</h2>
@@ -1455,12 +1463,6 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="set-show-cc" class="chk"> Exibir módulo Cartão de Crédito</label>
         <p style="font-size:12px;color:var(--ink3);margin-top:10px">Desative se você não usa cartão de crédito, para deixar o app mais limpo. Os dados não são apagados — só ficam ocultos.</p>
         <button class="btn btn-primary" style="margin-top:14px" onclick="saveSettings()">Salvar</button>
-        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--paper2)">
-          <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:4px">Tipo desta conta</div>
-          <p style="font-size:12px;color:var(--ink3);margin-bottom:10px">Define as categorias oferecidas. Trocar não apaga nada — as categorias que você já usou continuam disponíveis.</p>
-          <button class="btn btn-secondary btn-sm" onclick="openModal('tipo-modal')">Mudar tipo de conta</button>
-          <span id="tipo-atual" style="font-size:12px;color:var(--ink3);margin-left:10px"></span>
-        </div>
       </div>
 
       <div class="panel">
@@ -1529,7 +1531,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
   <div class="modal" style="max-width:460px">
     <div class="mhead"><h3>Como você vai usar o North?</h3></div>
     <div class="mbody">
-      <p style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:16px">Isso define as categorias e o que aparece na tela. Dá para mudar depois em Configurações.</p>
+      <p style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:16px">Isso define as categorias e o que aparece na tela, e vale para esta conta: depois de escolhido, o tipo não muda.</p>
       <button class="tipo-opt" onclick="escolherTipo('pf')"><b>Pessoal</b><span>As minhas finanças: salário, contas de casa, cartão, investimentos.</span></button>
       <button class="tipo-opt" onclick="escolherTipo('pj')"><b>Empresa</b><span>As finanças do meu negócio: faturamento, fornecedores, impostos, pró-labore.</span></button>
     </div>
@@ -3263,7 +3265,7 @@ function renderPerfil(){
   document.getElementById('pf-iniciais').textContent=iniciaisPerfil();
   renderAvatares();
   document.getElementById('pf-email').textContent=u.email||document.getElementById('udisp').textContent.trim();
-  document.getElementById('pf-desde').textContent=u.created_at?'Membro desde '+new Date(u.created_at).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'';
+  document.getElementById('pf-desde').textContent=(u.created_at?'Membro desde '+new Date(u.created_at).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})+' · ':'')+(tipoConta()==='pj'?'Conta empresa':'Conta pessoal');
   document.getElementById('pf-cartao-nome').textContent=nome||'North Pro';
   const n=v=>v.toLocaleString('pt-BR');
   const bloco=(rotulo,valor,extra,cls)=>'<div class="pf-num'+(cls?' '+cls:'')+'"><span class="pf-num-rotulo">'+rotulo+'</span><b class="pf-num-valor">'+valor+'</b>'+(extra||'')+'</div>';
@@ -3311,7 +3313,7 @@ function renderAvatares(){
     if(foto)img.src=foto;else img.removeAttribute('src');
     img.hidden=!foto;ini.hidden=!!foto;
   });
-  const rm=document.getElementById('pf-foto-remover');if(rm)rm.hidden=!foto;
+  ['pf-foto-remover','pf-foto-tirar'].forEach(id=>{const b=document.getElementById(id);if(b)b.hidden=!foto;});
 }
 // lê como data: (a política de imagens do app não aceita blob:)
 function lerImagem(arquivo){
@@ -3337,7 +3339,12 @@ async function escolherFoto(input){
     persistSettings();renderAvatares();toast('Foto salva');
   }catch(e){showAlert('Não consegui abrir essa imagem. Tente uma foto em JPG ou PNG.');}
 }
-function removerFoto(){S.settings.foto='';persistSettings();renderAvatares();toast('Foto removida');}
+// sem confirmação, mas com Desfazer: o X fica a um passo da câmera
+function removerFoto(){
+  const antes=S.settings.foto;if(!antes)return;
+  S.settings.foto='';persistSettings();renderAvatares();
+  toastUndo('Foto removida',()=>{S.settings.foto=antes;persistSettings();renderAvatares();});
+}
 
 // ═══ CONHECER VOCÊ ═══
 // Perguntas opcionais, e cada resposta muda algo que a pessoa vê: o nome vira
@@ -4329,6 +4336,8 @@ function renderCatSelects(){
   });
 }
 function escolherTipo(tp){
+  // o tipo é definido uma vez, na criação da conta
+  if(S.settings.accountType){closeModal('tipo-modal');return;}
   S.settings.accountType=tp;
   if(tp==='pj')S.settings.billsTab='receive';   // negocio olha primeiro o que entra
   persistSettings();
@@ -6104,8 +6113,6 @@ function migrateData(){
 // ═══ SETTINGS ═══
 function renderSettings(){
   const cc=document.getElementById('set-show-cc');if(cc)cc.checked=!!S.settings.showCC;
-  const ta=document.getElementById('tipo-atual');
-  if(ta)ta.textContent=tipoConta()==='pj'?'Hoje: empresa':'Hoje: pessoal';
   renderContasSettings();
   renderTemaSel();
   loadEmailPrefs();
