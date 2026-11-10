@@ -244,6 +244,10 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 /* LOGIN */
 #login-screen{position:fixed;inset:0;z-index:9999;background:#0d0d0d;display:flex;align-items:center;justify-content:center;transition:opacity .4s,transform .4s}
 #login-screen.hidden{opacity:0;pointer-events:none;transform:scale(1.04)}
+/* capa da lista de apps abertos: escura nos dois temas, como a abertura */
+#tela-privada{display:none;position:fixed;inset:0;z-index:2147483000;background:#0d0d0d;place-items:center}
+body.privado #tela-privada{display:grid}
+#tela-privada img{width:64px;height:64px;border-radius:16px}
 .login-box{background:var(--paper);border-radius:22px;padding:52px 46px;width:100%;max-width:410px;box-shadow:0 40px 80px rgba(0,0,0,.55);position:relative;overflow:hidden}
 .login-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),#e8b96a,var(--gold))}
 .login-brand{font-size:22px;font-weight:800;color:var(--ink);margin-bottom:4px;letter-spacing:-.5px}
@@ -957,6 +961,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
 </style>
 </head>
 <body>
+<div id="tela-privada" aria-hidden="true"><img src="logo-192.png" alt="" width="64" height="64"></div>
 <dialog id="north-splash" aria-label="North Finances está abrindo" tabindex="-1">
   <video id="north-intro" src="north-intro-v2.mp4" muted playsinline preload="auto" disablepictureinpicture aria-hidden="true"></video>
 </dialog>
@@ -2320,6 +2325,19 @@ document.addEventListener('touchmove',event=>{
 // ═══ PWA ═══
 // Service worker só fora do Electron (bug no CacheStorage do Electron 33 derruba o renderer)
 const IS_ELECTRON=/Electron/i.test(navigator.userAgent);
+// ═══ TELA DE PRIVACIDADE ═══
+// So no celular: no computador a janela perde o foco a toda hora (outra janela,
+// ferramentas do navegador) e a capa atrapalharia. "blur" chega antes do
+// segundo plano, a tempo de a capa entrar na foto da lista de apps; o
+// visibilitychange cobre o caso em que o blur nao vem.
+if(matchMedia('(pointer:coarse)').matches){
+  const cobre=v=>document.body&&document.body.classList.toggle('privado',v);
+  window.addEventListener('blur',()=>cobre(true));
+  window.addEventListener('pagehide',()=>cobre(true));
+  document.addEventListener('visibilitychange',()=>cobre(document.hidden));
+  window.addEventListener('focus',()=>cobre(false));
+  window.addEventListener('pageshow',()=>cobre(false));
+}
 if('serviceWorker' in navigator && location.protocol==='https:' && !IS_ELECTRON)navigator.serviceWorker.register('sw.js').catch(()=>{});
 if('serviceWorker' in navigator && IS_ELECTRON)navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
 
