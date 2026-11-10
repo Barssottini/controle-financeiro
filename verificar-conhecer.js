@@ -45,7 +45,7 @@ const sandbox = {
 };
 const nomes = Object.keys(sandbox);
 const F = new Function(...nomes, auxiliares + '\n' + t.slice(i, j) +
-  '\nreturn {cicloPagamento,proximoMarco,gastoMedioMensal,renderFoco,renderSaudacao,abrirConhecer,ckSeguir,ckPular,ckObjetivo,ckDia,ckFaixa,_diaChave,monthKeyOf};');
+  '\nreturn {cicloEfetivo,cicloPagamento,proximoMarco,gastoMedioMensal,renderFoco,renderSaudacao,abrirConhecer,ckSeguir,ckPular,ckObjetivo,ckDia,ckFaixa,_diaChave,monthKeyOf};');
 const C = F(...nomes.map(n => sandbox[n]));
 
 let falhas = 0;
@@ -148,6 +148,19 @@ checa('gasto maior que a entrada aparece em vermelho', dom['dash-foco'].innerHTM
 S.settings.diaPagamento = null; S.settings.metaFoco = null;
 C.renderFoco();
 checa('sem pagamento e sem meta, a linha some', dom['dash-foco'].hidden, true);
+
+// 6b. Salario adiantado (fim de semana, feriado): e a data que o extrato importado traz
+const ef = (a, m, d) => { const c = C.cicloEfetivo(5, new Date(a, m - 1, d)); return [c.inicio, C._diaChave(c.proximo), c.faltam]; };
+const guarda = S.transactions;
+S.transactions = [{ id: 200, type: 'income', amount: 6200, date: '2026-11-03' }, { id: 201, type: 'expense', amount: 100, date: '2026-11-04' }];
+checa('salario na sexta antes do dia 5 abre o ciclo nele', ef(2026, 11, 10), ['2026-11-03', '2026-12-05', 25]);
+S.transactions = [{ id: 202, type: 'income', amount: 6200, date: '2026-11-05' }];
+checa('salario no dia: o ciclo comeca no dia', ef(2026, 11, 10), ['2026-11-05', '2026-12-05', 25]);
+S.transactions = [{ id: 203, type: 'income', amount: 6200, date: '2026-11-03' }, { id: 204, type: 'income', amount: 6200, date: '2026-12-03' }];
+checa('salario de dezembro caiu antes do dia: ja e o ciclo novo', ef(2026, 12, 3), ['2026-12-03', '2027-01-05', 33]);
+S.transactions = [{ id: 205, type: 'income', amount: 6200, date: '2026-11-03' }, { id: 206, type: 'income', amount: 50, date: '2026-12-03' }];
+checa('um Pix pequeno na vespera nao vira o pagamento', ef(2026, 12, 3), ['2026-11-03', '2026-12-05', 2]);
+S.transactions = guarda;
 
 // 7. Saudacao
 C.renderSaudacao();

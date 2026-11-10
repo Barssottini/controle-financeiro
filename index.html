@@ -3338,6 +3338,23 @@ function cicloPagamento(dia,hoje){
   const proximo=em(ultimo.getFullYear(),ultimo.getMonth()+1);
   return {ultimo,proximo,hoje:+ultimo===+h,faltam:Math.round((proximo-h)/86400000)};
 }
+// Salário que cai até 3 dias antes do dia (fim de semana, feriado; é a data que
+// o extrato importado traz) conta como o pagamento, e o ciclo começa nele.
+function cicloEfetivo(dia,hoje){
+  const c=cicloPagamento(dia,hoje),h=_diaChave(hoje?new Date(hoje):new Date());
+  const menos=(d,n)=>_diaChave(new Date(d.getFullYear(),d.getMonth(),d.getDate()-n));
+  const entradas=(de,ate)=>S.transactions.filter(t=>t.type==='income'&&t.date>=de&&t.date<=ate);
+  const soma=l=>l.reduce((s,t)=>s+(+t.amount||0),0);
+  // o próximo já caiu, adiantado? Só se tiver tamanho de salário: um Pix
+  // pequeno na véspera não pode virar o pagamento do mês.
+  const cedo=entradas(menos(c.proximo,3),h);
+  if(cedo.length&&soma(cedo)*2>=soma(entradas(menos(c.ultimo,3),menos(c.proximo,4)))){
+    const n=cicloPagamento(dia,c.proximo);
+    return {inicio:cedo.map(t=>t.date).sort()[0],proximo:n.proximo,faltam:Math.round((n.proximo-new Date(h+'T00:00:00'))/86400000),hoje:false};
+  }
+  const antes=entradas(menos(c.ultimo,3),menos(c.ultimo,1)).map(t=>t.date).sort()[0];
+  return {inicio:antes||_diaChave(c.ultimo),proximo:c.proximo,faltam:c.faltam,hoje:c.hoje};
+}
 function renderFoco(){
   const box=document.getElementById('dash-foco');if(!box)return;
   let h='';
@@ -3348,10 +3365,10 @@ function renderFoco(){
   }
   const dia=S.settings.diaPagamento;
   if(dia){
-    const c=cicloPagamento(dia),de=_diaChave(c.ultimo),ate=_diaChave(new Date());
+    const c=cicloEfetivo(dia),ate=_diaChave(new Date());
     let entrou=0,saiu=0;
-    S.transactions.forEach(t=>{if(t.date>=de&&t.date<=ate){if(t.type==='income')entrou+=t.amount;else if(t.type==='expense')saiu+=t.amount;}});
-    const sobra=entrou-saiu,dia0=c.ultimo.getDate();
+    S.transactions.forEach(t=>{if(t.date>=c.inicio&&t.date<=ate){if(t.type==='income')entrou+=t.amount;else if(t.type==='expense')saiu+=t.amount;}});
+    const sobra=entrou-saiu,dia0=+c.inicio.slice(8,10);
     const titulo=c.hoje?'Hoje é dia de pagamento':c.faltam===1?'Falta 1 dia para o seu pagamento':'Faltam '+c.faltam+' dias para o seu pagamento';
     const linha=!entrou?'Lance o que entrou desde o dia '+dia0+' para ver quanto dá para gastar por dia.'
       :sobra<0?'Desde o dia '+dia0+', os gastos passaram '+fmtCur(-sobra)+' do que entrou.'
@@ -3479,7 +3496,7 @@ function aplicarConhecer(){
     feito.push([(antes?'Meta atualizada: ':'Meta criada: ')+g.name,fmtCur(g.target)+', com o progresso no painel']);
   }else s.metaFoco=null;
   if(s.diaPagamento){
-    const c=cicloPagamento(s.diaPagamento);
+    const c=cicloEfetivo(s.diaPagamento);
     feito.push(['Contagem até o pagamento',(c.hoje?'Hoje é dia de pagamento':c.faltam===1?'Falta 1 dia':'Faltam '+c.faltam+' dias')+'. O painel mostra quanto dá para gastar por dia.']);
   }
   const f=FAIXAS[s.faixaRenda];
