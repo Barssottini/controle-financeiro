@@ -398,6 +398,13 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .pf-avatar:has(.pf-tirar:focus-visible) .pf-selo{opacity:0}
 .mobile-avatar{overflow:hidden;padding:0}
 .mobile-avatar img{display:block;width:100%;height:100%;object-fit:cover}
+/* ═══ GRAFICO RECEITAS x DESPESAS ═══ */
+.chart-legenda{display:flex;flex-wrap:wrap;gap:8px 20px;margin:-4px 0 14px;font-size:12.5px;color:var(--ink3)}
+.chart-legenda span{display:inline-flex;align-items:center;gap:7px}
+.chart-legenda i{width:8px;height:8px;border-radius:50%}
+.chart-legenda b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+.chart-vazio{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;color:var(--ink3);pointer-events:none}
+.chart-vazio[hidden]{display:none}
 /* ═══ CONFERIR FATURA ═══ */
 .conf-resumo{display:flex;flex-wrap:wrap;gap:8px}
 .conf-resumo span{padding:6px 12px;border-radius:100px;font-size:12.5px;font-weight:700}
@@ -1256,7 +1263,8 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
             </span>
           </div>
         </div>
-        <div class="chart-wrap"><canvas id="dash-chart"></canvas></div>
+        <div class="chart-legenda" id="chart-legenda"></div>
+        <div class="chart-wrap"><canvas id="dash-chart"></canvas><div class="chart-vazio" id="chart-vazio" hidden>Nenhum lançamento neste período</div></div>
       </div>
       <div class="panel">
         <div class="panel-head">
@@ -6207,6 +6215,8 @@ function renderChart(){
   const labels=[],incData=[],expData=[];
   const vis=txVis();
   const soma=(tipo,pref)=>vis.filter(t=>t.type===tipo&&String(t.date||'').startsWith(pref)).reduce((s,t)=>s+t.amount,0);
+  // mesmo recorte dos cartoes: lancamento agendado para depois de hoje nao entra na barra do mes
+  const somaMes=(tipo,k)=>vis.filter(t=>t.type===tipo&&mesDe(t.date)===k&&noPeriodo(t,per)).reduce((s,t)=>s+t.amount,0);
   if(per.diario){
     const p=per.desde.split('-');
     const ini=new Date(+p[0],+p[1]-1,+p[2]);
@@ -6228,37 +6238,53 @@ function renderChart(){
       const d=new Date(ini.getFullYear(),ini.getMonth()+i,1);
       labels.push(d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}));
       const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-      incData.push(soma('income',key));expData.push(soma('expense',key));
+      incData.push(somaMes('income',key));expData.push(somaMes('expense',key));
     }
   }
   const ctx=document.getElementById('dash-chart').getContext('2d');
   if(dashChart)dashChart.destroy();
   // o canvas nao herda CSS: as cores saem dos tokens no momento do desenho, e
   // setTema() redesenha o grafico quando o tema muda
-  const CT={g:cssVar('--green'),r:cssVar('--red'),p:cssVar('--paper'),t2:cssVar('--ink2'),t3:cssVar('--ink3'),
-    grid:document.documentElement.getAttribute('data-theme')==='dark'?'rgba(255,255,255,.06)':'rgba(0,0,0,.05)'};
-  const datasets=chartType==='bar'?[
-    {label:'Receitas',data:incData,backgroundColor:'rgba(38,122,72,.7)',borderRadius:6,borderSkipped:false},
-    {label:'Despesas',data:expData,backgroundColor:'rgba(184,50,40,.65)',borderRadius:6,borderSkipped:false}
-  ]:[
-    {label:'Receitas',data:incData,borderColor:CT.g,backgroundColor:'rgba(38,122,72,.12)',
-      pointBackgroundColor:CT.g,pointBorderColor:CT.p,pointBorderWidth:2,pointRadius:4,pointHoverRadius:6,
-      borderWidth:2.5,tension:.35,fill:true},
-    {label:'Despesas',data:expData,borderColor:CT.r,backgroundColor:'rgba(184,50,40,.1)',
-      pointBackgroundColor:CT.r,pointBorderColor:CT.p,pointBorderWidth:2,pointRadius:4,pointHoverRadius:6,
-      borderWidth:2.5,tension:.35,fill:true}
-  ];
+  const escuro=document.documentElement.getAttribute('data-theme')==='dark';
+  const CT={g:cssVar('--green'),r:cssVar('--red'),p:cssVar('--paper'),t3:cssVar('--ink3'),grid:escuro?'rgba(255,255,255,.06)':'rgba(13,13,13,.06)'};
+  const totInc=incData.reduce((a,b)=>a+b,0),totExp=expData.reduce((a,b)=>a+b,0),vazio=!totInc&&!totExp;
+  // legenda propria: o total do periodo junto do nome
+  const leg=document.getElementById('chart-legenda');
+  if(leg)leg.innerHTML='<span><i style="background:'+CT.g+'"></i>Receitas <b>'+fmtCur(totInc)+'</b></span><span><i style="background:'+CT.r+'"></i>Despesas <b>'+fmtCur(totExp)+'</b></span>';
+  const vz=document.getElementById('chart-vazio');if(vz)vz.hidden=!vazio;
+  const comAlfa=(c,a)=>{const m=String(c).replace('#','').match(/^([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);return m?'rgba('+parseInt(m[1],16)+','+parseInt(m[2],16)+','+parseInt(m[3],16)+','+a+')':c;};
+  const degrade=cor=>c=>{const a=c.chart.chartArea;if(!a)return comAlfa(cor,.15);const g=c.chart.ctx.createLinearGradient(0,a.top,0,a.bottom);g.addColorStop(0,comAlfa(cor,escuro?.3:.22));g.addColorStop(1,comAlfa(cor,0));return g;};
+  const linha=(label,data,cor)=>({label,data,borderColor:cor,backgroundColor:degrade(cor),fill:true,cubicInterpolationMode:'monotone',borderWidth:2.5,borderCapStyle:'round',borderJoinStyle:'round',
+    pointRadius:0,pointHitRadius:12,pointHoverRadius:5,pointHoverBackgroundColor:cor,pointHoverBorderColor:CT.p,pointHoverBorderWidth:2,cor});
+  const barra=(label,data,cor)=>({label,data,backgroundColor:comAlfa(cor,.82),hoverBackgroundColor:cor,borderRadius:8,borderSkipped:false,maxBarThickness:22,categoryPercentage:.62,barPercentage:.82,cor});
+  const datasets=chartType==='bar'?[barra('Receitas',incData,CT.g),barra('Despesas',expData,CT.r)]:[linha('Receitas',incData,CT.g),linha('Despesas',expData,CT.r)];
+  const curto=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',notation:'compact',maximumFractionDigits:1});
+  // guia tracejada no ponto em foco (so na linha)
+  const guia={id:'guia',afterDatasetsDraw(ch){
+    const at=ch.tooltip&&ch.tooltip.getActiveElements?ch.tooltip.getActiveElements():[];
+    if(chartType==='bar'||!at.length)return;
+    const x=at[0].element.x,a=ch.chartArea,g=ch.ctx;
+    g.save();g.setLineDash([4,4]);g.strokeStyle=CT.t3;g.globalAlpha=.55;g.lineWidth=1;g.beginPath();g.moveTo(x,a.top);g.lineTo(x,a.bottom);g.stroke();g.restore();
+  }};
   dashChart=new Chart(ctx,{
-    type:chartType,
-    data:{labels,datasets},
+    type:chartType,data:{labels,datasets},plugins:[guia],
     options:{
       responsive:true,maintainAspectRatio:false,
+      devicePixelRatio:Math.max(2,window.devicePixelRatio||1),   // desenha em dobro: linha lisa ate em tela 100% ou 125%
+      animation:{duration:600,easing:'easeOutQuart'},
       interaction:{intersect:false,mode:'index'},
-      plugins:{legend:{position:'top',labels:{font:{family:'Plus Jakarta Sans',size:12},color:CT.t2}},
-        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtCur(ctx.raw)}`}}},
+      layout:{padding:{top:6,right:4}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{backgroundColor:'#161412',titleColor:'#faf9f7',bodyColor:'#e6dfd8',borderColor:'rgba(232,196,124,.28)',borderWidth:1,
+          padding:12,cornerRadius:10,caretSize:0,usePointStyle:true,boxPadding:6,
+          titleFont:{family:'Plus Jakarta Sans',size:12,weight:'700'},bodyFont:{family:'Plus Jakarta Sans',size:12},
+          callbacks:{label:c=>' '+c.dataset.label+': '+fmtCur(c.raw),labelColor:c=>({borderColor:c.dataset.cor,backgroundColor:c.dataset.cor})}}
+      },
       scales:{
-        x:{grid:{display:false},ticks:{font:{family:'Plus Jakarta Sans',size:12},color:CT.t3,autoSkip:true,maxTicksLimit:15}},
-        y:{grid:{color:CT.grid},ticks:{font:{family:'Plus Jakarta Sans',size:11},color:CT.t3,callback:v=>fmtCur(v)}}
+        x:{grid:{display:false},border:{display:false},ticks:{font:{family:'Plus Jakarta Sans',size:11},color:CT.t3,autoSkip:true,maxTicksLimit:8,maxRotation:0}},
+        y:{min:0,suggestedMax:vazio?1000:undefined,grid:{color:CT.grid,drawTicks:false},border:{display:false,dash:[3,4]},
+          ticks:{font:{family:'Plus Jakarta Sans',size:11},color:CT.t3,padding:10,maxTicksLimit:5,callback:v=>S.settings.showValues?curto.format(v):''}}
       }
     }
   });
