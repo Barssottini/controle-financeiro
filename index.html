@@ -309,8 +309,8 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .pf-editar{flex:none;width:32px;height:32px;border-radius:9px;border:0;background:rgba(255,255,255,.07);color:#e8c47c;cursor:pointer;display:grid;place-items:center;transition:background .15s}
 .pf-editar:hover{background:rgba(255,255,255,.13)}
 .pf-editar svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.pf-nome-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.pf-nome-form .field{width:min(260px,100%);background:rgba(255,255,255,.06);border-color:rgba(232,196,124,.35);color:#faf9f7}
+.pf-nome-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;max-width:420px}
+.pf-nome-form .field{flex:1 1 100%;width:auto;background:rgba(255,255,255,.06);border-color:rgba(232,196,124,.35);color:#faf9f7}
 .pf-nome-form .field::placeholder{color:#8a837b}
 .pf-email{margin:6px 0 0;font-size:13.5px;color:#b5afa9;overflow-wrap:anywhere}
 .pf-desde{margin:3px 0 0;font-size:12px;color:#8a837b}
@@ -379,6 +379,15 @@ body.values-hidden #dash-chart{filter:blur(6px)}
   .seg-acao{width:100%;padding-left:52px}
   #mfa-enroll{padding-left:0}
 }
+/* foto de perfil: cobre as iniciais; o botao da camera fica no alto, longe do selo PRO */
+.pf-avatar [hidden],.mobile-avatar [hidden],.pf-nome-form [hidden]{display:none}
+.pf-avatar img{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover}
+.pf-camera{position:absolute;top:-4px;right:-6px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;padding:0;border:2px solid #12110f;background:#2c261d;color:#e8c47c;cursor:pointer;transition:background .15s,transform .15s}
+.pf-camera:hover{background:#3a3226;transform:scale(1.06)}
+.pf-camera:focus-visible{outline:2px solid #e8c47c;outline-offset:2px}
+.pf-camera svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mobile-avatar{overflow:hidden;padding:0}
+.mobile-avatar img{display:block;width:100%;height:100%;object-fit:cover}
 /* ═══ CONHECER VOCE ═══ */
 .dash-oi{display:none}
 .panel.dash-foco{padding:4px 22px}
@@ -728,7 +737,7 @@ button.foco-linha:hover .foco-ir{color:var(--gold)}
 #north-splash{position:fixed;inset:0;width:100%;max-width:none;height:100dvh;max-height:none;margin:0;padding:0;border:0;background:#000;overflow:hidden;outline:none;opacity:1;transition:opacity .65s cubic-bezier(.4,0,.2,1)}
 #north-splash[open]{display:block}
 /* A área externa fica preta; o corpo mantém sua cor durante o fade. */
-html.splash-active{background:#000}
+html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rolagem some no preto; pintar em vez de esconder evita o pulo da largura quando a abertura termina */
 #north-splash::backdrop{background:#000;opacity:1;transition:opacity .65s cubic-bezier(.4,0,.2,1)}
 #north-splash.leaving{opacity:0}
 #north-splash.leaving::backdrop{opacity:0}
@@ -1058,7 +1067,7 @@ html.splash-active{background:#000}
 <!-- APP -->
 <div id="app">
   <div class="mtopbar">
-    <button type="button" class="mobile-avatar" onclick="openPerfil()" aria-label="Ver meu perfil"><span id="mobile-initial" aria-hidden="true">N</span></button>
+    <button type="button" class="mobile-avatar" onclick="openPerfil()" aria-label="Ver meu perfil"><span id="mobile-initial" aria-hidden="true">N</span><img id="mobile-foto" alt="" hidden></button>
     <div class="mobile-period">
       <button type="button" onclick="mudarMesDash(-1)" aria-label="Mês anterior">‹</button>
       <select id="mobile-month" aria-label="Período do painel" onchange="selecionarMesDash(this.value)"></select>
@@ -1356,7 +1365,7 @@ html.splash-active{background:#000}
       <section class="pf-hero" id="pf-hero" aria-label="Sua conta">
         <div class="pf-topo">
           <div class="pf-quem">
-            <div class="pf-avatar" aria-hidden="true"><span id="pf-iniciais">N</span><b class="pf-selo">PRO</b></div>
+            <div class="pf-avatar"><span id="pf-iniciais" aria-hidden="true">N</span><img id="pf-foto" alt="Sua foto de perfil" hidden><b class="pf-selo" aria-hidden="true">PRO</b><button type="button" class="pf-camera" onclick="document.getElementById('pf-foto-campo').click()" aria-label="Trocar foto de perfil" title="Trocar foto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><input type="file" id="pf-foto-campo" accept="image/*" hidden onchange="escolherFoto(this)"></div>
             <div class="pf-dados">
               <div class="pf-nome-linha" id="pf-nome-linha">
                 <h2 id="pf-nome" onclick="editarNome()">—</h2>
@@ -1366,6 +1375,7 @@ html.splash-active{background:#000}
                 <input class="field" id="pf-nome-campo" maxlength="40" placeholder="Como quer ser chamado?" autocomplete="name" aria-label="Seu nome" onkeydown="if(event.key==='Escape')fecharNome()">
                 <button type="submit" class="pf-btn pf-btn-ouro">Salvar</button>
                 <button type="button" class="pf-btn" onclick="fecharNome()">Cancelar</button>
+                <button type="button" class="pf-btn" id="pf-foto-remover" onclick="removerFoto()" hidden>Remover foto</button>
               </form>
               <p class="pf-email" id="pf-email"></p>
               <p class="pf-desde" id="pf-desde"></p>
@@ -3251,6 +3261,7 @@ function renderPerfil(){
   h.textContent=nome||'Como quer ser chamado?';
   h.classList.toggle('vazio',!nome);
   document.getElementById('pf-iniciais').textContent=iniciaisPerfil();
+  renderAvatares();
   document.getElementById('pf-email').textContent=u.email||document.getElementById('udisp').textContent.trim();
   document.getElementById('pf-desde').textContent=u.created_at?'Membro desde '+new Date(u.created_at).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'';
   document.getElementById('pf-cartao-nome').textContent=nome||'North Pro';
@@ -3286,6 +3297,47 @@ function salvarNome(e){
   fecharNome();renderPerfil();
   document.getElementById('mobile-initial').textContent=iniciaisPerfil();
 }
+
+// ═══ FOTO DE PERFIL ═══
+// Opcional. Recortada em quadrado e reduzida aqui no aparelho (256 px, JPEG,
+// uns 20 a 40 KB) e guardada nas configurações, que viajam cifradas: a foto
+// nunca chega aberta ao servidor e aparece sozinha nos outros aparelhos.
+const FOTO_LADO=256;
+function fotoValida(){const f=S.settings.foto;return typeof f==='string'&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(f)?f:'';}
+function renderAvatares(){
+  const foto=fotoValida();
+  [['pf-foto','pf-iniciais'],['mobile-foto','mobile-initial']].forEach(([f,i])=>{
+    const img=document.getElementById(f),ini=document.getElementById(i);if(!img||!ini)return;
+    if(foto)img.src=foto;else img.removeAttribute('src');
+    img.hidden=!foto;ini.hidden=!!foto;
+  });
+  const rm=document.getElementById('pf-foto-remover');if(rm)rm.hidden=!foto;
+}
+// lê como data: (a política de imagens do app não aceita blob:)
+function lerImagem(arquivo){
+  return new Promise((ok,erro)=>{
+    const r=new FileReader();
+    r.onerror=erro;
+    r.onload=()=>{const i=new Image();i.onload=()=>ok(i);i.onerror=erro;i.src=r.result;};
+    r.readAsDataURL(arquivo);
+  });
+}
+async function escolherFoto(input){
+  const f=input.files&&input.files[0];input.value='';
+  if(!f)return;
+  if(!/^image\//.test(f.type)||f.size>15*1024*1024){showAlert('Escolha uma imagem em JPG, PNG ou WebP, de até 15 MB.');return;}
+  try{
+    const img=await lerImagem(f),w=img.naturalWidth,h=img.naturalHeight,lado=Math.min(w,h);
+    if(!lado)throw new Error('vazia');
+    const c=document.createElement('canvas');c.width=c.height=FOTO_LADO;
+    const x=c.getContext('2d');
+    x.fillStyle='#1c1a17';x.fillRect(0,0,FOTO_LADO,FOTO_LADO);   // fundo para PNG transparente
+    x.drawImage(img,(w-lado)/2,(h-lado)/2,lado,lado,0,0,FOTO_LADO,FOTO_LADO);
+    S.settings.foto=c.toDataURL('image/jpeg',.85);
+    persistSettings();renderAvatares();toast('Foto salva');
+  }catch(e){showAlert('Não consegui abrir essa imagem. Tente uma foto em JPG ou PNG.');}
+}
+function removerFoto(){S.settings.foto='';persistSettings();renderAvatares();toast('Foto removida');}
 
 // ═══ CONHECER VOCÊ ═══
 // Perguntas opcionais, e cada resposta muda algo que a pessoa vê: o nome vira
@@ -4167,6 +4219,7 @@ function renderCamposPeriodo(){
 function renderTopoDash(per){
   renderEyeToggle();
   document.getElementById('mobile-initial').textContent=iniciaisPerfil();
+  renderAvatares();
   renderSaudacao();
   const sel=document.getElementById('mobile-month');
   const atual=monthKeyOf(new Date());
