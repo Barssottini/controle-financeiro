@@ -398,6 +398,27 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .pf-avatar:has(.pf-tirar:focus-visible) .pf-selo{opacity:0}
 .mobile-avatar{overflow:hidden;padding:0}
 .mobile-avatar img{display:block;width:100%;height:100%;object-fit:cover}
+/* ═══ QUEM ME DEVE ═══ */
+.panel.dev-resumo{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 20px;padding:18px 22px}
+.dev-resumo span{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.dev-resumo b{display:block;margin-top:2px;font-size:28px;font-weight:800;letter-spacing:-.6px;color:var(--green);font-variant-numeric:tabular-nums}
+.dev-resumo small{font-size:13px;color:var(--ink3)}
+.dev-resumo small.atraso{color:var(--red);font-weight:600}
+.panel.dev-pessoa{padding:16px 22px 6px}
+.dev-topo{display:flex;align-items:center;gap:12px;padding-bottom:10px}
+.dev-ini{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--goldl);color:var(--goldd);font-size:14px;font-weight:800}
+.dev-topo b{flex:1;min-width:0;font-size:15px;overflow-wrap:anywhere}
+.dev-topo strong{font-size:16px;font-variant-numeric:tabular-nums}
+.dev-item{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:12px 0;border-top:1px solid var(--paper2)}
+.dev-info{flex:1 1 200px;min-width:0}
+.dev-info span{display:block;font-size:13.5px;font-weight:600;overflow-wrap:anywhere}
+.dev-info small{display:block;margin-top:2px;font-size:12px;color:var(--ink3)}
+.dev-info small.atraso{color:var(--red);font-weight:600}
+.dev-valor{font-weight:700;font-variant-numeric:tabular-nums}
+.dev-acoes{display:flex;gap:6px;flex-wrap:wrap}
+.panel.dev-quitados{margin-top:4px;padding:0 22px}
+.dev-quitados summary{padding:15px 0;font-size:13.5px;font-weight:700;color:var(--ink2);cursor:pointer}
+.dev-quitados .dev-item{color:var(--ink3)}
 /* ═══ PRIMEIRO GASTO ═══ */
 .pg{max-width:420px;padding:22px 24px 20px}
 .pg h3{margin:0;font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.2;text-wrap:balance}
@@ -1147,6 +1168,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
       <div class="navi active" onclick="showPage('dashboard')">Dashboard</div>
       <div class="navi" onclick="showPage('transactions')">Transações</div>
       <div class="navi" onclick="showPage('bills')">Contas</div>
+      <div class="navi" onclick="showPage('devedores')">Quem me deve</div>
       <div class="navi" onclick="showPage('budget')">Orçamento</div>
       <div class="navi" id="nav-cc" onclick="showPage('credit-card')">Cartão de Crédito</div>
       <div class="sb-section">Patrimônio</div>
@@ -1236,6 +1258,16 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
         </div>
         <div id="recent-list"></div>
       </div>
+    </div>
+
+    <!-- QUEM ME DEVE -->
+    <div class="page" id="devedores">
+      <div class="ph">
+        <div><h1 class="pt">Quem me deve</h1><p class="ps">Empréstimos, vendas e rachas de conta, por pessoa, sem misturar com os seus gastos</p></div>
+        <button class="btn btn-primary" onclick="abrirDevedor()">+ Registrar</button>
+      </div>
+      <div id="dev-resumo"></div>
+      <div id="dev-lista"></div>
     </div>
 
     <!-- TRANSACTIONS -->
@@ -1382,6 +1414,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Gerenciar</span></div>
         <div class="more-item" onclick="showPage('bills')">Contas a pagar e receber</div>
+        <div class="more-item" onclick="showPage('devedores')">Quem me deve</div>
         <div class="more-item" id="more-cc" onclick="showPage('credit-card')">Cartão de crédito</div>
         <div class="more-item" onclick="showPage('goals')">Metas &amp; Reserva</div>
         <div class="more-item" onclick="showPage('investments')">Investimentos</div>
@@ -1851,6 +1884,25 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
   </div>
 </div>
 
+<div class="overlay" id="dev-modal">
+  <div class="modal">
+    <div class="mhead"><h3 id="dev-titulo">Registrar o que te devem</h3><button class="xbtn" onclick="closeModal('dev-modal')">✕</button></div>
+    <div class="mbody">
+      <div class="fgrp"><label class="flbl" for="dev-pessoa">Quem te deve</label><input class="field" id="dev-pessoa" list="dev-pessoas" maxlength="40" placeholder="Ex.: João" autocomplete="off"><datalist id="dev-pessoas"></datalist></div>
+      <div class="fgrp"><label class="flbl" for="dev-desc">O que foi</label><input class="field" id="dev-desc" maxlength="80" placeholder="Ex.: empréstimo, metade do jantar, venda da bicicleta"></div>
+      <div class="frow">
+        <div class="fgrp"><label class="flbl" for="dev-valor">Valor (R$)</label><input class="field" type="number" id="dev-valor" step="0.01" min="0.01" placeholder="0,00"></div>
+        <div class="fgrp"><label class="flbl" for="dev-recebido">Já recebido (R$)</label><input class="field" type="number" id="dev-recebido" step="0.01" min="0" value="0"></div>
+      </div>
+      <div class="fgrp"><label class="flbl" for="dev-data">Combinado para (opcional)</label><input class="field" type="date" id="dev-data"></div>
+      <div class="factions">
+        <button class="btn btn-secondary" onclick="closeModal('dev-modal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarDevedor()">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: CONCILIAR SALDO -->
 <div class="overlay" id="invite-modal" role="dialog" aria-modal="true" aria-labelledby="invite-title">
   <div class="modal">
@@ -2152,7 +2204,7 @@ function setSync(state){
   el.style.color=state==='offline'?'#f87171':'var(--ink4)';
 }
 
-function persistAllLocal(){persist();persistCC();persistInv();persistGoals();persistSettings();persistBudgets();persistBills();persistRecurring();persistContas();}
+function persistAllLocal(){persist();persistCC();persistInv();persistGoals();persistSettings();persistBudgets();persistBills();persistRecurring();persistContas();persistDevedores();}
 
 function scheduleCloudSave(){
   if(!cloudReady)return;
@@ -2239,7 +2291,7 @@ async function nfEstablishKey(uid){
 // nuvem) e grava a juncao. Alteracao feita sem conexao fica marcada (bf_sujo) e
 // entra na juncao quando a conexao volta, mesmo depois de fechar e reabrir o app.
 // Nenhum lado precisa "vencer": o que mudou em cada um e mantido.
-const COLECOES=['transactions','ccItems','investments','goals','budgets','bills','recurring','accounts'];
+const COLECOES=['transactions','ccItems','investments','goals','budgets','bills','recurring','accounts','devedores'];
 let _aplicandoNuvem=false,_geracao=0,_salvando=false,_salvarDeNovo=false,_nuvemIlegivel=false,_tentativa=null,_espera=15000;
 // ═══ JUNCAO DE VERSOES ═══
 // JSON com as chaves em ordem: a mesma informacao em outra ordem nao conta como mudanca
@@ -2384,7 +2436,7 @@ function dataCount(d){
 function applyCloud(d){
   S.accounts=Array.isArray(d.accounts)&&d.accounts.length?d.accounts:[];
   S.transactions=d.transactions||[];S.ccItems=d.ccItems||[];S.investments=d.investments||[];
-  S.goals=d.goals||[];S.budgets=d.budgets||[];S.bills=d.bills||[];S.recurring=d.recurring||[];
+  S.goals=d.goals||[];S.budgets=d.budgets||[];S.bills=d.bills||[];S.recurring=d.recurring||[];S.devedores=d.devedores||[];
   S.settings={...S.settings,...(d.settings||{})};
   migrateData();
   persistAllLocal();
@@ -2405,7 +2457,7 @@ function applyCloud(d){
 // A guarda abaixo grava de quem e o cache e o apaga quando quem entra e outro.
 // Ela vale mesmo sem logout — navegador fechado, sessao derrubada, conta apagada.
 const NF_DONO='bf_owner';
-const NF_CHAVES=['bf_tx','bf_cc','bf_inv','bf_goals','bf_settings','bf_budgets','bf_bills','bf_recurring','bf_accounts','bf_base','bf_versao','bf_sujo'];
+const NF_CHAVES=['bf_tx','bf_cc','bf_inv','bf_goals','bf_settings','bf_budgets','bf_bills','bf_recurring','bf_accounts','bf_devedores','bf_base','bf_versao','bf_sujo'];
 function nfLimparCacheLocal(){
   NF_CHAVES.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});
   S.transactions=[];S.ccItems=[];S.investments=[];S.goals=[];S.budgets=[];S.bills=[];S.recurring=[];S.accounts=[];
@@ -3494,6 +3546,11 @@ function renderFoco(ctx){
       :'Desde o dia '+dia0+', sobraram '+fmtCur(sobra)+': dá '+fmtCur(sobra/c.faltam)+' por dia até '+c.proximo.toLocaleDateString('pt-BR',{day:'numeric',month:'numeric'})+'.';
     h+='<div class="foco-linha"><span class="foco-ic">'+ICO_CAL+'</span><span class="foco-txt"><b>'+titulo+'</b><small'+(entrou&&sobra<0?' class="neg"':'')+'>'+linha+'</small></span></div>';
   }
+  const devendo=(S.devedores||[]).filter(d=>(+d.valor||0)>(+d.recebido||0));
+  if(devendo.length){
+    const total=devendo.reduce((s,d)=>s+(+d.valor||0)-(+d.recebido||0),0),atr=devendo.filter(d=>d.data&&d.data<_diaChave(new Date())).length;
+    h+='<button type="button" class="foco-linha" onclick="showPage(\'devedores\')"><span class="foco-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15h4l4 3h6a2 2 0 0 0 0-4h-4"/><path d="M7 15V9l5-3 5 3v5"/></svg></span><span class="foco-txt"><b>Te devem '+fmtCur(total)+'</b><small'+(atr?' class="neg"':'')+'>'+(atr?(atr===1?'1 combinado passou da data':atr+' combinados passaram da data'):'Veja quem e quando em Quem me deve.')+'</small></span><span class="foco-ir" aria-hidden="true">›</span></button>';
+  }
   if(tipoConta()==='pj'){
     const r=S.settings.regime;
     if(r===undefined)h+='<div class="foco-linha"><span class="foco-ic">'+ICO_PREDIO+'</span><span class="foco-txt"><b>Qual é o regime da sua empresa?</b><small>Com ele, o painel lembra do DAS e, no MEI, acompanha o teto do ano.</small></span><button type="button" class="btn btn-secondary btn-sm" onclick="abrirConhecer(\'regime\')">Responder</button></div>';
@@ -3714,6 +3771,62 @@ function avisarFimTeste(acc){
     .then(ok=>{if(ok)startSubscription();});
 }
 
+// ═══ QUEM ME DEVE ═══
+// Empréstimo, venda, racha de conta: o que cada pessoa deve, com data combinada.
+// Não vira lançamento — é o caderninho, separado dos seus gastos.
+let _devEdit=null;
+function devAberto(x){return Math.max(0,(+x.valor||0)-(+x.recebido||0));}
+function abrirDevedor(id){
+  const x=id?S.devedores.find(d=>d.id===id):null;_devEdit=x?x.id:null;
+  document.getElementById('dev-titulo').textContent=x?'Editar':'Registrar o que te devem';
+  const v=(k,val)=>{document.getElementById(k).value=val;};
+  v('dev-pessoa',x?x.pessoa:'');v('dev-desc',x?x.descricao:'');v('dev-valor',x?x.valor:'');v('dev-recebido',x?(x.recebido||0):0);v('dev-data',x?(x.data||''):'');
+  document.getElementById('dev-pessoas').innerHTML=[...new Set(S.devedores.map(d=>d.pessoa))].map(p=>'<option value="'+esc(p)+'">').join('');
+  openModal('dev-modal');
+}
+function salvarDevedor(){
+  const g=k=>document.getElementById(k).value;
+  const pessoa=g('dev-pessoa').trim().replace(/\s+/g,' ').slice(0,40),descricao=g('dev-desc').trim().slice(0,80);
+  const valor=Math.round(parseFloat(g('dev-valor'))*100)/100,recebido=Math.round((parseFloat(g('dev-recebido'))||0)*100)/100,data=g('dev-data');
+  if(!pessoa){showAlert('Diga quem te deve.');return;}
+  if(!(valor>0)){showAlert('Informe quanto a pessoa te deve.');return;}
+  if(recebido<0||recebido>valor){showAlert('O que já foi recebido precisa ficar entre zero e o valor total.');return;}
+  const ant=S.devedores.find(d=>d.id===_devEdit);
+  const x={id:ant?ant.id:Math.max(Date.now(),...S.devedores.map(d=>(+d.id||0)+1)),pessoa,descricao,valor,recebido,data,
+    criado:ant&&ant.criado||_isoDia(new Date()),quitado:recebido>=valor?(ant&&ant.quitado||_isoDia(new Date())):''};
+  if(ant)S.devedores[S.devedores.indexOf(ant)]=x;else S.devedores.push(x);
+  persistDevedores();closeModal('dev-modal');renderDevedores();updateDashboard();
+  toast(ant?'Atualizado':'Registrado');
+}
+function receberTudo(id){
+  const x=S.devedores.find(d=>d.id===id);if(!x)return;
+  const antes={recebido:x.recebido,quitado:x.quitado},falta=devAberto(x);
+  x.recebido=x.valor;x.quitado=_isoDia(new Date());
+  persistDevedores();renderDevedores();updateDashboard();
+  toastUndo(x.pessoa+' pagou '+fmtCur(falta),()=>{Object.assign(x,antes);persistDevedores();renderDevedores();updateDashboard();});
+}
+function apagarDevedor(id){delFromArray(S.devedores,id,persistDevedores,()=>{renderDevedores();updateDashboard();},'Registro apagado');}
+function renderDevedores(){
+  const box=document.getElementById('dev-lista'),res=document.getElementById('dev-resumo');if(!box||!res)return;
+  const hoje=_isoDia(new Date()),dd=s=>s.split('-').reverse().join('/');
+  const abertos=S.devedores.filter(d=>devAberto(d)>0),quitados=S.devedores.filter(d=>devAberto(d)<=0);
+  const total=abertos.reduce((s,d)=>s+devAberto(d),0),atrasados=abertos.filter(d=>d.data&&d.data<hoje).length;
+  const grupos=new Map();
+  abertos.forEach(d=>{const k=d.pessoa.toLowerCase();if(!grupos.has(k))grupos.set(k,{nome:d.pessoa,itens:[],total:0});const gr=grupos.get(k);gr.itens.push(d);gr.total+=devAberto(d);});
+  const nPessoas=grupos.size;
+  res.innerHTML=abertos.length?'<div class="panel dev-resumo"><div><span>A receber</span><b>'+fmtCur(total)+'</b></div><small'+(atrasados?' class="atraso"':'')+'>'+(nPessoas===1?'1 pessoa':nPessoas+' pessoas')+(atrasados?' · '+(atrasados===1?'1 combinado atrasado':atrasados+' combinados atrasados'):'')+'</small></div>':'';
+  const linha=(d,aberto)=>'<div class="dev-item"><div class="dev-info"><span>'+esc(d.descricao||'Sem descrição')+'</span><small'+(aberto&&d.data&&d.data<hoje?' class="atraso"':'')+'>'
+    +(aberto?(d.data?(d.data<hoje?'Combinado para '+dd(d.data)+', atrasado':'Combinado para '+dd(d.data)):'Sem data combinada')+(d.recebido>0?' · já recebeu '+fmtCur(d.recebido)+' de '+fmtCur(d.valor):''):esc(d.pessoa)+' · quitado em '+dd(d.quitado||d.criado))
+    +'</small></div><span class="dev-valor">'+fmtCur(aberto?devAberto(d):d.valor)+'</span><div class="dev-acoes">'
+    +(aberto?'<button class="btn btn-primary btn-sm" onclick="receberTudo('+d.id+')">Recebi tudo</button>':'')
+    +'<button class="btn btn-secondary btn-sm" onclick="abrirDevedor('+d.id+')">Editar</button><button class="btn btn-danger btn-sm" onclick="apagarDevedor('+d.id+')">Apagar</button></div></div>';
+  box.innerHTML=(abertos.length?[...grupos.values()].sort((a,b)=>b.total-a.total).map(gr=>'<div class="panel dev-pessoa"><div class="dev-topo"><span class="dev-ini" aria-hidden="true">'+esc([...gr.nome][0].toUpperCase())+'</span><b>'+esc(gr.nome)+'</b><strong>'+fmtCur(gr.total)+'</strong></div>'
+      +gr.itens.sort((a,b)=>(a.data||'9999').localeCompare(b.data||'9999')).map(d=>linha(d,true)).join('')+'</div>').join('')
+    :emptyHTML('Ninguém te deve nada por aqui. Emprestou, vendeu ou rachou uma conta? Toque em "+ Registrar".'))
+    +(quitados.length?'<details class="panel dev-quitados"><summary>Quitados ('+quitados.length+')</summary>'+quitados.slice().reverse().map(d=>linha(d,false)).join('')+'</details>':'');
+}
+// ═══ FIM DO QUEM ME DEVE ═══
+
 // ═══ EMPRESA ═══
 // Conta CNPJ: o painel mostra faturamento, custos e lucro, e a linha de foco
 // ganha o DAS, o teto do MEI e as retiradas do dono contra o lucro.
@@ -3897,8 +4010,8 @@ async function recoveryGiveUp(){
   const uid=_recEntrySession.user.id,newPass=_nfNewPass||'';
   const rec=nfGenRecovery();const built=await nfBuildMeta(newPass,rec.bytes);_mk=built.mk;
   await sb.from('user_data').upsert({user_id:uid,enc_meta:built.meta,enc_data:null,data:null,updated_at:new Date().toISOString()});
-  ['bf_tx','bf_cc','bf_inv','bf_goals','bf_budgets','bf_bills','bf_recurring','bf_accounts'].forEach(function(k){localStorage.removeItem(k);});
-  S.transactions=[];S.ccItems=[];S.investments=[];S.goals=[];S.budgets=[];S.bills=[];S.recurring=[];S.accounts=[];
+  ['bf_tx','bf_cc','bf_inv','bf_goals','bf_budgets','bf_bills','bf_recurring','bf_accounts','bf_devedores'].forEach(function(k){localStorage.removeItem(k);});
+  S.transactions=[];S.ccItems=[];S.investments=[];S.goals=[];S.budgets=[];S.bills=[];S.recurring=[];S.accounts=[];S.devedores=[];
   await nfStoreMK(uid);_nfNewPass=null;
   document.getElementById('recentry-screen').style.display='none';
   await onSignedIn(_recEntrySession,false);
@@ -4003,6 +4116,7 @@ const S={
   budgets:[],
   bills:[],
   recurring:[],
+  devedores:[],
   settings:{cdi:10.65}
 };
 const CDI=0.1065;
@@ -4143,6 +4257,7 @@ function showPage(id){
   if(id==='goals')renderGoalsPage();
   if(id==='budget')renderBudgetPage();
   if(id==='bills')renderBillsPage();
+  if(id==='devedores')renderDevedores();
   if(id==='settings')renderSettings();
 }
 
@@ -4655,6 +4770,7 @@ function exportarTudo(){
     orcamentos:S.budgets||[],
     contas_a_pagar:S.bills||[],
     recorrentes:S.recurring||[],
+    quem_me_deve:S.devedores||[],
     preferencias:S.settings||{}
   };
   const hoje=new Date().toISOString().slice(0,10);
@@ -6309,6 +6425,7 @@ function persistContas(){_guardar('bf_accounts',S.accounts);}
 function persistBills(){_guardar('bf_bills',S.bills);}
 // Legacy backup data only. Recurring transaction generation has been removed.
 function persistRecurring(){_guardar('bf_recurring',S.recurring);}
+function persistDevedores(){_guardar('bf_devedores',S.devedores);}
 function loadData(){
   const parse=(key,fb)=>{try{const v=localStorage.getItem(key);return v?JSON.parse(v):fb;}catch(e){console.warn('Erro ao carregar '+key,e);return fb;}};
   S.transactions=parse('bf_tx',[]);
@@ -6319,9 +6436,10 @@ function loadData(){
   S.accounts=parse('bf_accounts',[]);
   S.bills=parse('bf_bills',[]);
   S.recurring=parse('bf_recurring',[]);
+  S.devedores=parse('bf_devedores',[]);
   S.settings={...S.settings,...parse('bf_settings',{})};
   // Migração: corrige IDs duplicados (causavam edições cruzadas entre itens)
-  [S.investments,S.goals,S.transactions,S.ccItems,S.budgets,S.bills,S.recurring].forEach(arr=>{
+  [S.investments,S.goals,S.transactions,S.ccItems,S.budgets,S.bills,S.recurring,S.devedores].forEach(arr=>{
     const seen=new Set();
     let fixed=false;
     arr.forEach(x=>{

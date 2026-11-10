@@ -62,7 +62,7 @@ function sbFalso(nuvem, ctl) {
 function aparelho(nuvem, nome) {
   const loja = new Map();
   const ctl = { offline: false, antesDeGravar: null, ilegivel: false, agendou: 0, novaTentativa: 0 };
-  const S = { settings: {}, transactions: [], ccItems: [], investments: [], goals: [], budgets: [], bills: [], recurring: [], accounts: [] };
+  const S = { settings: {}, transactions: [], ccItems: [], investments: [], goals: [], budgets: [], bills: [], recurring: [], accounts: [], devedores: [] };
   const amb = {
     sb: sbFalso(nuvem, ctl), S, _mk: {}, cloudReady: true,
     nfEnc: async (mk, txt) => ({ ct: txt }),
@@ -184,6 +184,17 @@ const ids = lista => lista.map(x => x.id);
   checa('apagado aqui mas mudado na nuvem: fica a versao da nuvem', apagadoAquiMudadoLa.transactions.map(x => x.amount), [9]);
   const contas9 = C.mesclar3({ accounts: [{ id: 1, nome: 'Nubank' }] }, { accounts: [{ id: 1, nome: 'Nubank' }, { id: 7, nome: 'Itaú' }] }, { accounts: [{ id: 1, nome: 'Nubank' }, { id: 9, nome: 'Carteira' }] });
   checa('ordem das contas: a da nuvem primeiro, as novas daqui depois (a primeira conta e a padrao)', contas9.accounts.map(c => c.nome), ['Nubank', 'Carteira', 'Itaú']);
+
+  // 10. Quem me deve: lista nova, sincroniza como as outras, e nuvem antiga (sem a lista) nao apaga nada.
+  const n10 = novaNuvem({ transactions: [tx(1, 'x', 1)] });
+  const D = aparelho(n10, 'D'), E = aparelho(n10, 'E');
+  D.abrir(); E.abrir();
+  D.muda(S => { S.devedores = [...(S.devedores || []), { id: 1, pessoa: 'João', valor: 50, recebido: 0 }]; });
+  await D.api.cloudSaveNow();
+  E.muda(S => { S.devedores = [...(S.devedores || []), { id: 2, pessoa: 'Ana', valor: 30, recebido: 0 }]; });
+  await E.api.cloudSaveNow();
+  checa('quem me deve: o registro de cada aparelho fica na nuvem', (nuvemDe(n10).devedores || []).map(d => d.pessoa).sort(), ['Ana', 'João']);
+  checa('e o aparelho desatualizado passa a ver o do outro', (E.S.devedores || []).map(d => d.pessoa).sort(), ['Ana', 'João']);
 
   console.log('SINCRONIA — ' + (falhas ? falhas + ' FALHA(S)' : 'tudo bate'));
   console.log(L.join('\n'));
