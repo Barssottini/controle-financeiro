@@ -286,6 +286,99 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 #eye-toggle:hover{color:var(--gold)}
 #app.inactivity-blur{filter:blur(10px);pointer-events:none;user-select:none;transition:filter .25s ease}
 body.values-hidden #dash-chart{filter:blur(6px)}
+/* ═══ PERFIL ═══
+   O topo e escuro por desenho, nos dois temas, como a barra lateral e o cartao
+   Pro das boas-vindas. Por isso as cores dele sao fixas. */
+.pf-hero{position:relative;overflow:hidden;border-radius:18px;padding:28px 30px;margin-bottom:22px;color:#faf9f7;
+  background:radial-gradient(130% 150% at 100% 0%,rgba(200,144,58,.17),transparent 55%),linear-gradient(160deg,#1c1a17,#0d0c0b 72%);
+  box-shadow:inset 0 0 0 1px rgba(232,196,124,.16)}
+.pf-topo{display:flex;justify-content:space-between;align-items:center;gap:24px}
+.pf-quem{display:flex;align-items:center;gap:20px;min-width:0}
+.pf-avatar{position:relative;flex:none;width:76px;height:76px;border-radius:50%;display:grid;place-items:center;
+  background:linear-gradient(145deg,#2c261d,#141210);color:#e8c47c;font-size:26px;font-weight:800;letter-spacing:-.02em;
+  box-shadow:0 0 0 2px #12110f,0 0 0 3.5px rgba(232,196,124,.35)}
+.pf-selo{display:none;position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);padding:3px 9px;border-radius:100px;
+  font-size:9.5px;font-weight:800;letter-spacing:.16em;background:linear-gradient(180deg,#e2b862,#c8903a);color:#0d0d0d;box-shadow:0 0 0 2px #12110f}
+.pf-hero:is([data-plano="active"],[data-plano="trialing"],[data-plano="grace"]) .pf-avatar{box-shadow:0 0 0 2px #12110f,0 0 0 4px #c8903a,0 0 30px rgba(200,144,58,.35)}
+.pf-hero:is([data-plano="active"],[data-plano="trialing"],[data-plano="grace"]) .pf-selo{display:block}
+.pf-dados{min-width:0}
+.pf-nome-linha{display:flex;align-items:center;gap:8px}
+.pf-nome-linha[hidden],.pf-nome-form[hidden]{display:none}
+.pf-nome-linha h2{margin:0;font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1.15;overflow-wrap:anywhere;cursor:pointer}
+.pf-nome-linha h2.vazio{font-size:19px;font-weight:700;color:#a39c93}
+.pf-editar{flex:none;width:32px;height:32px;border-radius:9px;border:0;background:rgba(255,255,255,.07);color:#e8c47c;cursor:pointer;display:grid;place-items:center;transition:background .15s}
+.pf-editar:hover{background:rgba(255,255,255,.13)}
+.pf-editar svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pf-nome-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pf-nome-form .field{width:min(260px,100%);background:rgba(255,255,255,.06);border-color:rgba(232,196,124,.35);color:#faf9f7}
+.pf-nome-form .field::placeholder{color:#8a837b}
+.pf-email{margin:6px 0 0;font-size:13.5px;color:#b5afa9;overflow-wrap:anywhere}
+.pf-desde{margin:3px 0 0;font-size:12px;color:#8a837b}
+.pf-desde:empty{display:none}
+.pf-cartao{flex:none;width:250px;margin:0;padding:16px 18px;border-radius:15px;animation:none;
+  box-shadow:0 18px 44px rgba(0,0,0,.5),inset 0 0 0 1px rgba(232,196,124,.38),0 0 50px rgba(200,144,58,.14)}
+.pf-cartao .pc-topo img{width:26px;height:26px;border-radius:7px}
+.pf-cartao .pc-topo b{font-size:13px}
+.pf-cartao .pc-chip{width:34px;height:26px}
+.pf-cartao-quem{min-width:0}
+#pf-cartao-nome{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:uppercase;letter-spacing:.08em;font-size:12px}
+.pf-hero:not([data-plano="active"]):not([data-plano="trialing"]):not([data-plano="grace"]) .pf-cartao{filter:grayscale(1);opacity:.42}
+.pf-plano{display:flex;justify-content:space-between;align-items:center;gap:16px 24px;flex-wrap:wrap;margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08)}
+.pf-plano-info{flex:1 1 300px;min-width:0;font-size:13.5px;line-height:1.65;color:#b5afa9}
+.pf-plano-info b{color:#faf9f7}
+.pf-barra{display:block;height:5px;max-width:320px;margin-top:10px;border-radius:5px;background:rgba(255,255,255,.09);overflow:hidden}
+.pf-barra i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#c8903a,#e8c47c)}
+.pf-plano-acoes{display:flex;gap:10px;flex-wrap:wrap}
+.pf-btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:11px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);
+  color:#faf9f7;font:700 13px var(--ff);cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s}
+.pf-btn:hover{background:rgba(255,255,255,.12);border-color:rgba(232,196,124,.4)}
+.pf-btn-ouro,.pf-btn-ouro:hover{border:0;background:linear-gradient(180deg,#e2b862,#c8903a);color:#0d0d0d;box-shadow:0 8px 24px rgba(200,144,58,.25)}
+.pf-btn-ouro:hover{filter:brightness(1.07)}
+.pf-numeros{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.pf-num{display:flex;flex-direction:column;gap:4px;min-width:0;padding:16px;border-radius:12px;background:var(--paper2)}
+.pf-num-largo{grid-column:span 2}
+.pf-num-rotulo{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.pf-num-valor{font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1.2;color:var(--ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.pf-num-largo .pf-num-valor{color:var(--goldd)}
+.pf-num-extra{font-size:12px;color:var(--ink3)}
+.pf-num-bancos{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.pf-num-bancos .cbadge{width:22px;height:22px;border-radius:7px}
+.seg-linha{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--paper2)}
+.seg-ic{flex:none;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--paper2);color:var(--ink3)}
+.seg-ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.seg-ic.seg-ok{background:var(--greenl);color:var(--green)}
+.seg-linha:has(.seg-on) .seg-ic{background:var(--greenl);color:var(--green)}
+.seg-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.seg-txt b{font-size:14px;font-weight:700;color:var(--ink)}
+.seg-txt small{font-size:12.5px;line-height:1.5;color:var(--ink3)}
+.seg-acao{flex:none;display:flex;align-items:center;gap:10px}
+.seg-on,.seg-off{font-size:12px;font-weight:700;color:var(--ink3)}
+.seg-on{color:var(--green)}
+#mfa-enroll{padding:16px 0 16px 52px;border-bottom:1px solid var(--paper2)}
+.seg-rodape{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px 20px;padding-top:16px}
+.seg-rodape p{flex:1 1 260px;margin:0;font-size:12.5px;line-height:1.55;color:var(--ink3)}
+.pf-grupo{margin:34px 0 12px;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+.pf-excluir{margin:30px 0 6px;padding:0 18px;border:1px solid var(--paper3);border-radius:13px;background:var(--paper)}
+.pf-excluir summary{display:flex;justify-content:space-between;align-items:center;padding:15px 0;font-size:13.5px;font-weight:700;color:var(--red);cursor:pointer;list-style:none}
+.pf-excluir summary::-webkit-details-marker{display:none}
+.pf-excluir summary::after{content:"›";font-size:19px;font-weight:400;color:var(--ink3);transition:transform .2s}
+.pf-excluir[open] summary::after{transform:rotate(90deg)}
+.pf-excluir p{margin:0 0 14px;font-size:12.5px;line-height:1.55;color:var(--ink2)}
+.pf-excluir .btn{margin-bottom:18px}
+@media(max-width:640px){
+  .pf-hero{padding:22px 18px}
+  .pf-cartao{display:none}
+  .pf-quem{gap:16px}
+  .pf-avatar{width:62px;height:62px;font-size:22px}
+  .pf-nome-linha h2{font-size:22px}
+  .pf-plano-acoes{width:100%}
+  .pf-plano-acoes .pf-btn{flex:1 1 auto}
+  .pf-numeros{grid-template-columns:1fr 1fr}
+  .pf-num-largo{grid-column:1/-1}
+  .seg-linha{flex-wrap:wrap}
+  .seg-acao{width:100%;padding-left:52px}
+  #mfa-enroll{padding-left:0}
+}
 
 /* MAIN */
 .main{margin-left:var(--sw);flex:1;padding:36px 34px;max-width:calc(100vw - var(--sw))}
@@ -945,7 +1038,7 @@ html.splash-active{background:#000}
       <div class="navi" onclick="showPage('goals')">Metas &amp; Reserva</div>
       <div class="sb-section">Sistema</div>
       <div class="navi" onclick="showPage('import')">Importar Extrato</div>
-      <div class="navi" onclick="showPage('settings')">Configurações</div>
+      <div class="navi" onclick="showPage('settings')">Perfil e configurações</div>
     </nav>
     <div class="sb-footer">
       <a class="sitelink-btn" href="https://northfinances.com.br" target="_blank" rel="noopener">Visitar o site ↗</a>
@@ -1178,8 +1271,7 @@ html.splash-active{background:#000}
       </div>
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Sistema</span></div>
-        <div class="more-item" onclick="showPage('settings')">Configurações</div>
-        <div class="more-item" onclick="openPerfil()">Seu perfil</div>
+        <div class="more-item" onclick="showPage('settings')">Perfil e configurações</div>
         <div class="more-item" onclick="window.open('manual.html','_blank')">Manual do usuário</div>
         <div class="more-item" onclick="window.open('termos.html','_blank')">Termos e privacidade</div>
         <div class="more-item" onclick="doLogout()">Sair da conta</div>
@@ -1188,8 +1280,84 @@ html.splash-active{background:#000}
 
     <div class="page" id="settings">
       <div class="ph">
-        <div><h1 class="pt">Configurações</h1><p class="ps">Preferências do sistema</p></div>
+        <div><h1 class="pt">Seu perfil</h1><p class="ps">Sua conta, seu plano e as preferências do app</p></div>
       </div>
+
+      <section class="pf-hero" id="pf-hero" aria-label="Sua conta">
+        <div class="pf-topo">
+          <div class="pf-quem">
+            <div class="pf-avatar" aria-hidden="true"><span id="pf-iniciais">N</span><b class="pf-selo">PRO</b></div>
+            <div class="pf-dados">
+              <div class="pf-nome-linha" id="pf-nome-linha">
+                <h2 id="pf-nome" onclick="editarNome()">—</h2>
+                <button type="button" class="pf-editar" onclick="editarNome()" aria-label="Editar seu nome" title="Editar seu nome"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M14 6l4 4"/></svg></button>
+              </div>
+              <form class="pf-nome-form" id="pf-nome-form" hidden onsubmit="salvarNome(event)">
+                <input class="field" id="pf-nome-campo" maxlength="40" placeholder="Como quer ser chamado?" autocomplete="name" aria-label="Seu nome" onkeydown="if(event.key==='Escape')fecharNome()">
+                <button type="submit" class="pf-btn pf-btn-ouro">Salvar</button>
+                <button type="button" class="pf-btn" onclick="fecharNome()">Cancelar</button>
+              </form>
+              <p class="pf-email" id="pf-email"></p>
+              <p class="pf-desde" id="pf-desde"></p>
+            </div>
+          </div>
+          <div class="pro-cartao pf-cartao" aria-hidden="true">
+            <div class="pc-topo"><img src="logo-192.png" alt=""><b>PRO</b></div>
+            <div class="pc-chip"></div>
+            <div class="pc-base"><span class="pf-cartao-quem"><small>Membro</small><span id="pf-cartao-nome">North Pro</span></span><span class="pc-desde" id="pf-cartao-status"></span></div>
+            <i class="pc-brilho"></i>
+          </div>
+        </div>
+        <div class="pf-plano">
+          <div class="pf-plano-info" id="sub-info">—</div>
+          <div class="pf-plano-acoes" id="sub-actions"></div>
+        </div>
+      </section>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Seus números</span></div>
+        <div class="pf-numeros" id="pf-numeros"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Segurança</span></div>
+        <div class="seg-linha">
+          <span class="seg-ic seg-ok"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+          <div class="seg-txt"><b>Criptografia de ponta a ponta</b><small>Ativa. Seus dados são cifrados neste aparelho antes de ir para a nuvem: só você consegue ler.</small></div>
+        </div>
+        <div class="seg-linha">
+          <span class="seg-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+          <div class="seg-txt"><b>Verificação em duas etapas</b><small>Além da senha, o login pede um código de 6 dígitos do seu celular (Google Authenticator, Authy ou similar).</small></div>
+          <div class="seg-acao" id="mfa-status"><span class="seg-off">Carregando…</span></div>
+        </div>
+        <div id="mfa-enroll" style="display:none">
+          <p style="font-size:13px;margin-bottom:12px"><strong>1.</strong> Abra o Google Authenticator (ou similar) e escaneie o QR code:</p>
+          <img id="mfa-qr" alt="QR code do 2FA" style="width:170px;height:170px;border-radius:10px;border:1px solid var(--paper3);background:#fff;display:block;margin-bottom:10px">
+          <p style="font-size:12px;color:var(--ink3);margin-bottom:14px">Não consegue escanear? Digite esta chave no aplicativo: <code id="mfa-secret" style="font-weight:700;user-select:all;word-break:break-all"></code></p>
+          <p style="font-size:13px;margin-bottom:8px"><strong>2.</strong> Digite o código de 6 dígitos que aparece no aplicativo:</p>
+          <div class="frow" style="max-width:420px">
+            <div class="fgrp"><input class="field" id="mfa-enroll-code" inputmode="numeric" maxlength="6" placeholder="000000"></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="confirmEnrollMFA()">Confirmar e ativar</button>
+            <button class="btn btn-secondary" onclick="cancelEnrollMFA()">Cancelar</button>
+          </div>
+        </div>
+        <div class="seg-linha">
+          <span class="seg-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg></span>
+          <div class="seg-txt"><b>Este aparelho</b><small id="seg-aparelho">—</small></div>
+        </div>
+        <div class="seg-linha">
+          <span class="seg-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+          <div class="seg-txt"><b>Último login</b><small id="seg-login">—</small></div>
+        </div>
+        <div class="seg-rodape">
+          <p>Usou o app num computador público ou perdeu um aparelho? Encerre a sessão em todos de uma vez, inclusive neste.</p>
+          <button class="btn btn-secondary" onclick="logoutAllDevices()">Sair de todos os aparelhos</button>
+        </div>
+      </div>
+
+      <h2 class="pf-grupo">Preferências</h2>
 
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Aparência</span></div>
@@ -1226,6 +1394,8 @@ html.splash-active{background:#000}
         <p style="font-size:12px;color:var(--ink3);margin-top:10px">No dia 1º de cada mês, enviamos um e-mail lembrando de exportar o extrato do banco e importar aqui, para manter tudo atualizado. Desative se não quiser receber.</p>
       </div>
 
+      <h2 class="pf-grupo">Dados e ajuda</h2>
+
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Seus dados</span></div>
         <p style="font-size:12.5px;color:var(--ink2);line-height:1.6;margin-bottom:14px">Os arquivos são gerados <strong>no seu aparelho</strong>, a partir dos dados já abertos aqui. Nada passa pelo nosso servidor — ele só guarda texto cifrado e não teria como montar isso.</p>
@@ -1247,37 +1417,6 @@ html.splash-active{background:#000}
       </div>
 
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">Verificação em duas etapas (2FA)</span></div>
-        <p style="font-size:13px;color:var(--ink3);margin-bottom:12px">Camada extra de proteção: além da senha, o login pede um código de 6 dígitos gerado no seu celular (Google Authenticator, Authy ou similar). Mesmo que descubram sua senha, ninguém entra sem o seu celular.</p>
-        <div id="mfa-status"><span style="font-size:13px;color:var(--ink3)">Carregando...</span></div>
-        <div id="mfa-enroll" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--paper3)">
-          <p style="font-size:13px;margin-bottom:12px"><strong>1.</strong> Abra o Google Authenticator (ou similar) e escaneie o QR code:</p>
-          <img id="mfa-qr" alt="QR code do 2FA" style="width:170px;height:170px;border-radius:10px;border:1px solid var(--paper3);background:#fff;display:block;margin-bottom:10px">
-          <p style="font-size:12px;color:var(--ink3);margin-bottom:14px">Não consegue escanear? Digite esta chave no aplicativo: <code id="mfa-secret" style="font-weight:700;user-select:all;word-break:break-all"></code></p>
-          <p style="font-size:13px;margin-bottom:8px"><strong>2.</strong> Digite o código de 6 dígitos que aparece no aplicativo:</p>
-          <div class="frow" style="max-width:420px">
-            <div class="fgrp"><input class="field" id="mfa-enroll-code" inputmode="numeric" maxlength="6" placeholder="000000"></div>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
-            <button class="btn btn-primary" onclick="confirmEnrollMFA()">Confirmar e ativar</button>
-            <button class="btn btn-secondary" onclick="cancelEnrollMFA()">Cancelar</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head"><span class="panel-title">Dispositivos conectados</span></div>
-        <p style="font-size:13px;color:var(--ink3);margin-bottom:12px">Usou o app num computador público ou perdeu um aparelho? Encerre a sessão em todos os dispositivos de uma vez (inclusive este).</p>
-        <button class="btn btn-secondary" onclick="logoutAllDevices()">Sair de todos os dispositivos</button>
-      </div>
-
-      <div class="panel" id="sub-panel">
-        <div class="panel-head"><span class="panel-title">Assinatura</span></div>
-        <div id="sub-info" style="font-size:13px;color:var(--ink2);line-height:1.8">—</div>
-        <div id="sub-actions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"></div>
-      </div>
-
-      <div class="panel">
         <div class="panel-head"><span class="panel-title">Suporte</span></div>
         <p style="font-size:13px;color:var(--ink2);margin-bottom:12px">Precisa de ajuda ou tem alguma dúvida? Fale com a gente — respondemos por e-mail.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -1291,6 +1430,12 @@ html.splash-active{background:#000}
         <p style="font-size:13px;color:var(--ink2);margin-bottom:12px">Transparência sobre como seus dados são tratados, seus direitos (LGPD) e as regras de uso.</p>
         <a class="btn btn-secondary" href="termos.html" target="_blank" rel="noopener" style="text-decoration:none">Termos de Uso e Política de Privacidade</a>
       </div>
+
+      <details class="pf-excluir">
+        <summary>Excluir minha conta</summary>
+        <p>Ao excluir sua conta, você tem <strong>15 dias</strong> para se arrepender. Nesse período o acesso fica bloqueado e é possível reativar. Passado o prazo, tudo é apagado <strong>para sempre</strong>.</p>
+        <button class="btn btn-danger" onclick="requestAccountDeletion(this)">Excluir minha conta</button>
+      </details>
 
     </div>
 
@@ -1781,32 +1926,6 @@ html.splash-active{background:#000}
       <div class="factions" style="flex-direction:column;gap:10px">
         <a class="btn btn-primary" href="manual.html" target="_blank" rel="noopener" onclick="closeModal('welcome-modal')" style="text-decoration:none;text-align:center">Ver o manual completo</a>
         <button class="btn btn-secondary" onclick="closeModal('welcome-modal')">Explorar sozinho</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: PERFIL DA CONTA -->
-<div class="overlay" id="perfil-modal">
-  <div class="modal" style="max-width:440px">
-    <div class="mhead"><h3>Seu perfil</h3></div>
-    <div class="mbody">
-      <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:18px">
-        <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">E-mail</span>
-        <span id="perfil-email" style="font-size:14px;color:var(--ink);font-weight:600;word-break:break-all">—</span>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:18px">
-        <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Conta criada em</span>
-        <span id="perfil-created" style="font-size:14px;color:var(--ink);font-weight:600">—</span>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:22px">
-        <span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Assinatura</span>
-        <span id="perfil-sub" style="font-size:14px;color:var(--ink);font-weight:600">—</span>
-      </div>
-      <div style="border:1px solid var(--redl);background:var(--redl);border-radius:14px;padding:16px 16px 18px">
-        <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-bottom:6px">Zona de risco</div>
-        <p style="font-size:12.5px;color:var(--ink2);line-height:1.55;margin:0 0 14px">Ao excluir sua conta, você tem <strong>15 dias</strong> para se arrepender. Nesse período o acesso fica bloqueado e é possível reativar. Passado o prazo, tudo é apagado <strong>para sempre</strong>.</p>
-        <button class="btn btn-danger" style="width:100%" onclick="requestAccountDeletion(this)">Excluir minha conta</button>
       </div>
     </div>
   </div>
@@ -2465,21 +2584,29 @@ function renderTrialBanner(acc){
   }else{el.style.display='none';}
 }
 
+// O plano mora no topo do perfil. data-plano no topo acende o selo PRO do
+// avatar e o cartao; fora do Pro o cartao fica apagado, como um convite.
 function renderSubPanel(sub,acc){
-  const info=document.getElementById('sub-info');const act=document.getElementById('sub-actions');
+  const info=document.getElementById('sub-info'),act=document.getElementById('sub-actions');
   if(!info||!act)return;
-  let html='';
-  if(acc.reason==='trialing'){html='<strong>Plano:</strong> Pro em teste grátis<br><strong>Termina em:</strong> '+fmtDate(acc.end)+' ('+daysLeft(acc.end)+' dias)<br>Depois: plano Free, ou Pro por <strong>R$ 19,90/mês</strong>';}
-  else if(acc.reason==='active'){html='<strong>Plano:</strong> North Finances Pro — R$ 19,90/mês<br><strong>Status:</strong> Ativa'+(acc.end?'<br><strong>Próxima cobrança:</strong> '+fmtDate(acc.end):'');}
-  else if(acc.reason==='grace'){html='<strong>Status:</strong> Cancelada<br>Seu acesso ao Pro continua até <strong>'+fmtDate(acc.end)+'</strong>.';}
-  else if(acc.reason==='past_due'){html='<strong>Status:</strong> pagamento recusado<br>Atualize o cartão para voltar ao Pro.';}
-  else{html='Você está no plano Free. Assine o Pro por <strong>R$ 19,90/mês</strong>.';}
-  info.innerHTML=html;
-  let btns='';
+  const r=acc.reason,fim=acc.end?fmtDate(acc.end):'';
+  let html,status,btns;
+  if(r==='trialing'){
+    const d=daysLeft(acc.end);
+    html='<b>Pro em teste grátis</b> · '+(d===1?'falta 1 dia':'faltam '+d+' dias')+', até '+fim+'<br>Depois, o plano Free, ou o Pro por <b>R$ 19,90/mês</b>.'
+      +'<span class="pf-barra" aria-hidden="true"><i style="width:'+Math.max(6,Math.min(100,Math.round(d/7*100)))+'%"></i></span>';
+    status='Teste · '+(d===1?'1 dia':d+' dias');
+  }
+  else if(r==='active'){html='<b>North Finances Pro</b> · R$ 19,90/mês'+(fim?'<br>Próxima cobrança em <b>'+fim+'</b>':'');status='Ativo';}
+  else if(r==='grace'){html='<b>Pro cancelado</b><br>Seu acesso continua até <b>'+fim+'</b>. Depois, a conta volta ao Free sem perder nada.';status='Até '+fim;}
+  else if(r==='past_due'){html='<b>Pagamento recusado</b><br>Atualize o cartão para voltar ao Pro.';status='Pagamento pendente';}
+  else{html='<b>Plano Free</b><br>O Pro acompanha seus investimentos, separa o dinheiro por banco e cuida das contas a pagar, por <b>R$ 19,90/mês</b>.';status='Disponível no Pro';}
   // pagamento recusado tambem passa por aqui: a funcao manda para o portal trocar o cartao
-  if(acc.reason!=='active'){btns+='<button class="btn btn-primary" onclick="startSubscription(this)">'+(acc.reason==='grace'?'Reativar':acc.reason==='past_due'?'Atualizar cartão':'Assinar o Pro')+'</button>';}
-  if(acc.reason==='active'){btns+='<button class="btn btn-secondary" onclick="gerenciarAssinatura(this)">Gerenciar assinatura</button><button class="btn btn-secondary" onclick="abrirRecepcaoPro()">Rever as boas-vindas</button>';}
-  act.innerHTML=btns;
+  if(r!=='active')btns='<button type="button" class="pf-btn pf-btn-ouro" onclick="startSubscription(this)">'+(r==='grace'?'Reativar':r==='past_due'?'Atualizar cartão':'Assinar o Pro')+'</button>';
+  else btns='<button type="button" class="pf-btn" onclick="gerenciarAssinatura(this)">Gerenciar assinatura</button><button type="button" class="pf-btn" onclick="abrirRecepcaoPro()">Rever as boas-vindas</button>';
+  info.innerHTML=html;act.innerHTML=btns;
+  const hero=document.getElementById('pf-hero');if(hero)hero.dataset.plano=r;
+  const st=document.getElementById('pf-cartao-status');if(st)st.textContent=status;
 }
 
 // ═══ CAPTCHA (Cloudflare Turnstile) ═══
@@ -2600,9 +2727,9 @@ async function renderMFAStatus(){
   try{
     const f=await verifiedTotpFactor();
     box.innerHTML=f
-      ?'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:13px;font-weight:700;color:var(--green)">2FA ativado</span><button class="btn btn-secondary" onclick="disableMFA()">Desativar</button></div>'
-      :'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:13px;color:var(--ink3)">2FA desativado</span><button class="btn btn-primary" onclick="startEnrollMFA()">Ativar 2FA</button></div>';
-  }catch(e){box.innerHTML='<span style="font-size:13px;color:var(--ink3)">Não foi possível carregar o status do 2FA.</span>';}
+      ?'<span class="seg-on">Ativada</span><button class="btn btn-secondary btn-sm" onclick="disableMFA()">Desativar</button>'
+      :'<span class="seg-off">Desativada</span><button class="btn btn-primary btn-sm" onclick="startEnrollMFA()">Ativar</button>';
+  }catch(e){box.innerHTML='<span class="seg-off">Indisponível agora</span>';}
 }
 async function startEnrollMFA(){
   // limpa sobras de tentativas de ativação não concluídas
@@ -3018,25 +3145,55 @@ async function doLogout(){
 }
 
 // ═══ PERFIL DA CONTA ═══
-function perfilSubText(sub){
-  if(!sub)return'Teste grátis';
-  const now=Date.now();
-  const t=sub.trial_ends_at?new Date(sub.trial_ends_at).getTime():0;
-  const p=sub.current_period_end?new Date(sub.current_period_end).getTime():0;
-  const fmt=d=>new Date(d).toLocaleDateString('pt-BR');
-  if(sub.status==='active')return p?('Ativa · renova em '+fmt(p)):'Ativa';
-  if(sub.status==='trialing'&&now<t)return'Teste grátis · termina em '+fmt(t);
-  if(sub.status==='trialing')return'Teste expirado';
-  if(sub.status==='canceled'&&now<p)return'Cancelada · acesso até '+fmt(p);
-  if(sub.status==='canceled')return'Cancelada';
-  return sub.status||'—';
+// A página de Configurações virou o perfil: identidade, plano, números e
+// segurança no topo, as preferências embaixo. O nome é opcional e viaja cifrado
+// junto com o resto das configurações.
+function openPerfil(){showPage('settings');}
+function iniciaisPerfil(){
+  const p=String(S.settings.nome||'').trim().split(/\s+/).filter(Boolean);
+  if(p.length)return ([...p[0]][0]+(p.length>1?[...p[p.length-1]][0]:'')).toUpperCase();
+  const email=(_nfUser&&_nfUser.email)||document.getElementById('udisp').textContent.trim();
+  return (email||'N').charAt(0).toUpperCase();
 }
-function openPerfil(){
-  document.getElementById('perfil-email').textContent=(_nfUser&&_nfUser.email)||'—';
-  const c=_nfUser&&_nfUser.created_at;
-  document.getElementById('perfil-created').textContent=c?new Date(c).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'}):'—';
-  document.getElementById('perfil-sub').textContent=perfilSubText(_nfSub);
-  openModal('perfil-modal');
+function renderPerfil(){
+  const h=document.getElementById('pf-nome');if(!h)return;
+  const u=_nfUser||{},nome=String(S.settings.nome||'').trim();
+  h.textContent=nome||'Como quer ser chamado?';
+  h.classList.toggle('vazio',!nome);
+  document.getElementById('pf-iniciais').textContent=iniciaisPerfil();
+  document.getElementById('pf-email').textContent=u.email||document.getElementById('udisp').textContent.trim();
+  document.getElementById('pf-desde').textContent=u.created_at?'Membro desde '+new Date(u.created_at).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'';
+  document.getElementById('pf-cartao-nome').textContent=nome||'North Pro';
+  const n=v=>v.toLocaleString('pt-BR');
+  const bloco=(rotulo,valor,extra,cls)=>'<div class="pf-num'+(cls?' '+cls:'')+'"><span class="pf-num-rotulo">'+rotulo+'</span><b class="pf-num-valor">'+valor+'</b>'+(extra||'')+'</div>';
+  const itens=[...S.transactions,...(S.ccItems||[])];
+  const meses=new Set(itens.map(x=>String((x&&x.date)||'').slice(0,7)).filter(m=>/^\d{4}-\d{2}$/.test(m))).size;
+  let inv=0;S.investments.forEach(i=>{const r=invNumbers(i);inv+=r.invested+r.gain;});
+  const qi=S.investments.length,lista=contas();
+  document.getElementById('pf-numeros').innerHTML=
+    bloco('Patrimônio investido',qi?fmtCur(inv):'—','<span class="pf-num-extra">'+(qi?(qi===1?'1 investimento':n(qi)+' investimentos'):'Nenhum investimento ainda')+'</span>','pf-num-largo')+
+    bloco('Lançamentos',n(itens.length))+
+    bloco('Histórico',n(meses)+(meses===1?' mês':' meses'))+
+    bloco('Bancos',n(lista.length),'<span class="pf-num-bancos">'+lista.map(c=>iconeConta(c.id)).join('')+'</span>')+
+    bloco('Metas',n(S.goals.length));
+  document.getElementById('seg-aparelho').textContent=deviceLabel();
+  document.getElementById('seg-login').textContent=u.last_sign_in_at?new Date(u.last_sign_in_at).toLocaleString('pt-BR',{dateStyle:'long',timeStyle:'short'}):'—';
+}
+function editarNome(){
+  document.getElementById('pf-nome-linha').hidden=true;
+  document.getElementById('pf-nome-form').hidden=false;
+  const c=document.getElementById('pf-nome-campo');c.value=S.settings.nome||'';c.focus();
+}
+function fecharNome(){
+  document.getElementById('pf-nome-form').hidden=true;
+  document.getElementById('pf-nome-linha').hidden=false;
+}
+function salvarNome(e){
+  e.preventDefault();
+  const novo=document.getElementById('pf-nome-campo').value.trim().replace(/\s+/g,' ').slice(0,40);
+  if(novo!==(S.settings.nome||'')){S.settings.nome=novo;persistSettings();toast(novo?'Nome salvo':'Nome removido');}
+  fecharNome();renderPerfil();
+  document.getElementById('mobile-initial').textContent=iniciaisPerfil();
 }
 async function requestAccountDeletion(btn){
   const ok=await showConfirm('Sua conta entrará em período de exclusão de 15 dias. Durante esse prazo o acesso ao app fica bloqueado, mas você pode reativar a qualquer momento entrando com seu e-mail e senha.\n\nPassados os 15 dias, todos os seus dados são apagados definitivamente e não há como recuperar.\n\nVamos te enviar um e-mail confirmando o pedido.',{title:'Excluir minha conta',confirmLabel:'Sim, quero excluir',cancelLabel:'Voltar',danger:true});
@@ -3046,7 +3203,6 @@ async function requestAccountDeletion(btn){
     const {data:{session}}=await sb.auth.getSession();
     const r=await fetch(FN_BASE+'/request-deletion',{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'}});
     if(!r.ok)throw new Error('falha');
-    closeModal('perfil-modal');
     await showAlert('Pedido registrado. Enviamos um e-mail confirmando. Sua conta será apagada em 15 dias — até lá, é só entrar de novo e reativar se mudar de ideia.','Exclusão agendada');
     await doLogout();
   }catch(e){
@@ -3696,8 +3852,7 @@ function renderCamposPeriodo(){
 }
 function renderTopoDash(per){
   renderEyeToggle();
-  const email=document.getElementById('udisp').textContent.trim();
-  document.getElementById('mobile-initial').textContent=(email||'N').charAt(0).toUpperCase();
+  document.getElementById('mobile-initial').textContent=iniciaisPerfil();
   const sel=document.getElementById('mobile-month');
   const atual=monthKeyOf(new Date());
   const escolhido=S.settings.dashboardMonth||atual;
@@ -5585,6 +5740,7 @@ function renderSettings(){
   renderContasSettings();
   renderTemaSel();
   loadEmailPrefs();
+  renderPerfil();
 }
 // Preferência do lembrete mensal por e-mail — mora na tabela email_prefs (não no blob),
 // para o link de descadastrar do e-mail poder alterá-la sem login.

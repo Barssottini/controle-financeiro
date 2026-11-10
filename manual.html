@@ -142,8 +142,8 @@ code{font-family:Consolas,monospace;font-size:.88em;background:var(--paper2);bor
       <h4>Sistema</h4>
       <ol>
         <li><a href="#importar"><span>08</span>Importar Extrato</a></li>
-        <li><a href="#config"><span>09</span>Configurações</a></li>
-        <li><a href="#perfil"><span>10</span>Seu Perfil</a></li>
+        <li><a href="#config"><span>09</span>Perfil e configurações</a></li>
+        <li><a href="#excluir"><span>10</span>Excluir a conta</a></li>
       </ol>
     </div>
   </div>
@@ -367,14 +367,15 @@ code{font-family:Consolas,monospace;font-size:.88em;background:var(--paper2);bor
     </div>
   </div>
 
-  <h2 id="config"><span class="num">9</span> Configurações</h2>
-  <p>Preferências, segurança e assinatura, tudo aqui.</p>
+  <h2 id="config"><span class="num">9</span> Perfil e configurações</h2>
+  <p>Clique no seu e-mail, no topo da barra lateral, ou em <strong>Perfil e configurações</strong> no menu. No celular, toque na sua inicial, no canto de cima. No topo da página ficam você, o seu plano e a segurança da conta; embaixo, as preferências do app.</p>
   <ul>
+    <li><strong>Seu nome</strong> é opcional: com ele, o avatar mostra as suas iniciais e o cartão Pro leva o seu nome. Ele fica cifrado junto com o resto dos seus dados.</li>
+    <li><strong>Seus números:</strong> o patrimônio investido, quantos lançamentos você fez, há quantos meses registra, os seus bancos e as suas metas.</li>
+    <li><strong>Segurança:</strong> a criptografia de ponta a ponta, a <strong>verificação em duas etapas (2FA)</strong> (o app mostra o QR code para escanear no Google Authenticator), o aparelho em uso e o último login. Usou um computador público? <strong>Sair de todos os aparelhos</strong> encerra a sessão em todos de uma vez, inclusive neste.</li>
     <li>Ligue ou desligue módulos, como o <strong>Cartão de Crédito</strong>. Desligar não apaga nada — só esconde.</li>
     <li><strong>Notificações por e-mail:</strong> o único e-mail recorrente que enviamos é o lembrete mensal, no dia 1º, para você exportar o extrato do banco. Desmarque aqui se não quiser receber.</li>
-    <li>Ative a <strong>verificação em duas etapas (2FA)</strong> pra uma camada extra de segurança — o app mostra o QR code para escanear no Google Authenticator.</li>
-    <li><strong>Dispositivos conectados:</strong> encerre a sessão em todos os aparelhos de uma vez, inclusive neste. Útil se você usou um computador público.</li>
-    <li><strong>Assinatura:</strong> o plano Free é gratuito e sem limite de lançamentos. O Pro custa R$ 19,90 por mês, sem fidelidade, e toda conta nova ganha <strong>7 dias grátis</strong> dele, contados da confirmação do e-mail. O pagamento é feito na página segura do Stripe; trocar o cartão e cancelar ficam em <strong>Gerenciar assinatura</strong>. Quem cancela continua no Pro até o fim do período já pago e depois volta ao Free, sem perder nada.</li>
+    <li><strong>Assinatura</strong>, no topo da página: o plano Free é gratuito e sem limite de lançamentos. O Pro custa R$ 19,90 por mês, sem fidelidade, e toda conta nova ganha <strong>7 dias grátis</strong> dele, contados da confirmação do e-mail. O pagamento é feito na página segura do Stripe; trocar o cartão e cancelar ficam em <strong>Gerenciar assinatura</strong>. Quem cancela continua no Pro até o fim do período já pago e depois volta ao Free, sem perder nada.</li>
     <li><strong>Seus dados:</strong> baixe uma planilha CSV dos lançamentos do período — pronta para o Excel e para entregar ao contador — ou uma cópia completa da conta em JSON. Os arquivos são montados no seu aparelho; o servidor não participa, porque o que ele guarda é cifra que nem nós abrimos.</li>
     <li>Fale com o <strong>suporte</strong> quando precisar.</li>
   </ul>
@@ -390,12 +391,8 @@ code{font-family:Consolas,monospace;font-size:.88em;background:var(--paper2);bor
     </div>
   </div>
 
-  <h2 id="perfil"><span class="num">10</span> Seu Perfil</h2>
-  <p>Clique no seu e-mail, no topo da barra lateral, para abrir o perfil.</p>
-  <ul>
-    <li>Seu <strong>e-mail</strong>, a data em que a conta foi criada e o <strong>status da assinatura</strong>.</li>
-    <li>É também onde fica a <strong>exclusão da conta</strong>, na zona de risco no fim do quadro.</li>
-  </ul>
+  <h2 id="excluir"><span class="num">10</span> Excluir a conta</h2>
+  <p>Fica no fim da página de perfil, em <strong>Excluir minha conta</strong>: toque para abrir o aviso e o botão.</p>
   <p>Ao pedir a exclusão você tem <strong>15 dias para se arrepender</strong>: nesse período o acesso fica bloqueado, mas basta entrar de novo com e-mail e senha para reativar tudo. Passados os 15 dias, os dados são apagados definitivamente — e, como eles estão cifrados, o que se apaga é justamente o texto embaralhado que só você poderia abrir.</p>
 
   <div class="group-label">Barra lateral</div>
