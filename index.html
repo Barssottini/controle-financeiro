@@ -257,6 +257,12 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 .captcha-box:empty{margin:0}
 .captcha-box iframe{max-width:100%}
 .lbtn:hover{background:var(--gold)}
+.reckey-opcoes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.reckey-opcoes[hidden]{display:none}
+.reckey-opcoes button{white-space:nowrap;padding:10px 6px;border:1px solid var(--paper3);border-radius:var(--r);background:var(--paper2);color:var(--ink);font:700 12.5px var(--ff);cursor:pointer;transition:border-color .15s}
+.reckey-opcoes button:hover{border-color:var(--gold)}
+.reckey-ok{margin:10px 0 0;font-size:12.5px;line-height:1.5;color:var(--green);text-align:center}
+.reckey-ok:empty{display:none}
 .lerr{background:var(--redl);color:var(--red);border:1.5px solid rgba(184,50,40,.35);border-radius:var(--r);padding:12px 16px;font-size:13px;font-weight:600;margin-bottom:14px;display:none;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(185,28,28,.12)}
 .lerr.show{display:flex;animation:shake .4s ease}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
@@ -1101,9 +1107,16 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
   <div class="login-box" style="max-width:470px">
     <div class="login-brand" style="margin-bottom:6px">North<span> Finances</span></div>
     <p style="font-size:19px;font-weight:800;text-align:center;margin-bottom:6px;letter-spacing:-.3px">Sua chave de recuperação</p>
-    <p class="login-sub" style="text-align:center">Agora seus dados são cifrados no seu aparelho. Guarde este arquivo em lugar seguro: é a <b>única</b> forma de recuperar seus dados se você esquecer a senha. A North não tem cópia dela.</p>
+    <p class="login-sub" style="text-align:center">Agora seus dados são cifrados no seu aparelho. Guarde esta chave em lugar seguro: é a <b>única</b> forma de recuperar seus dados se você esquecer a senha. A North não tem cópia dela.</p>
     <div id="reckey-value" style="font-family:'Courier New',monospace;font-size:16px;font-weight:700;letter-spacing:1px;text-align:center;background:var(--paper2);border:1px solid var(--paper3);border-radius:10px;padding:16px;margin:6px 0 16px;color:var(--ink);word-break:break-all;user-select:all"></div>
-    <button class="lbtn" id="reckey-dl" onclick="downloadRecoveryKey()">Baixar chave de recuperação (.txt)</button>
+    <button class="lbtn" id="reckey-dl" onclick="guardarChave('menu')">Guardar minha chave</button>
+    <div class="reckey-opcoes" id="reckey-opcoes" hidden>
+      <button type="button" onclick="guardarChave('copiar')">Copiar</button>
+      <button type="button" onclick="guardarChave('baixar')">Baixar arquivo</button>
+      <button type="button" onclick="guardarChave('email')">Para meu e-mail</button>
+    </div>
+    <p class="reckey-ok" id="reckey-ok"></p>
+    <p style="font-size:12px;color:var(--ink3);text-align:center;margin:8px 0 0;line-height:1.5">A chave vai direto do seu aparelho para onde você escolher. A North não recebe cópia.</p>
     <label style="display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--ink3);margin:16px 0;cursor:pointer;line-height:1.5"><input type="checkbox" id="reckey-chk" onchange="reckeyGate()" style="margin-top:2px;flex:none"> Salvei minha chave de recuperação e entendo que, sem ela, se eu esquecer a senha meus dados não poderão ser recuperados.</label>
     <button class="lbtn" id="reckey-continue" onclick="reckeyContinue()" disabled style="opacity:.5">Continuar</button>
   </div>
@@ -1127,7 +1140,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
   <div class="login-box" style="max-width:460px">
     <div class="login-brand" style="margin-bottom:6px">North<span> Finances</span></div>
     <p style="font-size:19px;font-weight:800;text-align:center;margin-bottom:6px;letter-spacing:-.3px">Restaurar seus dados</p>
-    <p class="login-sub" style="text-align:center">Você redefiniu a senha. Para recuperar seus dados cifrados, digite a chave de recuperação (o arquivo .txt que você guardou).</p>
+    <p class="login-sub" style="text-align:center">Você redefiniu a senha. Para recuperar seus dados cifrados, digite a chave de recuperação (a que você guardou ao criar a conta).</p>
     <input class="linput" id="recentry-key" type="text" placeholder="XXXX-XXXX-XXXX-XXXX-..." autocomplete="off">
     <div class="lerr" id="recentry-err"><span id="recentry-err-msg">Chave incorreta.</span></div>
     <button class="lbtn" onclick="doRecoveryRestore()">Restaurar dados</button>
@@ -4194,17 +4207,52 @@ function showRecoveryDisplay(key){
   _reckeyStr=key;_reckeyDled=false;
   document.getElementById('reckey-value').textContent=key;
   document.getElementById('reckey-chk').checked=false;
+  document.getElementById('reckey-ok').textContent='';
+  document.getElementById('reckey-opcoes').hidden=true;
   const b=document.getElementById('reckey-continue');b.disabled=true;b.style.opacity='.5';
   document.getElementById('reckey-screen').style.display='flex';
 }
-function downloadRecoveryKey(){
+function textoDaChave(){
   const em=document.getElementById('udisp');const email=em?em.textContent:'';
-  const txt='North Finances — Chave de Recuperação\r\n\r\nConta: '+email+'\r\nData: '+new Date().toLocaleString('pt-BR')+'\r\n\r\nSua chave:\r\n'+_reckeyStr+'\r\n\r\nGUARDE ESTE ARQUIVO EM LUGAR SEGURO.\r\nSem esta chave, se você esquecer a senha, seus dados não poderão ser recuperados.\r\nA North Finances NÃO tem cópia desta chave e não consegue recuperá-la por você.\r\n';
-  const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
+  return 'North Finances — Chave de Recuperação\r\n\r\nConta: '+email+'\r\nData: '+new Date().toLocaleString('pt-BR')+'\r\n\r\nSua chave:\r\n'+_reckeyStr+'\r\n\r\nGUARDE ESTA CHAVE EM LUGAR SEGURO.\r\nSem esta chave, se você esquecer a senha, seus dados não poderão ser recuperados.\r\nA North Finances NÃO tem cópia desta chave e não consegue recuperá-la por você.\r\n';
+}
+function chaveGuardada(msg){
+  _reckeyDled=true;
+  const ok=document.getElementById('reckey-ok');if(ok)ok.textContent='✓ '+msg;
+  reckeyGate();
+}
+// Nada aqui passa pelo servidor: a chave sai do aparelho direto para onde a pessoa escolher.
+async function guardarChave(como){
+  if(como==='menu'){
+    // no celular, a folha de compartilhar ja tem Notas, Drive, e-mail e gerenciador de senhas
+    if(navigator.share&&matchMedia('(pointer:coarse)').matches){
+      try{await navigator.share({title:'Chave de recuperação · North Finances',text:textoDaChave()});chaveGuardada('Chave guardada onde você escolheu.');return;}
+      catch(e){}   // cancelou ou o aparelho recusou: mostra as outras formas
+    }
+    const op=document.getElementById('reckey-opcoes');if(op)op.hidden=false;
+    return;
+  }
+  if(como==='copiar'){
+    try{await navigator.clipboard.writeText(_reckeyStr);chaveGuardada('Chave copiada. Cole num lugar seguro, como seu gerenciador de senhas.');}
+    catch(e){showAlert('Não deu para copiar sozinho. Selecione a chave acima e copie.');}
+    return;
+  }
+  if(como==='email'){
+    const em=document.getElementById('udisp'),email=em?em.textContent.trim():'';
+    const url='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Minha chave de recuperação · North Finances')+'&body='+encodeURIComponent(textoDaChave());
+    // no app de computador, link novo vai para o sistema (setWindowOpenHandler); no navegador, o mailto abre o programa de e-mail
+    if(IS_ELECTRON)window.open(url);else{const a=document.createElement('a');a.href=url;document.body.appendChild(a);a.click();a.remove();}
+    chaveGuardada('Seu e-mail abriu com a chave. Envie para você mesmo.');
+    return;
+  }
+  downloadRecoveryKey();
+}
+function downloadRecoveryKey(){
+  const blob=new Blob([textoDaChave()],{type:'text/plain;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='north-finances-chave-recuperacao.txt';
   document.body.appendChild(a);a.click();
   setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1000);
-  _reckeyDled=true;reckeyGate();
+  chaveGuardada('Arquivo baixado. Guarde uma cópia fora deste aparelho também.');
 }
 function reckeyGate(){
   const ok=_reckeyDled&&document.getElementById('reckey-chk').checked;
@@ -4260,7 +4308,7 @@ async function doRecoveryRestore(){
     await nfStoreMK(uid);_nfNewPass=null;
     document.getElementById('recentry-screen').style.display='none';
     onSignedIn(_recEntrySession,false);
-  }catch(e){errShow('Chave de recuperação incorreta. Confira o arquivo .txt e tente de novo.');}
+  }catch(e){errShow('Chave de recuperação incorreta. Confira a chave que você guardou e tente de novo.');}
 }
 async function recoveryGiveUp(){
   if(!_recEntrySession)return;
