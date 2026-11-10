@@ -398,6 +398,20 @@ body.values-hidden #dash-chart{filter:blur(6px)}
 .pf-avatar:has(.pf-tirar:focus-visible) .pf-selo{opacity:0}
 .mobile-avatar{overflow:hidden;padding:0}
 .mobile-avatar img{display:block;width:100%;height:100%;object-fit:cover}
+/* ═══ CONFERIR FATURA ═══ */
+.conf-resumo{display:flex;flex-wrap:wrap;gap:8px}
+.conf-resumo span{padding:6px 12px;border-radius:100px;font-size:12.5px;font-weight:700}
+.conf-resumo .ok{background:var(--greenl);color:var(--green)}
+.conf-resumo .falta{background:var(--warnl);color:var(--warn)}
+.conf-resumo .diverge{background:var(--redl);color:var(--red)}
+#conf-corpo h4{margin:18px 0 4px;font-size:13px;font-weight:800;color:var(--ink2)}
+.conf-linha{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--paper2);font-size:13.5px}
+.conf-linha>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.conf-linha small{display:block;margin-top:2px;font-size:12px;color:var(--ink3)}
+.conf-linha b{font-variant-numeric:tabular-nums}
+#conf-corpo>.btn{margin-top:12px}
+.conf-nota{margin:6px 0 0;font-size:12px;color:var(--ink3)}
+.conf-tudo{margin:16px 0 0;font-size:14px;font-weight:700;color:var(--green)}
 /* ═══ QUEM ME DEVE ═══ */
 .panel.dev-resumo{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 20px;padding:18px 22px}
 .dev-resumo span{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
@@ -1308,7 +1322,11 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
     <div class="page" id="credit-card">
       <div class="ph">
         <div><h1 class="pt">Cartão de Crédito</h1><p class="ps">Controle da fatura e lançamentos no crédito</p></div>
-        <button class="btn btn-primary" onclick="openCCModal()">+ Lançar no Crédito</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-secondary" onclick="document.getElementById('conf-arquivo').click()">Conferir fatura</button>
+          <button class="btn btn-primary" onclick="openCCModal()">+ Lançar no Crédito</button>
+        </div>
+        <input type="file" id="conf-arquivo" accept=".ofx,.qfx,.csv" hidden onchange="lerFatura(this)">
       </div>
       <div class="cards-row" style="grid-template-columns:repeat(3,1fr)">
         <div class="sum-card expense"><div class="sc-label">Em aberto no mês</div><div class="sc-val" id="cc-open-month">R$ 0,00</div></div>
@@ -1900,6 +1918,13 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
         <button class="btn btn-primary" onclick="salvarDevedor()">Salvar</button>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="conf-modal">
+  <div class="modal">
+    <div class="mhead"><h3>Conferência da fatura</h3><button class="xbtn" onclick="closeModal('conf-modal')">✕</button></div>
+    <div class="mbody" id="conf-corpo"></div>
   </div>
 </div>
 
@@ -3770,6 +3795,75 @@ function avisarFimTeste(acc){
   showConfirm('Seu teste do Pro acaba '+(d<=1?'amanhã':'em '+d+' dias')+', em '+fmtDate(acc.end)+'. Depois, a conta volta ao Free sem perder nada: o que você cadastrou continua aqui.',{title:'Seu teste está acabando',confirmLabel:'Assinar o Pro',cancelLabel:'Depois'})
     .then(ok=>{if(ok)startSubscription();});
 }
+
+// ═══ CONFERIR FATURA ═══
+// Compara a fatura do cartão (OFX ou CSV) com o que foi lançado no Cartão. Uma
+// compra bate pelo valor (cheio ou da parcela) com até 3 dias de diferença; se só
+// o nome bate, é "valor diferente". Pagamento da fatura e estorno ficam de fora:
+// cada banco usa um sinal, então vale o sinal da maioria das linhas (as compras).
+let _conf=null;
+function palavraChave(s){return (String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').match(/[a-z]{3,}/)||[''])[0];}
+function conferirFatura(linhas,itens){
+  const compras=linhas.filter(r=>r.type==='expense').length>=linhas.filter(r=>r.type==='income').length?'expense':'income';
+  const out={ok:[],falta:[],diverge:[],sobra:[],ignorados:0},usados=new Set();
+  const dias=(a,b)=>Math.abs(_diasEntre(a,b)-1);
+  linhas.forEach(r=>{
+    if(r.type!==compras||/pagamento|pgto|payment/i.test(r.description)){out.ignorados++;return;}
+    const perto=itens.filter(c=>!usados.has(c.id)&&c.date&&dias(c.date,r.date)<=3);
+    let c=perto.find(c=>Math.abs(ccValorParcela(c)-r.amount)<0.01||Math.abs(c.amount-r.amount)<0.01);
+    if(c){usados.add(c.id);out.ok.push({r,c});return;}
+    const k=palavraChave(r.description);
+    c=k?perto.find(c=>palavraChave(c.description)===k):null;
+    if(c){usados.add(c.id);out.diverge.push({r,c});return;}
+    out.falta.push(r);
+  });
+  // parcela antiga traz a data da compra original: não define o período da fatura
+  const parcelado=new Set([...out.ok,...out.diverge].filter(x=>x.c&&ccParcelas(x.c)>1).map(x=>x.r));
+  const datas=linhas.filter(r=>r.type===compras&&!parcelado.has(r)&&!/\b\d{1,2}\s*\/\s*\d{1,2}\b/.test(r.description)).map(r=>r.date).sort();
+  if(datas.length)out.sobra=itens.filter(c=>!usados.has(c.id)&&c.date>=datas[0]&&c.date<=datas[datas.length-1]);
+  return out;
+}
+function lerFatura(input){
+  const f=input.files&&input.files[0];input.value='';
+  if(!f)return;
+  lerTexto(f,txt=>{
+    const nome=f.name.toLowerCase(),linhas=nome.endsWith('.ofx')||nome.endsWith('.qfx')?parseOFX(txt):parseCSV(txt);
+    if(!linhas.length){showAlert('Não encontrei lançamentos nesse arquivo. Use o OFX ou o CSV da fatura, baixado no app ou no site do banco.');return;}
+    _conf=conferirFatura(linhas,S.ccItems);
+    renderConferencia();openModal('conf-modal');
+  });
+}
+function renderConferencia(){
+  const c=_conf,dd=s=>s.slice(8,10)+'/'+s.slice(5,7);
+  const vApp=x=>ccParcelas(x)>1?ccValorParcela(x):x.amount;
+  document.getElementById('conf-corpo').innerHTML='<div class="conf-resumo"><span class="ok">'+c.ok.length+' batem</span><span class="falta">'+c.falta.length+' faltam no app</span><span class="diverge">'+c.diverge.length+' com valor diferente</span></div>'
+    +(c.falta.length?'<h4>Faltam no app</h4>'+c.falta.map((r,i)=>'<label class="conf-linha"><input type="checkbox" class="chk" data-i="'+i+'" checked><span>'+esc(r.description)+'<small>'+dd(r.date)+' · '+esc(r.category||'Outros')+'</small></span><b>'+fmtCur(r.amount)+'</b></label>').join('')
+      +'<button class="btn btn-primary" onclick="lancarFaltantes()">Lançar os marcados</button>':'')
+    +(c.diverge.length?'<h4>Valor diferente</h4>'+c.diverge.map((d,i)=>'<div class="conf-linha"><span>'+esc(d.r.description)+'<small>'+dd(d.r.date)+' · na fatura '+fmtCur(d.r.amount)+', no app '+fmtCur(vApp(d.c))+'</small></span>'
+      +(ccParcelas(d.c)===1?'<button class="btn btn-secondary btn-sm" onclick="usarValorFatura('+i+')">Usar o da fatura</button>':'')+'</div>').join(''):'')
+    +(c.sobra.length?'<h4>No app, mas não na fatura</h4><p class="conf-nota">Podem ser de outro cartão, de outra fatura ou estar repetidos.</p>'
+      +c.sobra.map(x=>'<div class="conf-linha"><span>'+esc(x.description)+'<small>'+dd(x.date)+'</small></span><b>'+fmtCur(vApp(x))+'</b></div>').join(''):'')
+    +(!c.falta.length&&!c.diverge.length?'<p class="conf-tudo">Tudo certo: o que está na fatura já está no app.</p>':'')
+    +(c.ignorados?'<p class="conf-nota">'+(c.ignorados===1?'1 pagamento ou estorno ficou':c.ignorados+' pagamentos e estornos ficaram')+' de fora da conferência.</p>':'');
+}
+function lancarFaltantes(){
+  const marcados=[...document.querySelectorAll('#conf-corpo input[data-i]:checked')].map(e=>_conf.falta[+e.dataset.i]);
+  if(!marcados.length)return;
+  let id=Math.max(Date.now(),...S.ccItems.map(c=>(+c.id||0)+1));
+  marcados.forEach(r=>S.ccItems.push({id:id++,description:r.description,amount:r.amount,date:r.date,category:r.category||'Outros',parcelas:1,paidCount:0}));
+  persistCC();renderCCPage();updateDashboard();
+  _conf.falta=_conf.falta.filter(r=>!marcados.includes(r));
+  marcados.forEach(r=>_conf.ok.push({r}));
+  renderConferencia();
+  toast(marcados.length===1?'1 lançamento adicionado':marcados.length+' lançamentos adicionados');
+}
+function usarValorFatura(i){
+  const d=_conf.diverge[i];if(!d)return;
+  d.c.amount=d.r.amount;persistCC();renderCCPage();updateDashboard();
+  _conf.diverge.splice(i,1);_conf.ok.push(d);
+  renderConferencia();toast('Valor corrigido');
+}
+// ═══ FIM DO CONFERIR FATURA ═══
 
 // ═══ QUEM ME DEVE ═══
 // Empréstimo, venda, racha de conta: o que cada pessoa deve, com data combinada.
@@ -6100,6 +6194,10 @@ function handleFileInput(e){const f=e.target.files[0];if(f)processFile(f);e.targ
 
 function processFile(file){
   if(precisaEscolherBanco()){abrirEscolhaBanco('primeiro',()=>processFile(file));return;}
+  lerTexto(file,t=>finishParse(t,file.name));
+}
+// lê o arquivo como texto; se os acentos vierem quebrados (Windows-1252), relê
+function lerTexto(file,pronto){
   const reader=new FileReader();
   reader.onload=ev=>{
     const text=ev.target.result;
@@ -6112,10 +6210,10 @@ function processFile(file){
           for(let i=0;i<ev2.target.result.length;i++)bytes[i]=ev2.target.result.charCodeAt(i)&0xff;
           fixed=new TextDecoder('windows-1252').decode(bytes);
         }catch(e){fixed=ev2.target.result;}
-        finishParse(fixed,file.name);
+        pronto(fixed);
       };
       r2.readAsBinaryString(file);
-    }else finishParse(text,file.name);
+    }else pronto(text);
   };
   reader.readAsText(file,'UTF-8');
 }
