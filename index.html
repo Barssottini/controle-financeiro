@@ -908,7 +908,24 @@ body.values-hidden #inv-evo-chart,body.values-hidden #rp-chart{filter:blur(6px)}
 .more-item{padding:15px 2px;border-bottom:1px solid var(--paper2);font-size:14.5px;font-weight:600;
   color:var(--ink);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
 .more-item:last-child{border-bottom:none}
-.more-item::after{content:"›";color:var(--ink3);font-size:19px;font-weight:400}
+.more-item::after{content:"›";margin-left:auto;color:var(--ink3);font-size:19px;font-weight:400}
+.more-item{justify-content:flex-start;gap:12px}
+.mi{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:10px}
+.mi svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mi-org{background:var(--goldl);color:var(--goldd)}
+.mi-pla{background:var(--greenl);color:var(--green)}
+.mi-aco{background:var(--warnl);color:var(--warn)}
+.mi-fer{background:var(--bluel);color:var(--blue)}
+.mi-sis{background:var(--paper2);color:var(--ink2)}
+.bloco-oculto{display:none!important}
+.ini-linha{display:flex;align-items:center;gap:6px;padding:9px 0;border-bottom:1px solid var(--paper2)}
+.ini-linha:last-child{border-bottom:0}
+.ini-nome{flex:1;min-width:0;font-size:14px;font-weight:600}
+.ini-linha.off .ini-nome{color:var(--ink3)}
+.ini-linha .ibt{color:var(--ink2)}
+.ini-linha .ibt[disabled]{opacity:.3;cursor:default}
+.ini-linha .ibt svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ini-olho[aria-pressed="true"]{color:var(--goldd)}
 @media(max-width:900px){
   .tabbar{display:flex}
   .main{padding-bottom:112px}
@@ -1418,7 +1435,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
       <div class="panel dash-passos" id="dash-passos" hidden></div>
       <div class="panel dash-foco" id="dash-foco" hidden></div>
       <div class="panel" id="dash-contas"><div class="panel-head"><span class="panel-title">Suas contas</span><button class="btn btn-secondary btn-sm" type="button" onclick="showPage('settings');setTimeout(()=>{const p=document.getElementById('set-contas');if(p)p.scrollIntoView({behavior:'smooth',block:'start'});},60)">Gerenciar</button></div><div id="dash-contas-lista"></div></div>
-      <div class="panel">
+      <div class="panel" id="dash-grafico">
         <div class="panel-head">
           <span class="panel-title">Receitas × Despesas</span>
           <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
@@ -1446,14 +1463,14 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
         <div class="chart-legenda" id="chart-legenda"></div>
         <div class="chart-wrap"><canvas id="dash-chart"></canvas><div class="chart-vazio" id="chart-vazio" hidden>Nenhum lançamento neste período</div></div>
       </div>
-      <div class="panel">
+      <div class="panel" id="dash-categorias">
         <div class="panel-head">
           <span class="panel-title">Pra onde foi seu dinheiro</span>
           <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="cat-month" onchange="_donutAnimate=true;renderCatBreakdown()"></select>
         </div>
         <div id="cat-breakdown"></div>
       </div>
-      <div class="panel">
+      <div class="panel" id="dash-recentes">
         <div class="panel-head">
           <span class="panel-title">Últimas Transações</span>
           <button class="btn btn-secondary btn-sm" onclick="showPage('transactions')">Ver todas</button>
@@ -1639,20 +1656,34 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
     <div class="page" id="more">
       <div class="ph"><div><h1 class="pt">Mais</h1><p class="ps">O que não cabe nas abas de baixo</p></div></div>
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">Gerenciar</span></div>
-        <div class="more-item" onclick="showPage('bills')">Contas a pagar e receber</div>
-        <div class="more-item" onclick="showPage('devedores')">Quem me deve</div>
-        <div class="more-item" id="more-cc" onclick="showPage('credit-card')">Cartão de crédito</div>
-        <div class="more-item" onclick="showPage('goals')">Metas &amp; Reserva</div>
-        <div class="more-item" onclick="showPage('investments')">Investimentos</div>
-        <div class="more-item" onclick="showPage('import')">Importar extrato</div>
+        <div class="panel-head"><span class="panel-title">Organizar</span></div>
+        <div class="more-item" onclick="irPara('settings','set-contas')"><span class="mi mi-org"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"/><circle cx="16" cy="14.5" r="1.2"/></svg></span>Contas e bancos</div>
+        <div class="more-item" id="more-cc" onclick="showPage('credit-card')"><span class="mi mi-org"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg></span>Cartão de crédito</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Planejar</span></div>
+        <div class="more-item" onclick="showPage('budget')"><span class="mi mi-pla"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg></span>Orçamento</div>
+        <div class="more-item" onclick="showPage('goals')"><span class="mi mi-pla"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg></span>Metas &amp; Reserva</div>
+        <div class="more-item" onclick="showPage('investments')"><span class="mi mi-pla"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>Investimentos</div>
+        <div class="more-item" onclick="irPara('investments','inv-sim-panel')"><span class="mi mi-pla"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2M8 18h8"/></svg></span>Simulador</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Acompanhar</span></div>
+        <div class="more-item" onclick="showPage('bills')"><span class="mi mi-aco"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>Contas a pagar e receber</div>
+        <div class="more-item" onclick="showPage('devedores')"><span class="mi mi-aco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15h4l4 3h6a2 2 0 0 0 0-4h-4"/><path d="M7 15V9"/><circle cx="15" cy="7" r="3"/></svg></span>Quem me deve</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Ferramentas</span></div>
+        <div class="more-item" onclick="showPage('import')"><span class="mi mi-fer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15l3 3 3-3"/></svg></span>Importar extrato</div>
+        <div class="more-item" onclick="novaTx('expense');abrirComprovante()"><span class="mi mi-fer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9h8M8 12h8M8 15h5"/></svg></span>Importar comprovante</div>
       </div>
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Sistema</span></div>
-        <div class="more-item" onclick="showPage('settings')">Perfil e configurações</div>
-        <div class="more-item" onclick="window.open('manual.html','_blank')">Manual do usuário</div>
-        <div class="more-item" onclick="window.open('termos.html','_blank')">Termos e privacidade</div>
-        <div class="more-item" onclick="doLogout()">Sair da conta</div>
+        <div class="more-item" onclick="showPage('settings')"><span class="mi mi-sis"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>Perfil e configurações</div>
+        <div class="more-item" onclick="irPara('settings','set-inicio')"><span class="mi mi-sis"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></span>Personalizar início</div>
+        <div class="more-item" onclick="window.open('manual.html','_blank')"><span class="mi mi-sis"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/></svg></span>Manual do usuário</div>
+        <div class="more-item" onclick="window.open('termos.html','_blank')"><span class="mi mi-sis"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></span>Termos e privacidade</div>
+        <div class="more-item" onclick="doLogout()"><span class="mi mi-sis"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/></svg></span>Sair da conta</div>
       </div>
     </div>
 
@@ -1752,6 +1783,12 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
           <button type="button" data-tema="claro" role="radio" onclick="setTema('claro')"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Claro</button>
           <button type="button" data-tema="escuro" role="radio" onclick="setTema('escuro')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Escuro</button>
         </div>
+      </div>
+
+      <div class="panel" id="set-inicio">
+        <div class="panel-head"><span class="panel-title">Tela inicial</span><button class="btn btn-secondary btn-sm" type="button" onclick="restaurarInicio()">Restaurar padrão</button></div>
+        <p style="font-size:12px;color:var(--ink3);margin-bottom:6px">Mude a ordem dos blocos e esconda o que você não usa. O saldo e os primeiros passos ficam sempre no topo.</p>
+        <div id="inicio-lista"></div>
       </div>
 
       <div class="panel">
@@ -4935,10 +4972,42 @@ function initApp(){
   checkReminder();
   populateMonthFilter();
   applyModules();
+  aplicarInicio();
+  renderInicioSettings();
   showPage('dashboard');
   updateCDI().then(ch=>{if(ch)updateDashboard();});
 }
 
+// ═══ PERSONALIZAR INÍCIO ═══
+// O topo (saldo, receitas, despesas) e os primeiros passos ficam fixos; os demais
+// blocos seguem a ordem e a visibilidade escolhidas, guardadas nas preferencias.
+const BLOCOS_INICIO=[['foco','Resumo do mês','dash-foco'],['contas','Suas contas','dash-contas'],['grafico','Receitas × Despesas','dash-grafico'],['categorias','Pra onde foi seu dinheiro','dash-categorias'],['recentes','Últimas transações','dash-recentes']];
+function ordemInicio(){
+  const ids=BLOCOS_INICIO.map(b=>b[0]),salvo=((S.settings.inicio||{}).ordem||[]).filter(i=>ids.includes(i));
+  return salvo.concat(ids.filter(i=>!salvo.includes(i)));   // bloco novo entra no fim
+}
+function ocultosInicio(){return (S.settings.inicio||{}).ocultos||[];}
+function aplicarInicio(){
+  const dash=document.getElementById('dashboard');if(!dash)return;
+  const oc=ocultosInicio();
+  ordemInicio().forEach(id=>{const el=document.getElementById(BLOCOS_INICIO.find(b=>b[0]===id)[2]);if(!el)return;dash.appendChild(el);el.classList.toggle('bloco-oculto',oc.includes(id));});
+}
+const _icIni={sobe:'<svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',desce:'<svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg>',
+  olho:'<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',fechado:'<svg viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4M6.6 6.6C3.8 8.4 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/></svg>'};
+function renderInicioSettings(){
+  const box=document.getElementById('inicio-lista');if(!box)return;
+  const ord=ordemInicio(),oc=ocultosInicio();
+  box.innerHTML=ord.map((id,k)=>{const b=BLOCOS_INICIO.find(x=>x[0]===id),vis=!oc.includes(id);
+    return '<div class="ini-linha'+(vis?'':' off')+'"><span class="ini-nome">'+b[1]+'</span>'+
+      '<button type="button" class="ibt" onclick="moverBloco(\''+id+'\',-1)" aria-label="Subir '+b[1]+'"'+(k===0?' disabled':'')+'>'+_icIni.sobe+'</button>'+
+      '<button type="button" class="ibt" onclick="moverBloco(\''+id+'\',1)" aria-label="Descer '+b[1]+'"'+(k===ord.length-1?' disabled':'')+'>'+_icIni.desce+'</button>'+
+      '<button type="button" class="ibt ini-olho" aria-pressed="'+vis+'" onclick="alternarBloco(\''+id+'\')" aria-label="'+(vis?'Esconder ':'Mostrar ')+b[1]+'">'+(vis?_icIni.olho:_icIni.fechado)+'</button></div>';}).join('');
+}
+function _salvarInicio(ordem,ocultos){S.settings.inicio={ordem,ocultos};persistSettings();aplicarInicio();renderInicioSettings();}
+function moverBloco(id,d){const o=ordemInicio(),i=o.indexOf(id),j=i+d;if(i<0||j<0||j>=o.length)return;[o[i],o[j]]=[o[j],o[i]];_salvarInicio(o,ocultosInicio());}
+function alternarBloco(id){const oc=ocultosInicio().slice(),i=oc.indexOf(id);if(i<0)oc.push(id);else oc.splice(i,1);_salvarInicio(ordemInicio(),oc);}
+function restaurarInicio(){delete S.settings.inicio;persistSettings();aplicarInicio();renderInicioSettings();toast('Tela inicial voltou ao padrão');}
+function irPara(pagina,id){showPage(pagina);setTimeout(()=>{const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},60);}
 // ═══ MÓDULOS OPCIONAIS ═══
 function applyModules(){
   const cc=!!S.settings.showCC;
