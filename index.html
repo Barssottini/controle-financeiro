@@ -1051,7 +1051,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
   <div class="trava-caixa">
     <img src="logo-192.png" alt="" width="64" height="64">
     <h2 id="trava-t">North Finances bloqueado</h2>
-    <p>Use o Face ID ou a digital deste aparelho para abrir.</p>
+    <p id="trava-como">Use o desbloqueio deste aparelho para abrir.</p>
     <button class="pf-btn pf-btn-ouro" type="button" onclick="desbloquearTrava(false)">Desbloquear</button>
     <div id="trava-senha-box" hidden>
       <input id="trava-senha" type="password" placeholder="Senha da sua conta" autocomplete="current-password" onkeydown="if(event.key==='Enter')travaComSenha()">
@@ -1743,7 +1743,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
         </div>
         <div class="seg-linha" id="trava-linha" hidden>
           <span class="seg-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3H5a2 2 0 0 0-2 2v2M17 3h2a2 2 0 0 1 2 2v2M7 21H5a2 2 0 0 1-2-2v-2M17 21h2a2 2 0 0 0 2-2v-2"/><path d="M9 9v1M15 9v1M12 9v4h-1M9 16c1.7 1.3 4.3 1.3 6 0"/></svg></span>
-          <div class="seg-txt"><b>Bloqueio com Face ID ou digital</b><small>Ao abrir o app, ou depois de um minuto fora dele, o North pede a biometria deste aparelho. O aparelho pode pedir para salvar uma chave de acesso: é ela que guarda o bloqueio.</small></div>
+          <div class="seg-txt"><b id="trava-titulo">Bloqueio com Face ID ou digital</b><small>Ao abrir o app, ou depois de um minuto fora dele, o North pede o desbloqueio deste aparelho. Vale só neste aparelho: cada um tem o seu. O aparelho pode pedir para salvar uma chave de acesso: é ela que guarda o bloqueio.</small></div>
           <div class="seg-acao" id="trava-status"></div>
         </div>
         <div class="seg-linha">
@@ -2836,11 +2836,23 @@ const _travaChave=()=>_nfUser?'nf_trava_'+_nfUser.id:'';
 function travaAtiva(){try{return !!(_travaChave()&&localStorage.getItem(_travaChave()));}catch(e){return false;}}
 const _b64url=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const _deB64url=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
+// o mesmo mecanismo (WebAuthn) e o Windows Hello no PC, o Face ID ou Touch ID na Apple e a digital no Android
+function nomeDaTrava(){
+  const ua=navigator.userAgent;
+  if(/Windows/i.test(ua))return 'Windows Hello';
+  if(/iPhone|iPad/i.test(ua))return 'Face ID';
+  if(/Macintosh/i.test(ua))return navigator.maxTouchPoints>1?'Face ID':'Touch ID';   // iPad se apresenta como Mac
+  if(/Android/i.test(ua))return 'digital';
+  return 'desbloqueio do aparelho';
+}
 async function travaDisponivel(){try{return !!(window.PublicKeyCredential&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());}catch(e){return false;}}
 async function renderTravaStatus(){
   const el=document.getElementById('trava-status'),linha=document.getElementById('trava-linha');if(!el||!linha)return;
   if(!(await travaDisponivel())){linha.hidden=true;return;}
   linha.hidden=false;
+  const nome=nomeDaTrava(),tit=document.getElementById('trava-titulo'),como=document.getElementById('trava-como');
+  if(tit)tit.textContent='Bloqueio com '+nome;
+  if(como)como.textContent=nome==='Windows Hello'?'Use o Windows Hello (digital, rosto ou PIN) para abrir.':'Use o '+nome+' deste aparelho para abrir.';
   el.innerHTML=travaAtiva()?'<span class="seg-on">Ativado</span><button class="btn btn-secondary btn-sm" type="button" onclick="desligarTrava()">Desativar</button>'
     :'<button class="btn btn-primary btn-sm" type="button" onclick="ligarTrava()">Ativar</button>';
 }
@@ -2891,7 +2903,7 @@ async function travaComSenha(){
     if(!data||!data.enc_meta)throw new Error('sem meta');
     await nfUnwrap(data.enc_meta.mk_pw,await nfDeriveKey(new TextEncoder().encode(pw),_unb64(data.enc_meta.salt_pw)));
     err.textContent='';document.getElementById('trava').hidden=true;
-  }catch(e){err.textContent=navigator.onLine?'Senha incorreta.':'Sem internet para conferir a senha. Use o Face ID ou a digital.';}
+  }catch(e){err.textContent=navigator.onLine?'Senha incorreta.':'Sem internet para conferir a senha. Use o '+nomeDaTrava()+'.';}
 }
 function travaSair(){document.getElementById('trava').hidden=true;doLogout();}
 let _travaSaiu=0;
