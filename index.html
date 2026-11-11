@@ -114,6 +114,7 @@
 .acc-chip{display:flex;align-items:center;gap:9px;flex:none;padding:4px 15px 4px 4px;border-radius:100px;border:1.5px solid var(--paper3);
   background:var(--paper);color:var(--ink2);font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;transition:border-color .15s,background .15s}
 .acc-chip:hover{border-color:var(--ink4)}
+.acc-chip .cbadge{border-radius:50%}   /* redondo: o quadrado escapava da curva da pílula */
 .acc-chip.on{border-color:var(--gold);background:var(--goldl);color:var(--ink)}
 .acc-all{display:flex;align-items:center;gap:7px;flex:none;padding:11px 16px;border-radius:100px;border:1.5px dashed var(--paper3);
   background:transparent;color:var(--ink3);font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
@@ -715,6 +716,9 @@ button.foco-linha:hover .foco-ir{color:var(--gold)}
 /* MODAL */
 .overlay{position:fixed;inset:0;background:rgba(13,13,13,.6);display:none;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(4px)}
 .overlay.open{display:flex}
+/* modal aberto: a pagina de tras nao rola, e o rolar de dentro do modal nao vaza para ela */
+html:has(.overlay.open),body:has(.overlay.open){overflow:hidden}
+.overlay,.modal,.banco-grade{overscroll-behavior:contain}
 .modal{background:var(--paper);border-radius:16px;width:90%;max-width:490px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.22);animation:sli .2s ease-out}
 .modal-lg{max-width:680px}
 @keyframes sli{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
@@ -980,7 +984,7 @@ body.values-hidden #inv-evo-chart,body.values-hidden #rp-chart{filter:blur(6px)}
 #dash-cards .income .summary-arrow{background:var(--greenl);color:var(--green)}
 #dash-cards .expense .summary-arrow{background:var(--redl);color:var(--red)}
 .mobile-avatar,.mobile-gift,.mobile-period button{border:0;cursor:pointer;font-family:var(--ff);flex-shrink:0}
-.mobile-avatar{width:40px;height:40px;border-radius:50%;background:var(--goldl);color:var(--ink);font-size:17px;font-weight:800}
+.mobile-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(145deg,#2c261d,#141210);color:#e8c47c;font-size:17px;font-weight:800;box-shadow:0 0 0 1.5px rgba(232,196,124,.35)}   /* preto e dourado nos dois temas, como o avatar do perfil */
 .mobile-gift{width:44px;height:44px;display:grid;place-items:center;background:none;color:var(--gold)}
 .mobile-gift svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .mobile-period{display:flex;align-items:center;justify-content:center;flex:1;min-width:0}
