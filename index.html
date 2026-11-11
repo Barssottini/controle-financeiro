@@ -146,6 +146,29 @@ button.carregando::after{content:"";position:absolute;left:50%;top:50%;width:16p
 .banco-outro[hidden]{display:none}
 .conta-linha{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--paper2)}
 .conta-linha .conta-nome{flex:1;min-width:0;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conta-linha .conta-nome small{display:block;font-size:12px;font-weight:500;color:var(--ink3);overflow:hidden;text-overflow:ellipsis}
+.banco-sec{grid-column:1/-1;margin:10px 0 2px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
+.banco-sec:first-child{margin-top:0}
+.banco-sec[hidden],.banco-op[hidden]{display:none}
+.conta-topo{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.conta-topo .cbadge{width:44px;height:44px;border-radius:12px}
+.conta-topo b{flex:1;min-width:0;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conta-fora{display:flex;gap:10px;align-items:flex-start;margin:-4px 0 18px;cursor:pointer}
+.conta-fora input{width:17px;height:17px;margin-top:2px;flex:none;accent-color:var(--gold)}
+.conta-fora b{display:block;font-size:13.5px;color:var(--ink)}
+.conta-fora small{display:block;margin-top:2px;font-size:12px;line-height:1.5;color:var(--ink3)}
+.dc-linha{display:flex;align-items:center;gap:12px;width:100%;padding:10px 4px;border:0;border-bottom:1px solid var(--paper2);background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.dc-linha:hover{background:var(--paper2)}
+.dc-linha .cbadge{width:36px;height:36px;border-radius:10px;flex:none}
+.dc-nome{flex:1;min-width:0}
+.dc-nome b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dc-nome small{display:block;font-size:12px;color:var(--ink3)}
+.dc-valor{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dc-valor.neg,.dc-total b.neg{color:var(--red)}
+.dc-sec{margin:14px 0 2px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
+.dc-total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:14px 4px 2px;font-size:13px;color:var(--ink3)}
+.dc-total b{font-size:18px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.dc-dica{margin:10px 0 0;font-size:12.5px;line-height:1.5;color:var(--ink3)}
 /* ═══ RECEPCAO DO PRO ═══ visual unico, preto e ouro da marca, nos dois temas */
 .pro-rec{position:fixed;inset:0;z-index:10050;display:flex;flex-direction:column;align-items:center;overflow-y:auto;
   padding:max(56px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(22px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
@@ -1337,6 +1360,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
         <div class="sum-card cc" id="card-cc"><div class="sc-label">Cartão de Crédito</div><div class="sc-val" id="total-cc">R$ 0,00</div><div class="sc-sub" id="cc-sub">fatura acumulada</div></div>
       </div>
       <div class="panel dash-foco" id="dash-foco" hidden></div>
+      <div class="panel" id="dash-contas"><div class="panel-head"><span class="panel-title">Suas contas</span><button class="btn btn-secondary btn-sm" type="button" onclick="showPage('settings');setTimeout(()=>{const p=document.getElementById('set-contas');if(p)p.scrollIntoView({behavior:'smooth',block:'start'});},60)">Gerenciar</button></div><div id="dash-contas-lista"></div></div>
       <div class="panel">
         <div class="panel-head">
           <span class="panel-title">Receitas × Despesas</span>
@@ -1679,7 +1703,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel" id="set-contas">
         <h3 class="panel-title">Suas contas</h3>
         <p style="font-size:12px;color:var(--ink3);margin-bottom:10px">Separe o dinheiro por onde ele está — banco, carteira, poupança. A tela de Transações mostra uma barra com os seus bancos; com mais de uma conta, ela filtra os lançamentos por banco e cada lançamento ganha um campo de conta. <strong>Tudo que já existe fica na primeira conta</strong> — nada é reclassificado nem apagado.</p>
         <div id="contas-lista"></div>
@@ -2161,11 +2185,25 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
 </div>
 
 <!-- MODAL: ESCOLHER O BANCO (lista, nao texto livre) -->
+<div class="overlay" id="conta-modal">
+  <div class="modal" style="max-width:460px">
+    <div class="mhead"><h3>Editar conta</h3><button class="xbtn" onclick="closeModal('conta-modal')">✕</button></div>
+    <div class="mbody">
+      <div class="conta-topo" id="conta-topo"></div>
+      <div class="fgrp"><label class="flbl" for="conta-tipo">Tipo de conta</label><select class="field" id="conta-tipo" onchange="tipoContaMudou()"></select></div>
+      <div class="fgrp"><label class="flbl" for="conta-saldo">Saldo inicial (R$)</label><input class="field" type="text" id="conta-saldo" inputmode="decimal" placeholder="0,00" autocomplete="off">
+        <p style="font-size:12px;color:var(--ink3);line-height:1.5;margin-top:6px">Quanto havia na conta antes dos lançamentos que estão no app. Pode ser negativo, se ela estava no cheque especial.</p></div>
+      <label class="conta-fora"><input type="checkbox" id="conta-fora"><span><b>Fora do saldo total</b><small>Para vale-refeição e vale-alimentação: o saldo deles aparece separado, porque não paga boleto nem aluguel.</small></span></label>
+      <div class="factions"><button class="btn btn-secondary" onclick="closeModal('conta-modal')">Cancelar</button><button class="btn btn-primary" onclick="salvarConta()">Salvar</button></div>
+    </div>
+  </div>
+</div>
 <div class="overlay" id="banco-modal">
   <div class="modal" style="max-width:560px">
     <div class="mhead"><h3 id="banco-titulo">Qual é o seu banco?</h3><button class="xbtn" onclick="closeModal('banco-modal')">✕</button></div>
     <div class="mbody">
       <p id="banco-sub" style="font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:14px"></p>
+      <input class="field" type="search" id="banco-busca" placeholder="Buscar banco, vale ou loja" autocomplete="off" oninput="filtrarBancos(this.value)" style="margin-bottom:12px">
       <div class="banco-grade" id="banco-grade"></div>
       <div class="banco-outro" id="banco-outro" hidden>
         <input class="field" style="flex:1;min-width:0" type="text" id="banco-outro-nome" maxlength="24" placeholder="Nome do banco" onkeydown="if(event.key==='Enter')escolherBanco('outro')">
@@ -4644,7 +4682,7 @@ function openModal(id){
     // editInv ja preencheu a data salva; sobrescrever zerava o rendimento ao salvar
     if(!S.invEditId)document.getElementById('inv-date').valueAsDate=new Date();
     const dl=document.getElementById('inv-inst-lista');
-    if(dl&&!dl.options.length)dl.innerHTML=LISTA_BANCOS.concat(['NuInvest','Rico','Clear','Toro','Ágora','Genial','Binance','Mercado Bitcoin']).map(n=>'<option value="'+esc(n)+'">').join('');
+    if(dl&&!dl.options.length)dl.innerHTML=[...new Set(LISTA_BANCOS.concat(['NuInvest','Clear','Ágora','Genial']))].map(n=>'<option value="'+esc(n)+'">').join('');
     const cdiNow=S.settings.cdi||10.65;
     document.getElementById('inv-cdi-box').innerHTML=
       '<strong>CDI atual: '+cdiNow.toFixed(2).replace('.',',')+'% a.a.</strong> (atualizado automaticamente do Banco Central)<br>'+
@@ -5231,9 +5269,21 @@ function nomeDaConta(id){const c=contas().find(c=>c.id===id);return c?c.nome:con
 // Saldo de UMA conta, sem recorte de bolso nem de periodo: e o numero que o
 // extrato do banco fecha. Diferente do appBalance(), que segue o que esta na tela.
 function saldoDaConta(id){
-  return S.transactions.filter(t=>contaDe(t)===id)
+  const c=contas().find(x=>x.id===id);
+  return (+(c&&c.saldoInicial)||0)+S.transactions.filter(t=>contaDe(t)===id)
     .reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),0);
 }
+const TIPOS_CONTA=[['corrente','Conta corrente'],['poupanca','Poupança'],['vale','Vale-refeição ou alimentação'],['carteira','Dinheiro na carteira'],['loja','Cartão de loja'],['investimento','Corretora']];
+// sem tipo escolhido, sai do grupo do banco: VR e vale, Renner e loja, Rico e corretora
+function tipoDaConta(c){
+  if(c.tipo)return c.tipo;
+  const b=bancoDe(c.nome);if(b&&b.carteira)return 'carteira';
+  const g=GRUPOS_BANCO.find(g=>g[1].some(n=>bancoDe(n)===b&&b));
+  return !g?'corrente':g[0].startsWith('Vale')?'vale':g[0]==='Lojas'?'loja':g[0].startsWith('Corretoras')?'investimento':'corrente';
+}
+// vale-refeicao nao paga boleto: por padrao fica fora do saldo total
+function contaFora(c){return c.fora!=null?!!c.fora:tipoDaConta(c)==='vale';}
+function saldoTotalContas(){return contas().filter(c=>!contaFora(c)).reduce((s,c)=>s+saldoDaConta(c.id),0);}
 function setContaView(v){
   S.settings.contaView=(v==='all')?'all':Number(v);persistSettings();
   renderContaSwitch();
@@ -5242,6 +5292,7 @@ function setContaView(v){
 // Logos locais dos bancos, identificados pelo nome da conta.
 const BANCOS=[
   {logo:'nubank',k:['nubank','nu'],t:'Nu',bg:'#820ad1',fg:'#fff'},
+  {logo:'itaupersonnalite',k:['personnalite','itau personnalite'],t:'IP',bg:'#0c2b52',fg:'#fff'},   // antes do Itau: o nome tambem tem "itau"
   {logo:'itau',k:['itau'],t:'I',bg:'#ec7000',fg:'#fff'},
   {logo:'bradesco',k:['bradesco'],t:'B',bg:'#cc092f',fg:'#fff'},
   {logo:'bancodobrasil',k:['banco do brasil','bb'],t:'BB',bg:'#fcf800',fg:'#0038a8'},
@@ -5265,6 +5316,58 @@ const BANCOS=[
   {logo:'willbank',k:['will bank'],t:'W',bg:'#ffd600',fg:'#1a1a1a'},
   {logo:'pan',k:['banco pan','pan'],t:'Pan',bg:'#0068c9',fg:'#fff'},
   {logo:'agibank',k:['agibank'],t:'A',bg:'#1e3a8a',fg:'#fff'},
+  {logo:'banese',k:['banese'],t:'Bs',bg:'#00622a',fg:'#fff'},
+  {logo:'banestes',k:['banestes'],t:'Be',bg:'#004b8d',fg:'#fff'},
+  {logo:'banpara',k:['banpara'],t:'Bp',bg:'#ea1c24',fg:'#fff'},
+  {logo:'bancodonordeste',k:['banco do nordeste','bnb'],t:'BNB',bg:'#a6193c',fg:'#fff'},
+  {logo:'bv',k:['bv','banco bv','votorantim'],t:'BV',bg:'#5776d0',fg:'#fff'},
+  {logo:'bmg',k:['bmg'],t:'BMG',bg:'#000000',fg:'#fff'},
+  {logo:'ailos',k:['ailos'],t:'Ai',bg:'#ffffff',fg:'#1a1a1a'},
+  {logo:'cresol',k:['cresol'],t:'Cr',bg:'#ef8124',fg:'#fff'},
+  {logo:'unicred',k:['unicred'],t:'U',bg:'#004a35',fg:'#fff'},
+  {logo:'daycoval',k:['daycoval'],t:'D',bg:'#001c55',fg:'#fff'},
+  {logo:'sofisa',k:['sofisa'],t:'So',bg:'#17b497',fg:'#fff'},
+  {logo:'mercantil',k:['mercantil'],t:'M',bg:'#1526ff',fg:'#fff'},
+  {logo:'digio',k:['digio'],t:'Dg',bg:'#23292e',fg:'#fff'},
+  {logo:'cora',k:['cora'],t:'Co',bg:'#fe3e6d',fg:'#fff'},
+  {logo:'nomad',k:['nomad'],t:'N',bg:'#ffce04',fg:'#1a1a1a'},
+  {logo:'wise',k:['wise'],t:'W',bg:'#9fe870',fg:'#1a1a1a'},
+  {logo:'revolut',k:['revolut'],t:'R',bg:'#000000',fg:'#fff'},
+  {logo:'meliuz',k:['meliuz'],t:'m',bg:'#fd9cbf',fg:'#1a1a1a'},
+  {logo:'99pay',k:['99pay','99 pay'],t:'99',bg:'#fedf00',fg:'#1a1a1a'},
+  {logo:'recargapay',k:['recargapay','recarga pay'],t:'RP',bg:'#053e6e',fg:'#fff'},
+  {logo:'infinitepay',k:['infinitepay','infinite pay'],t:'IP',bg:'#171527',fg:'#fff'},
+  {logo:'ton',k:['ton'],t:'ton',bg:'#0dea4a',fg:'#fff'},
+  {logo:'stone',k:['stone'],t:'St',bg:'#0db14b',fg:'#fff'},
+  {logo:'porto',k:['porto bank','porto seguro'],t:'P',bg:'#00a1fc',fg:'#fff'},
+  {logo:'paypal',k:['paypal'],t:'PP',bg:'#003087',fg:'#fff'},
+  {logo:'googlepay',k:['google wallet','google pay'],t:'G',bg:'#ffffff',fg:'#1a1a1a'},
+  {logo:'samsung',k:['samsung wallet','samsung pay'],t:'S',bg:'#000000',fg:'#fff'},
+  {logo:'vrbeneficios',k:['vr','vr beneficios'],t:'VR',bg:'#00a413',fg:'#fff'},
+  {logo:'alelo',k:['alelo'],t:'Al',bg:'#008060',fg:'#fff'},
+  {logo:'ticket',k:['ticket'],t:'Tk',bg:'#ffffff',fg:'#1a1a1a'},
+  {logo:'pluxee',k:['pluxee','sodexo'],t:'Px',bg:'#221c46',fg:'#fff'},
+  {logo:'caju',k:['caju'],t:'Cj',bg:'#ffffff',fg:'#1a1a1a'},
+  {logo:'flash',k:['flash'],t:'F',bg:'#fe2b8f',fg:'#fff'},
+  {logo:'ifood',k:['ifood'],t:'iF',bg:'#ea1d2c',fg:'#fff'},
+  {logo:'swile',k:['swile'],t:'Sw',bg:'#000000',fg:'#fff'},
+  {logo:'renner',k:['renner'],t:'r',bg:'#d72027',fg:'#fff'},
+  {logo:'riachuelo',k:['riachuelo'],t:'Ri',bg:'#0c2e2d',fg:'#fff'},
+  {logo:'cea',k:['c a','cea'],t:'C&A',bg:'#000000',fg:'#fff'},
+  {logo:'pernambucanas',k:['pernambucanas'],t:'Pe',bg:'#ffffff',fg:'#1a1a1a'},
+  {logo:'marisa',k:['marisa'],t:'Ma',bg:'#ec008c',fg:'#fff'},
+  {logo:'havan',k:['havan'],t:'H',bg:'#00275e',fg:'#fff'},
+  {logo:'magalupay',k:['magalu','magazine luiza','magalupay'],t:'Mg',bg:'#ffffff',fg:'#1a1a1a'},
+  {logo:'americanas',k:['americanas'],t:'a',bg:'#f80032',fg:'#fff'},
+  {logo:'carrefour',k:['carrefour'],t:'Cf',bg:'#ffffff',fg:'#1a1a1a'},
+  {logo:'casasbahia',k:['casas bahia'],t:'CB',bg:'#ffffff',fg:'#1a1a1a'},
+  {logo:'amazon',k:['amazon'],t:'a',bg:'#ffffff',fg:'#1a1a1a'},
+  {logo:'rico',k:['rico'],t:'Ri',bg:'#010042',fg:'#fff'},
+  {logo:'toro',k:['toro'],t:'T',bg:'#000000',fg:'#fff'},
+  {logo:'avenue',k:['avenue'],t:'AV',bg:'#002820',fg:'#fff'},
+  {logo:'warren',k:['warren'],t:'W',bg:'#e24324',fg:'#fff'},
+  {logo:'binance',k:['binance'],t:'B',bg:'#ffffff',fg:'#1a1a1a'},
+  {logo:'mercadobitcoin',k:['mercado bitcoin'],t:'MB',bg:'#ffffff',fg:'#1a1a1a'},
 ];
 // casa por palavra inteira: "Banco Inter" e Inter; "Interativa" nao
 function bancoDe(nome){
@@ -5353,7 +5456,14 @@ function nomeLivre(nome,ignorar){
 // O banco e escolhido numa lista, nao digitado: o nome sai igual ao que o
 // bancoDe() reconhece e o icone vem certo. "Outro banco" e a unica saida com
 // texto, para banco que nao esta na lista.
-const LISTA_BANCOS=['Nubank','Itaú','Bradesco','Banco do Brasil','Caixa','Santander','Inter','C6 Bank','PicPay','Mercado Pago','BTG Pactual','XP','Sicredi','Sicoob','PagBank','Neon','Banrisul','BRB','Safra','Next','Original','Will Bank','Banco Pan','Agibank'];
+const GRUPOS_BANCO=[
+  ['Bancos e carteiras',['Nubank','Itaú','Bradesco','Banco do Brasil','Caixa','Santander','Inter','C6 Bank','PicPay','Mercado Pago','BTG Pactual','XP','Sicredi','Sicoob','PagBank','Neon','Banrisul','BRB','Safra','Next','Original','Will Bank','Banco Pan','Agibank',
+    'Itaú Personnalité','Banco BV','BMG','Banestes','Banese','Banpará','Banco do Nordeste','Ailos','Cresol','Unicred','Daycoval','Sofisa','Mercantil','Digio','Cora','Nomad','Wise','Revolut','Méliuz','99Pay','RecargaPay','InfinitePay','Ton','Stone','Porto Bank','PayPal','Google Wallet','Samsung Wallet']],
+  ['Vale e benefícios',['VR','Alelo','Ticket','Pluxee','Caju','Flash','iFood Benefícios','Swile']],
+  ['Lojas',['Renner','Riachuelo','C&A','Pernambucanas','Marisa','Havan','Magalu','Americanas','Carrefour','Casas Bahia','Amazon']],
+  ['Corretoras e cripto',['Rico','Toro','Avenue','Warren','Binance','Mercado Bitcoin']],
+];
+const LISTA_BANCOS=GRUPOS_BANCO.flatMap(g=>g[1]);
 let _escolha={modo:'novo',id:null,depois:null};
 // Primeiro lancamento ou primeira importacao ainda com a conta que o app criou
 // sozinho, sem banco: pergunta o banco antes. Escolhido uma vez, nao volta.
@@ -5369,11 +5479,20 @@ function abrirEscolhaBanco(modo,depois,id){
   const tit=document.getElementById('banco-titulo'),sub=document.getElementById('banco-sub'),grade=document.getElementById('banco-grade'),outro=document.getElementById('banco-outro');
   if(tit)tit.textContent=T[0];
   if(sub)sub.textContent=T[1];
-  if(grade)grade.innerHTML=LISTA_BANCOS.map((n,i)=>'<button type="button" class="banco-op" onclick="escolherBanco('+i+')">'+iconeNome(n)+'<span>'+esc(n)+'</span></button>').join('')
-    +'<button type="button" class="banco-op" onclick="escolherBanco(\'carteira\')">'+iconeNome('Carteira')+'<span>Carteira (dinheiro)</span></button>'
-    +'<button type="button" class="banco-op" onclick="mostrarOutroBanco()">'+iconeNome('?')+'<span>Outro banco</span></button>';
+  let ix=0;
+  const op=(n,acao,rot)=>'<button type="button" class="banco-op" data-n="'+esc(_semAcento(rot||n))+'" onclick="'+acao+'">'+iconeNome(n)+'<span>'+esc(rot||n)+'</span></button>';
+  if(grade)grade.innerHTML=GRUPOS_BANCO.map(g=>'<div class="banco-sec">'+esc(g[0])+'</div>'+g[1].map(n=>op(n,'escolherBanco('+(ix++)+')')).join('')).join('')
+    +'<div class="banco-sec">Outros</div>'+op('Carteira','escolherBanco(\'carteira\')','Carteira (dinheiro)')+op('?','mostrarOutroBanco()','Outro banco');
+  const busca=document.getElementById('banco-busca');if(busca)busca.value='';
   if(outro)outro.hidden=true;
   openModal('banco-modal');
+}
+const _semAcento=s=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+function filtrarBancos(q){
+  const b=_semAcento(q).trim(),grade=document.getElementById('banco-grade');if(!grade)return;
+  grade.querySelectorAll('.banco-op').forEach(el=>{el.hidden=!!b&&!el.dataset.n.includes(b);});
+  // secao sem nenhum banco visivel some junto
+  grade.querySelectorAll('.banco-sec').forEach(sec=>{let el=sec.nextElementSibling,algum=false;while(el&&!el.classList.contains('banco-sec')){if(!el.hidden)algum=true;el=el.nextElementSibling;}sec.hidden=!algum;});
 }
 function mostrarOutroBanco(){
   const o=document.getElementById('banco-outro');if(!o)return;
@@ -5386,7 +5505,8 @@ function escolherBanco(qual){
     :LISTA_BANCOS[qual];
   if(!nome){showAlert('Escreva o nome do banco.');return;}
   const {modo,id,depois}=_escolha;
-  if(modo==='novo'){if(!criarConta(nome))return;}
+  let nova=null;
+  if(modo==='novo'){nova=criarConta(nome);if(!nova)return;}
   else{
     const c=modo==='trocar'?contas().find(x=>x.id===id):contas()[0];
     if(!c)return;
@@ -5396,6 +5516,43 @@ function escolherBanco(qual){
   S.settings.bancoEscolhido=true;persistSettings();
   closeModal('banco-modal');
   if(depois)depois();
+  else if(nova)abrirConta(nova.id);   // conta nova: ja pergunta o saldo que existe nela
+}
+// ═══ EDITAR CONTA ═══
+let _contaEdit=null;
+function abrirConta(id){
+  const c=contas().find(x=>x.id===id),m=document.getElementById('conta-modal');if(!c||!m)return;
+  _contaEdit=id;
+  document.getElementById('conta-topo').innerHTML=iconeConta(id)+'<b>'+esc(c.nome)+'</b><button type="button" class="btn btn-secondary btn-sm" onclick="closeModal(\'conta-modal\');abrirEscolhaBanco(\'trocar\',function(){abrirConta('+id+')},'+id+')">Trocar banco</button>';
+  document.getElementById('conta-tipo').innerHTML=TIPOS_CONTA.map(([v,r])=>'<option value="'+v+'">'+r+'</option>').join('');
+  document.getElementById('conta-tipo').value=tipoDaConta(c);
+  document.getElementById('conta-saldo').value=c.saldoInicial!=null?c.saldoInicial:'';
+  document.getElementById('conta-fora').checked=contaFora(c);
+  openModal('conta-modal');
+}
+function tipoContaMudou(){document.getElementById('conta-fora').checked=document.getElementById('conta-tipo').value==='vale';}
+function salvarConta(){
+  const c=contas().find(x=>x.id===_contaEdit);if(!c)return;
+  const v=String(document.getElementById('conta-saldo').value).trim(),n=parseFloat(v.replace(',','.'));
+  if(v&&isNaN(n)){showAlert('Escreva o saldo só com números, por exemplo 1500,00.');return;}
+  c.tipo=document.getElementById('conta-tipo').value;
+  c.fora=document.getElementById('conta-fora').checked;
+  if(v)c.saldoInicial=Math.round(n*100)/100;else delete c.saldoInicial;
+  persistContas();closeModal('conta-modal');renderContasSettings();
+  try{updateDashboard();}catch(e){}
+  toast('Conta salva');
+}
+function rotuloTipo(c){const t=TIPOS_CONTA.find(x=>x[0]===tipoDaConta(c));return t?t[1]:'';}
+function renderDashContas(){
+  const box=document.getElementById('dash-contas-lista');if(!box)return;
+  const lista=contas(),linha=c=>{const s=saldoDaConta(c.id);
+    return '<button type="button" class="dc-linha" onclick="abrirConta('+c.id+')">'+iconeConta(c.id)+'<span class="dc-nome"><b>'+esc(c.nome)+'</b><small>'+esc(rotuloTipo(c))+'</small></span><span class="dc-valor'+(s<-0.004?' neg':'')+'">'+fmtCur(s)+'</span></button>';};
+  const dentro=lista.filter(c=>!contaFora(c)),fora=lista.filter(contaFora);
+  const semSaldo=lista.every(c=>c.saldoInicial==null);
+  box.innerHTML=dentro.map(linha).join('')+
+    (fora.length?'<div class="dc-sec">Fora do saldo total</div>'+fora.map(linha).join(''):'')+
+    '<div class="dc-total"><span>Saldo total</span><b'+(saldoTotalContas()<-0.004?' class="neg"':'')+'>'+fmtCur(saldoTotalContas())+'</b></div>'+
+    (semSaldo?'<p class="dc-dica">Toque numa conta para informar o saldo que já existia nela. Assim o total bate com o banco.</p>':'');
 }
 function apagarConta(id){
   if(contas().length<2){showAlert('Você precisa de pelo menos uma conta.');return;}
@@ -5415,8 +5572,8 @@ function renderContasSettings(){
   const box=document.getElementById('contas-lista');
   if(!box)return;
   box.innerHTML=contas().map(c=>
-    '<div class="conta-linha">'+iconeConta(c.id)+'<span class="conta-nome">'+esc(c.nome)+'</span>'
-    +'<button class="btn btn-secondary btn-sm" type="button" onclick="abrirEscolhaBanco(\'trocar\',null,'+c.id+')">Trocar banco</button>'
+    '<div class="conta-linha">'+iconeConta(c.id)+'<span class="conta-nome">'+esc(c.nome)+'<small>'+esc(rotuloTipo(c))+(contaFora(c)?' · fora do saldo total':'')+' · '+fmtCur(saldoDaConta(c.id))+'</small></span>'
+    +'<button class="btn btn-secondary btn-sm" type="button" onclick="abrirConta('+c.id+')">Editar</button>'
     +'<button class="btn btn-danger btn-sm" type="button" onclick="apagarConta('+c.id+')">Apagar</button>'
     +'</div>').join('');
 }
@@ -6454,6 +6611,7 @@ function updateDashboard(){
   const retir=pj?vis.filter(t=>t.type==='expense'&&t.category===CAT_RETIRADA).reduce((s,t)=>s+t.amount,0):0;
   const custos=expense-retir,lucro=income-custos;
   renderFoco(pj?{lucro,retir}:null);
+  renderDashContas();
   const rot=(sel,txt)=>{const el=document.querySelector('#dash-cards '+sel+' .sc-label');if(el)el.textContent=txt;};
   rot('.balance',pj?(lucro<0?'Prejuízo do período':'Lucro do período'):'Saldo do período');
   rot('.income',pj?'Faturamento':'Receitas');

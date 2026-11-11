@@ -33,7 +33,8 @@ const sandbox = {
 };
 const nomes = Object.keys(sandbox);
 const F = new Function(...nomes,
-  t.slice(i, j) + '\nreturn {contas,contaPadraoId,contaDe,noConta,criarConta,apagarConta,saldoDaConta,nomeDaConta,bancoDe,renderAccBar,novoBanco,precisaEscolherBanco,abrirEscolhaBanco,escolherBanco};');
+  t.slice(i, j) + '\nreturn {contas,contaPadraoId,contaDe,noConta,criarConta,apagarConta,saldoDaConta,nomeDaConta,bancoDe,renderAccBar,novoBanco,precisaEscolherBanco,abrirEscolhaBanco,escolherBanco,' +
+  'LISTA_BANCOS,tipoDaConta,contaFora,saldoTotalContas};');
 const C = F(...nomes.map(n => sandbox[n]));
 
 let falhas = 0;
@@ -146,7 +147,11 @@ else {
 // 12. Banco reconhecido pelo nome da conta (o icone sai disso).
 const banco = nome => { const b = C.bancoDe(nome); return b ? (b.carteira ? 'carteira' : b.t) : null; };
 checa('"Nubank" vira o icone do Nubank', banco('Nubank'), 'Nu');
-checa('acento e sobrenome nao atrapalham: "Itaú Personnalité"', banco('Itaú Personnalité'), 'I');
+checa('acento e sobrenome nao atrapalham: "Itaú Unibanco"', banco('Itaú Unibanco'), 'I');
+checa('"Itaú Personnalité" tem logo proprio, nao o do Itaú', banco('Itaú Personnalité'), 'IP');
+checa('vale, loja e corretora novos', ['VR', 'iFood Benefícios', 'C&A', 'Casas Bahia', 'Mercado Bitcoin', 'Banco BV', 'Méliuz'].map(banco), ['VR', 'iF', 'C&A', 'CB', 'MB', 'BV', 'm']);
+checa('todo nome da lista de bancos tem logo', C.LISTA_BANCOS.filter(n => !C.bancoDe(n)), []);
+checa('nenhum logo da lista fica sem arquivo', [...new Set(C.LISTA_BANCOS.map(n => C.bancoDe(n).logo))].filter(l => !fs.existsSync(path.join(__dirname, 'vendor', 'banks', l + '.svg'))), []);
 checa('"Banco Inter" e o Inter', banco('Banco Inter'), 'In');
 checa('"Banco do Brasil" e o BB', banco('Banco do Brasil'), 'BB');
 checa('palavra inteira: "Interativa" nao vira Inter', banco('Interativa'), null);
@@ -251,6 +256,16 @@ C.escolherBanco(1);   // Itaú de novo
 checa('segundo Itaú vira "Itaú 2"', C.contas().map(c => c.nome), ['Itaú', 'Itaú 2']);
 checa('e o icone continua o do Itaú', banco('Itaú 2'), 'I');
 checa('bancos novos da lista tem icone', ['Banrisul', 'Will Bank', 'Banco Pan', 'Next'].map(banco), ['Br', 'W', 'Pan', 'Nx']);
+
+// 13. Saldo inicial, tipo e "fora do saldo total"
+S.accounts = [{ id: 1, nome: 'Nubank', saldoInicial: 1500 }, { id: 2, nome: 'VR' }, { id: 3, nome: 'Carteira' }, { id: 4, nome: 'Rico', fora: true }];
+S.transactions = [{ id: 1, conta: 1, type: 'expense', amount: 200 }, { id: 2, conta: 2, type: 'income', amount: 800 }, { id: 3, conta: 2, type: 'expense', amount: 50 }, { id: 4, conta: 4, type: 'income', amount: 1000 }];
+checa('saldo da conta soma o saldo inicial', [C.saldoDaConta(1), C.saldoDaConta(2)], [1300, 750]);
+checa('tipo sai do grupo do banco quando nao foi escolhido', S.accounts.map(C.tipoDaConta), ['corrente', 'vale', 'carteira', 'investimento']);
+checa('vale fica fora do total por padrao; a escolha da pessoa vale mais', S.accounts.map(C.contaFora), [false, true, false, true]);
+checa('saldo total deixa de fora vale e o que foi marcado', C.saldoTotalContas(), 1300);
+S.accounts[1].fora = false;
+checa('vale marcado para entrar soma no total', C.saldoTotalContas(), 2050);
 
 console.log('CONTAS — ' + (falhas ? falhas + ' FALHA(S)' : 'tudo bate'));
 console.log(L.join('\n'));

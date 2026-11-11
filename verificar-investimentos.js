@@ -18,7 +18,7 @@ const aux = [
   /const CDI=.*;/, /function _pascoa\(ano\)\{[\s\S]*?\n\}/, /function _diaChave\(d\)\{.*\}/, /const _feriadosCache=\{\};/, /function _feriados\(ano\)\{[\s\S]*?\n\}/,
   /function bizDays\(start,end\)\{[\s\S]*?\n\}/, /function _isoDia\(d\)\{.*\}/, /function _diasEntre\(a,b\)\{[\s\S]*?\n\}/,
   /function invAportes\(inv\)\{.*?\}/, /function invProventos\(inv\)\{.*?\}/, /function calcYield\(inv,ate\)\{[\s\S]*?\n\}/,
-  /const CRYPTO_IDS=.*;/, /const BANCOS=\[[\s\S]*?\n\];/, /function bancoDe\(nome\)\{[\s\S]*?\n\}/, /const LISTA_BANCOS=.*;/,
+  /const CRYPTO_IDS=.*;/, /const BANCOS=\[[\s\S]*?\n\];/, /function bancoDe\(nome\)\{[\s\S]*?\n\}/, /const GRUPOS_BANCO=\[[\s\S]*?\n\];/, /const LISTA_BANCOS=.*;/,
   /function monthKeyOf\(d\)\{.*\}/, /function invProvMonth\(inv,month\)\{.*\}/, /function provMonthAll\(month\)\{.*\}/,
 ].map(real).join('\n');
 const S = { settings: { cdi: 10 }, investments: [] };
