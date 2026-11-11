@@ -278,6 +278,18 @@ body{font-family:var(--ff);background:var(--paper);color:var(--ink);min-height:1
 #login-screen{position:fixed;inset:0;z-index:9999;background:#0d0d0d;display:flex;align-items:center;justify-content:center;transition:opacity .4s,transform .4s}
 #login-screen.hidden{opacity:0;pointer-events:none;transform:scale(1.04)}
 /* capa da lista de apps abertos: escura nos dois temas, como a abertura */
+/* trava escura nos dois temas, como a capa de privacidade */
+#trava{position:fixed;inset:0;z-index:2147482000;display:grid;place-items:center;padding:24px;background:#0d0d0d;color:#faf9f7}
+#trava[hidden],#trava-senha-box[hidden],.seg-linha[hidden]{display:none}
+.trava-caixa{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:340px;text-align:center}
+.trava-caixa img{border-radius:16px}
+.trava-caixa h2{margin:4px 0 0;font-size:21px;font-weight:800;letter-spacing:-.02em}
+.trava-caixa p{margin:0;font-size:14px;line-height:1.5;color:#b5afa9}
+.trava-caixa .pf-btn{width:100%;padding:13px 16px}
+#trava-senha-box{display:flex;flex-direction:column;gap:10px;width:100%}
+#trava-senha{width:100%;padding:12px 14px;border-radius:11px;border:1px solid rgba(232,196,124,.35);background:rgba(255,255,255,.06);color:#faf9f7;font:500 14px var(--ff)}
+.trava-err{min-height:20px;color:#ef7468!important}
+.trava-links a{color:#e8c47c;font-weight:700;text-decoration:none}
 #tela-privada{display:none;position:fixed;inset:0;z-index:2147483000;background:#0d0d0d;place-items:center}
 body.privado #tela-privada{display:grid}
 #tela-privada img{width:64px;height:64px;border-radius:16px}
@@ -994,6 +1006,20 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
 </style>
 </head>
 <body>
+<div id="trava" hidden role="dialog" aria-modal="true" aria-labelledby="trava-t">
+  <div class="trava-caixa">
+    <img src="logo-192.png" alt="" width="64" height="64">
+    <h2 id="trava-t">North Finances bloqueado</h2>
+    <p>Use o Face ID ou a digital deste aparelho para abrir.</p>
+    <button class="pf-btn pf-btn-ouro" type="button" onclick="desbloquearTrava(false)">Desbloquear</button>
+    <div id="trava-senha-box" hidden>
+      <input id="trava-senha" type="password" placeholder="Senha da sua conta" autocomplete="current-password" onkeydown="if(event.key==='Enter')travaComSenha()">
+      <button class="pf-btn" type="button" onclick="travaComSenha()">Entrar com a senha</button>
+    </div>
+    <p class="trava-err" id="trava-err" role="alert"></p>
+    <p class="trava-links"><a href="#" onclick="travaUsarSenha();return false">Usar minha senha</a> · <a href="#" onclick="travaSair();return false">Sair da conta</a></p>
+  </div>
+</div>
 <div id="tela-privada" aria-hidden="true"><img src="logo-192.png" alt="" width="64" height="64"></div>
 <dialog id="north-splash" aria-label="North Finances está abrindo" tabindex="-1">
   <video id="north-intro" src="north-intro-v2.mp4" muted playsinline preload="auto" disablepictureinpicture aria-hidden="true"></video>
@@ -1658,6 +1684,11 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
         <div class="seg-linha">
           <span class="seg-ic seg-ok"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
           <div class="seg-txt"><b>Criptografia de ponta a ponta</b><small>Ativa. Seus dados são cifrados neste aparelho antes de ir para a nuvem: só você consegue ler.</small></div>
+        </div>
+        <div class="seg-linha" id="trava-linha" hidden>
+          <span class="seg-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3H5a2 2 0 0 0-2 2v2M17 3h2a2 2 0 0 1 2 2v2M7 21H5a2 2 0 0 1-2-2v-2M17 21h2a2 2 0 0 0 2-2v-2"/><path d="M9 9v1M15 9v1M12 9v4h-1M9 16c1.7 1.3 4.3 1.3 6 0"/></svg></span>
+          <div class="seg-txt"><b>Bloqueio com Face ID ou digital</b><small>Ao abrir o app, ou depois de um minuto fora dele, o North pede a biometria deste aparelho. O aparelho pode pedir para salvar uma chave de acesso: é ela que guarda o bloqueio.</small></div>
+          <div class="seg-acao" id="trava-status"></div>
         </div>
         <div class="seg-linha">
           <span class="seg-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
@@ -2735,6 +2766,77 @@ function esc(s){
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// ═══ BLOQUEIO COM FACE ID OU DIGITAL ═══
+// Trava local deste aparelho. O desbloqueio usa a biometria do proprio aparelho
+// (WebAuthn); os dados ja estao decifrados aqui, e a trava protege de quem pega
+// o celular desbloqueado. Sem biometria, a senha da conta abre.
+const _travaChave=()=>_nfUser?'nf_trava_'+_nfUser.id:'';
+function travaAtiva(){try{return !!(_travaChave()&&localStorage.getItem(_travaChave()));}catch(e){return false;}}
+const _b64url=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const _deB64url=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
+async function travaDisponivel(){try{return !!(window.PublicKeyCredential&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());}catch(e){return false;}}
+async function renderTravaStatus(){
+  const el=document.getElementById('trava-status'),linha=document.getElementById('trava-linha');if(!el||!linha)return;
+  if(!(await travaDisponivel())){linha.hidden=true;return;}
+  linha.hidden=false;
+  el.innerHTML=travaAtiva()?'<span class="seg-on">Ativado</span><button class="btn btn-secondary btn-sm" type="button" onclick="desligarTrava()">Desativar</button>'
+    :'<button class="btn btn-primary btn-sm" type="button" onclick="ligarTrava()">Ativar</button>';
+}
+async function ligarTrava(){
+  if(!_nfUser)return;
+  try{
+    const cred=await navigator.credentials.create({publicKey:{
+      challenge:crypto.getRandomValues(new Uint8Array(32)),
+      rp:{name:'North Finances'},
+      user:{id:crypto.getRandomValues(new Uint8Array(16)),name:_nfUser.email||'North Finances',displayName:'Bloqueio do North Finances'},
+      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'discouraged'},
+      timeout:60000,attestation:'none'}});
+    localStorage.setItem(_travaChave(),_b64url(cred.rawId));
+    toast('Bloqueio ativado neste aparelho');
+  }catch(e){
+    if(!e||e.name!=='NotAllowedError')showAlert('Não deu para ativar o bloqueio neste aparelho.');   // NotAllowedError: a pessoa cancelou
+  }
+  renderTravaStatus();
+}
+function desligarTrava(){try{localStorage.removeItem(_travaChave());}catch(e){}renderTravaStatus();toast('Bloqueio desativado');}
+function mostrarTrava(){
+  const tv=document.getElementById('trava');if(!tv||!travaAtiva()||!tv.hidden)return;
+  tv.hidden=false;
+  document.getElementById('trava-senha-box').hidden=true;
+  document.getElementById('trava-err').textContent='';
+  desbloquearTrava(true);   // tenta direto; aparelho que exige um toque espera o botao
+}
+async function desbloquearTrava(auto){
+  try{
+    await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),
+      allowCredentials:[{type:'public-key',id:_deB64url(localStorage.getItem(_travaChave()))}],userVerification:'required',timeout:60000}});
+    document.getElementById('trava').hidden=true;
+  }catch(e){
+    if(!auto)document.getElementById('trava-err').textContent='Não reconheceu. Tente de novo ou use sua senha.';
+  }
+}
+function travaUsarSenha(){
+  document.getElementById('trava-senha-box').hidden=false;
+  const i=document.getElementById('trava-senha');i.value='';i.focus();
+}
+// mesma conferencia da tela de desbloqueio: a senha abre a chave-mestra guardada na nuvem
+async function travaComSenha(){
+  const pw=document.getElementById('trava-senha').value,err=document.getElementById('trava-err');if(!pw||!_nfUser)return;
+  err.textContent='Conferindo…';
+  try{
+    const {data}=await sb.from('user_data').select('enc_meta').eq('user_id',_nfUser.id).maybeSingle();
+    if(!data||!data.enc_meta)throw new Error('sem meta');
+    await nfUnwrap(data.enc_meta.mk_pw,await nfDeriveKey(new TextEncoder().encode(pw),_unb64(data.enc_meta.salt_pw)));
+    err.textContent='';document.getElementById('trava').hidden=true;
+  }catch(e){err.textContent=navigator.onLine?'Senha incorreta.':'Sem internet para conferir a senha. Use o Face ID ou a digital.';}
+}
+function travaSair(){document.getElementById('trava').hidden=true;doLogout();}
+let _travaSaiu=0;
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){_travaSaiu=Date.now();return;}
+  if(_travaSaiu&&Date.now()-_travaSaiu>60000)mostrarTrava();   // mais de um minuto fora: pede de novo
+});
 async function onSignedIn(session,fresh){
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('confirm-screen').style.display='none';
@@ -2767,6 +2869,8 @@ async function onSignedIn(session,fresh){
   cloudReady=true;
   initApp();
   renderMFAStatus();
+  renderTravaStatus();
+  if(!fresh)mostrarTrava();   // quem acabou de digitar a senha nao precisa da biometria em seguida
   renderEyeToggle();
   renderCtxSwitch();   // sem isto o alternador some para quem já ativou o modo
   renderContaSwitch(); // idem para quem tem mais de uma conta
