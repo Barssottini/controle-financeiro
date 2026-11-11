@@ -203,6 +203,8 @@ button.carregando::after{content:"";position:absolute;left:50%;top:50%;width:16p
 .ia-spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--paper3);border-top-color:var(--gold);animation:ia-gira .8s linear infinite}
 @keyframes ia-gira{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.ia-spin{animation-duration:2.4s}}
+.tx-comp{color:var(--goldd);font-weight:600}
+#tx-comp-grp[hidden]{display:none}
 .comp-btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .comp-opcoes{display:flex;flex-direction:column;border:1px solid var(--paper3);border-radius:12px;overflow:hidden}
 .comp-opcoes[hidden]{display:none}
@@ -1956,6 +1958,8 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
           <option>Outros</option>
         </select>
       </div>
+      <div class="fgrp" id="tx-comp-grp" hidden><label class="flbl" for="tx-comp">Conta no orçamento de</label><select class="field" id="tx-comp"></select>
+        <p style="font-size:12px;color:var(--ink3);margin-top:6px;line-height:1.5">A fatura paga num mês é das compras do mês anterior. Ela entra no orçamento e no painel do mês escolhido; na lista, continua na data do pagamento.</p></div>
       <div class="factions">
         <button class="btn btn-secondary" onclick="closeModal('tx-modal')">Cancelar</button>
         <button class="btn btn-primary" onclick="saveTx()">Salvar</button>
@@ -3964,7 +3968,7 @@ function valorDaMeta(g){const c=g.link?null:calcGoalCDI(g);return g.link?goalLin
 // gasto médio dos últimos 3 meses fechados, contado como o cartão Despesas conta
 function gastoMedioMensal(){
   const atual=monthKeyOf(new Date()),mes={};
-  S.transactions.forEach(t=>{const m=String(t.date||'').slice(0,7);if(t.type==='expense'&&t.category!==CAT_RETIRADA&&m&&m<atual)mes[m]=(mes[m]||0)+(+t.amount||0);});
+  S.transactions.forEach(t=>{const m=t.date?mesContabil(t):'';if(t.type==='expense'&&t.category!==CAT_RETIRADA&&m&&m<atual)mes[m]=(mes[m]||0)+(+t.amount||0);});
   const ks=Object.keys(mes).sort().slice(-3);
   return ks.length?ks.reduce((s,k)=>s+mes[k],0)/ks.length:0;
 }
@@ -5149,17 +5153,18 @@ function openModal(id){
   if(id==='bill-modal'&&!S.billEditId&&!exigePro('bill'))return;
   document.getElementById(id).classList.add('open');
   if(id==='tx-modal'){
-    document.getElementById('tx-date').valueAsDate=new Date();
-    if(!S.editId){resetTxCtx();resetTxConta();}
+    // editar mantém a data do lançamento (editTx já preencheu); só o novo nasce hoje
+    if(!S.editId){document.getElementById('tx-date').value=_isoDia(new Date());resetTxCtx();resetTxConta();}
+    atualizarCompetencia();
   }
   if(id==='cc-modal'){
-    document.getElementById('cc-date').valueAsDate=new Date();
+    document.getElementById('cc-date').value=_isoDia(new Date());
     resetTxCtx('ccctx');
   }
   if(id==='bill-modal'&&!S.billEditId)resetTxCtx('blctx');
   if(id==='inv-modal'){
     // editInv ja preencheu a data salva; sobrescrever zerava o rendimento ao salvar
-    if(!S.invEditId)document.getElementById('inv-date').valueAsDate=new Date();
+    if(!S.invEditId)document.getElementById('inv-date').value=_isoDia(new Date());
     const dl=document.getElementById('inv-inst-lista');
     if(dl&&!dl.options.length)dl.innerHTML=[...new Set(LISTA_BANCOS.concat(['NuInvest','Clear','Ágora','Genial']))].map(n=>'<option value="'+esc(n)+'">').join('');
     const cdiNow=S.settings.cdi||10.65;
@@ -5279,7 +5284,7 @@ function doReconcile(){
     type:diff>0?'income':'expense',
     description:'Ajuste de conciliação de saldo',
     amount:Math.abs(diff),
-    date:new Date().toISOString().split('T')[0],
+    date:_isoDia(new Date()),
     category:'Outros',
     // O appBalance() usado acima já filtra pelo bolso em exibição: conciliar
     // vendo "Empresa" compara o saldo da empresa, então o ajuste tem de cair
@@ -5382,10 +5387,43 @@ function periodoDash(){
   const n=parseInt(v)||6;
   return faixa(v,_isoDia(new Date(hoje.getFullYear(),hoje.getMonth()-(n-1),1)),ate,'últimos '+n+' meses');
 }
+// ═══ COMPETÊNCIA DA FATURA ═══
+// A fatura do cartão paga em novembro é das compras de outubro: no orçamento, no
+// painel e no gráfico ela conta no mês das compras. A lista de lançamentos continua
+// pela data do pagamento, que é a do extrato do banco.
+const FATURA_RE=/fatura|pag(amen)?to.{0,10}cart|pgto.{0,10}cart|cart[aã]o de cr[eé]d/i;
+function ehPagamentoDeFatura(t){return !!t&&t.type==='expense'&&t.category==='Cartão de Crédito'&&!t.billId&&FATURA_RE.test(t.description||'');}
+// A fatura cobre as compras de ~40 a ~10 dias antes do vencimento; o meio dessa janela,
+// 25 dias antes do pagamento, diz de que mês ela é (pago dia 6/11: outubro; dia 28/11: novembro).
+function competenciaPadrao(data){const p=String(data).split('-');return mesDe(_isoDia(new Date(+p[0],+p[1]-1,+p[2]-25)));}
+function mesContabil(t){
+  if(t&&t.competencia)return t.competencia;
+  return ehPagamentoDeFatura(t)&&/^\d{4}-\d{2}-\d{2}$/.test(t.date)?competenciaPadrao(t.date):mesDe(t.date);
+}
+// a data que vale nos períodos: a fatura que conta em outubro entra no último dia de outubro
+function dataContabil(t){const m=mesContabil(t);return m===mesDe(t.date)?t.date:faixaDoMes(m)[1];}
+// ═══ FIM DA COMPETÊNCIA DA FATURA ═══
+function atualizarCompetencia(){
+  const grp=document.getElementById('tx-comp-grp'),sel=document.getElementById('tx-comp');if(!grp||!sel)return;
+  const tipo=(document.querySelector('input[name="txtype"]:checked')||{}).value,cat=document.getElementById('tx-cat').value,data=document.getElementById('tx-date').value;
+  const ant=S.editId?S.transactions.find(x=>x.id===S.editId):null;
+  const mostra=tipo==='expense'&&cat==='Cartão de Crédito'&&/^\d{4}-\d{2}-\d{2}$/.test(data)&&!(ant&&ant.billId);
+  grp.hidden=!mostra;if(!mostra)return;
+  const m=mesDe(data),antes=mesAntes(m,1),escolhido=sel.value;
+  sel.innerHTML='<option value="'+antes+'">'+rotuloMes(antes)+' (mês das compras)</option><option value="'+m+'">'+rotuloMes(m)+' (mês do pagamento)</option>';
+  const padrao=mesContabil({type:tipo,category:cat,description:document.getElementById('tx-desc').value,date:data});
+  // a escolha feita agora vale mais; depois, a gravada no lançamento; senão, a sugestão
+  sel.value=sel.dataset.mexeu==='1'&&[antes,m].includes(escolhido)?escolhido:(ant&&ant.competencia&&[antes,m].includes(ant.competencia)?ant.competencia:padrao);
+}
+document.addEventListener('change',e=>{
+  const el=e.target;if(!el||!el.closest||!el.closest('#tx-modal'))return;
+  if(el.id==='tx-comp'){el.dataset.mexeu='1';return;}
+  if(el.id==='tx-cat'||el.id==='tx-date'||el.id==='tx-desc'||el.name==='txtype')atualizarCompetencia();
+});
 // Recebe a FAIXA inteira, nao so o inicio: sem o limite superior, um intervalo
 // fechado do passado somaria tudo que veio depois dele.
 function noPeriodo(x,per){
-  const d=String((x&&x.date)||'');
+  const d=String((x&&(x.competencia||ehPagamentoDeFatura(x))?dataContabil(x):(x&&x.date))||'');
   const p=(per&&typeof per==='object')?per:{desde:per,ate:''};
   if(!d)return !p.desde&&!p.ate;
   if(p.desde&&d<p.desde)return false;
@@ -5641,7 +5679,7 @@ function exportarCSV(){
   const corpo=linhas.map(l=>(emp?l:l.slice(0,6)).join(';')).join('\r\n');
   // O BOM é o que faz o Excel reconhecer UTF-8. Sem ele, todo acento vira lixo.
   const csv='\ufeff'+cab.join(';')+'\r\n'+corpo+'\r\n';
-  const hoje=new Date().toISOString().slice(0,10);
+  const hoje=_isoDia(new Date());
   baixarArquivo('north-lancamentos-'+hoje+'.csv',csv,'text/csv');
   toast(linhas.length+(linhas.length===1?' lançamento exportado':' lançamentos exportados'));
 }
@@ -5660,7 +5698,7 @@ function exportarTudo(){
     quem_me_deve:S.devedores||[],
     preferencias:S.settings||{}
   };
-  const hoje=new Date().toISOString().slice(0,10);
+  const hoje=_isoDia(new Date());
   baixarArquivo('north-meus-dados-'+hoje+'.json',JSON.stringify(pacote,null,2),'application/json');
   toast('Cópia completa baixada');
 }
@@ -6082,6 +6120,10 @@ function saveTx(){
     const ant=S.transactions.find(x=>x.id===S.editId);
     if(ant&&ant.ctx)tx.ctx=ant.ctx;
   }
+  // mês da fatura: só grava quando a pessoa escolheu diferente da sugestão (que acompanha a data)
+  const cg=document.getElementById('tx-comp-grp');
+  tx.competencia=undefined;
+  if(cg&&!cg.hidden){const escolha=document.getElementById('tx-comp').value;if(escolha&&escolha!==mesContabil(tx))tx.competencia=escolha;}
   // o formulário não tem todos os campos: mescla para não perder o vínculo com a conta a pagar e o horário
   let corrigiu=false;
   if(S.editId){
@@ -6115,12 +6157,13 @@ function delTx(id){
 function resetTxForm(){
   document.getElementById('modal-title').textContent='Nova Transação';
   ['tx-desc','tx-amt','tx-cat'].forEach(i=>document.getElementById(i).value='');
+  const tc=document.getElementById('tx-comp');if(tc)delete tc.dataset.mexeu;
   document.querySelector('input[name="txtype"][value="income"]').checked=true;
   S.editId=null;
 }
 
 // ═══ CREDIT CARD ═══
-function openCCModal(){document.getElementById('cc-date').valueAsDate=new Date();const p=document.getElementById('cc-parcelas');if(p)p.value='1';updateCCParcelaHint();openModal('cc-modal');}
+function openCCModal(){document.getElementById('cc-date').value=_isoDia(new Date());const p=document.getElementById('cc-parcelas');if(p)p.value='1';updateCCParcelaHint();openModal('cc-modal');}
 function updateCCParcelaHint(){
   const el=document.getElementById('cc-parcela-hint');if(!el)return;
   const amt=parseFloat(document.getElementById('cc-amt').value)||0;
@@ -6146,8 +6189,9 @@ function saveCC(){
 function ccParcelas(c){return Math.max(1,parseInt(c.parcelas)||1);}
 function ccPaid(c){if(typeof c.paidCount==='number')return Math.max(0,Math.min(ccParcelas(c),c.paidCount));return c.status==='paid'?ccParcelas(c):0;} // legado: status→parcelas pagas
 function ccValorParcela(c){return c.amount/ccParcelas(c);}
-function ccCurMonth(){return new Date().toISOString().substring(0,7);}
-function ccParcelaMonth(c,k){const d=new Date(((c.date||'').substring(0,10))+'T00:00:00');if(isNaN(d.getTime()))return'';d.setMonth(d.getMonth()+(k-1));return d.toISOString().substring(0,7);}
+function ccCurMonth(){return monthKeyOf(new Date());}
+// conta pelo mês, não pelo dia: 31/jan + 1 mês pelo setMonth dava 3/mar e a parcela 2 pulava fevereiro
+function ccParcelaMonth(c,k){const s=String(c.date||'');if(!/^\d{4}-\d{2}/.test(s))return'';return monthKeyOf(new Date(+s.slice(0,4),+s.slice(5,7)-1+(k-1),1));}
 function ccOpenTotal(){return S.ccItems.reduce((s,c)=>s+ccValorParcela(c)*(ccParcelas(c)-ccPaid(c)),0);}
 function ccPaidTotal(){return S.ccItems.reduce((s,c)=>s+ccValorParcela(c)*ccPaid(c),0);}
 function ccOpenMonth(month){let sum=0;S.ccItems.forEach(c=>{const n=ccParcelas(c),paid=ccPaid(c),vp=ccValorParcela(c);for(let k=paid+1;k<=n;k++){if(ccParcelaMonth(c,k)===month)sum+=vp;}});return sum;}
@@ -6710,7 +6754,7 @@ function openAporteModal(id){
   document.getElementById('aporte-cdi-fields').style.display=isCdi?'':'none';
   document.getElementById('aporte-asset-fields').style.display=isCdi?'none':'';
   setMovAporte('in');   // reabrir nunca herda "resgate" da vez anterior
-  document.getElementById('aporte-date').valueAsDate=new Date();
+  document.getElementById('aporte-date').value=_isoDia(new Date());
   document.getElementById('aporte-amt').value='';
   document.getElementById('aporte-qty').value='';
   document.getElementById('aporte-price').value='';
@@ -6812,7 +6856,7 @@ function openProvModal(id){
   const inv=S.investments.find(x=>x.id===id);if(!inv)return;
   _provInvId=id;
   document.getElementById('prov-inv-name').textContent=inv.name;
-  document.getElementById('prov-date').valueAsDate=new Date();
+  document.getElementById('prov-date').value=_isoDia(new Date());
   document.getElementById('prov-amt').value='';
   renderProvList();
   openModal('prov-modal');
@@ -6898,7 +6942,7 @@ function saveGoal(){
   if(!target||target<=0){showAlert('Informe o Valor Total — quanto você quer atingir (ex.: 10000). O progresso é que fica automático quando vinculado, não a meta.');return;}
   const existing=S.goalEditId?S.goals.find(x=>x.id===S.goalEditId):null;
   const unchanged=existing&&cdi>0&&existing.cdi===cdi&&existing.current===current;
-  const cdiStartDate=unchanged?existing.cdiStartDate:(cdi>0?new Date().toISOString().split('T')[0]:null);
+  const cdiStartDate=unchanged?existing.cdiStartDate:(cdi>0?_isoDia(new Date()):null);
   const cdiPrincipal=unchanged?existing.cdiPrincipal:(cdi>0?current:null);
   const g={id:S.goalEditId||Date.now(),name,type,target,current,deadline,cdi,cdiStartDate,cdiPrincipal,link};
   if(S.goalEditId){const i=S.goals.findIndex(x=>x.id===S.goalEditId);S.goals[i]=g;}
@@ -6937,7 +6981,7 @@ function updateGoalProgress(){
   const val=parseFloat(document.getElementById('gp-current').value)||0;
   const g=S.goals.find(x=>x.id===id);if(!g)return;
   g.current=val;
-  if(g.cdi>0){g.cdiPrincipal=val;g.cdiStartDate=new Date().toISOString().split('T')[0];}
+  if(g.cdi>0){g.cdiPrincipal=val;g.cdiStartDate=_isoDia(new Date());}
   persistGoals();closeModal('goal-progress-modal');renderGoalsPage();updateDashboard();
   toast('Progresso atualizado');
 }
@@ -7164,7 +7208,7 @@ function trocarMesPagamento(el){
 function monthLabel(key){const[y,m]=key.split('-');return new Date(y,parseInt(m)-1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});}
 function spentByCat(month){
   const out={};
-  txVis().filter(t=>mesDe(t.date)===month&&t.type==='expense')
+  txVis().filter(t=>mesContabil(t)===month&&t.type==='expense')
     .forEach(t=>{const c=t.category||'Sem categoria';out[c]=(out[c]||0)+t.amount;});
   ccVis().filter(c=>mesDe(c.date)===month)
     .forEach(c=>{const k=c.category||'Sem categoria';out[k]=(out[k]||0)+c.amount;});
@@ -7174,7 +7218,7 @@ function populateCatMonths(){
   const sel=document.getElementById('cat-month');if(!sel)return;
   const cur=mesAtual();
   const months=new Set([cur]);
-  S.transactions.filter(t=>t.type==='expense').forEach(t=>{if(t.date)months.add(mesDe(t.date));});
+  S.transactions.filter(t=>t.type==='expense').forEach(t=>{if(t.date)months.add(mesContabil(t));});
   S.ccItems.forEach(c=>{if(c.date)months.add(mesDe(c.date));});
   const keep=sel.value;
   sel.innerHTML='';
@@ -7256,7 +7300,7 @@ function txHTML(t,showAct=true,comBanco=contas().length>1){
   return '<div class="tx-item" data-id="'+t.id+'">'+
     '<div class="tx-icon '+(t.type||'expense')+'">'+(CAT_ICONS[t.category]||CAT_ICONS['Sem categoria'])+'</div>'+
     '<div class="tx-info"><div class="tx-desc">'+esc(t.description)+'</div>'+
-    '<div class="tx-meta">'+(comBanco?iconeConta(contaDe(t),'sm'):'')+esc(t.category||cats[t.type])+' · '+fmtDate(t.date)+timeStr+'</div></div>'+
+    '<div class="tx-meta">'+(comBanco?iconeConta(contaDe(t),'sm'):'')+esc(t.category||cats[t.type])+' · '+fmtDate(t.date)+timeStr+(t.date&&mesContabil(t)!==mesDe(t.date)?' · <span class="tx-comp">conta em '+esc(rotuloMes(mesContabil(t)))+'</span>':'')+'</div></div>'+
     '<div class="tx-amount '+(t.type||'expense')+'">'+(signs[t.type]||'')+ ' '+fmtCur(t.amount)+'</div>'+
     (showAct?'<div class="tx-actions"><button class="ibt" onclick="editTx('+t.id+')">✏️</button><button class="ibt del" onclick="delTx('+t.id+')">🗑️</button></div>':'')+
     '</div>';
@@ -7314,9 +7358,9 @@ function renderChart(){
   const per=periodoDash();
   const labels=[],incData=[],expData=[];
   const vis=txVis();
-  const soma=(tipo,pref)=>vis.filter(t=>t.type===tipo&&String(t.date||'').startsWith(pref)).reduce((s,t)=>s+t.amount,0);
+  const soma=(tipo,pref)=>vis.filter(t=>t.type===tipo&&String(t.date?dataContabil(t):'').startsWith(pref)).reduce((s,t)=>s+t.amount,0);
   // mesmo recorte dos cartoes: lancamento agendado para depois de hoje nao entra na barra do mes
-  const somaMes=(tipo,k)=>vis.filter(t=>t.type===tipo&&mesDe(t.date)===k&&noPeriodo(t,per)).reduce((s,t)=>s+t.amount,0);
+  const somaMes=(tipo,k)=>vis.filter(t=>t.type===tipo&&mesContabil(t)===k&&noPeriodo(t,per)).reduce((s,t)=>s+t.amount,0);
   if(per.diario){
     const p=per.desde.split('-');
     const ini=new Date(+p[0],+p[1]-1,+p[2]);
@@ -7468,7 +7512,7 @@ function parseOFX(text){
   if(balM){
     const amt=parseValor(balM[1]);
     const dtM=/<LEDGERBAL>[\s\S]*?<DTASOF>(\d{8})/i.exec(text);
-    const bd=dtM?dtM[1].substring(0,4)+'-'+dtM[1].substring(4,6)+'-'+dtM[1].substring(6,8):new Date().toISOString().split('T')[0];
+    const bd=dtM?dtM[1].substring(0,4)+'-'+dtM[1].substring(4,6)+'-'+dtM[1].substring(6,8):_isoDia(new Date());
     if(!isNaN(amt))parsedBal={amt:amt,date:bd};
   }
   const rows=[];
@@ -7880,7 +7924,7 @@ function populateBudgetMonths(){
   const sel=document.getElementById('budget-month');if(!sel)return;
   const cur=mesAtual();
   const months=new Set([cur]);
-  S.transactions.filter(t=>t.type==='expense').forEach(t=>{if(t.date)months.add(mesDe(t.date));});
+  S.transactions.filter(t=>t.type==='expense').forEach(t=>{if(t.date)months.add(mesContabil(t));});
   S.ccItems.forEach(c=>{if(c.date)months.add(mesDe(c.date));});
   const keep=sel.value;
   sel.innerHTML='';

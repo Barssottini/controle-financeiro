@@ -161,7 +161,7 @@ checa('nome sem banco conhecido fica sem marca', banco('Conta conjunta'), null);
 // 13 e 14. Fora da tela de Transacoes o app e consolidado, e o "Conciliar Saldo"
 // concilia a conta em exibicao. Regras extraidas do index.html real.
 const fatia = (de, ate) => { const a = t.indexOf(de), b = t.indexOf(ate, a); if (a < 0 || b < 0) throw new Error('ancora: ' + de); return t.slice(a, b); };
-const fonte = fatia('function txVis(){', 'function ccVis(){') + fatia('function appBalance(){', '// ═══ AVISO DE TERMOS ═══');
+const fonte = t.match(/function _isoDia\(d\)\{.*\}/)[0] + '\n' + fatia('function txVis(){', 'function ccVis(){') + fatia('function appBalance(){', '// ═══ AVISO DE TERMOS ═══');
 let saldoReal = 0;
 const R = new Function('S', 'noCtx', 'noConta', 'newId', 'persist', 'closeModal', 'openModal', 'updateDashboard', 'renderTxList', 'populateMonthFilter', 'showAlert', 'fmtCur', 'document',
   fonte + '\nreturn {txVis,appBalance,doReconcile};')(

@@ -36,6 +36,7 @@ const sandbox = {
   fmtCur: v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v),
   calcGoalCDI: () => null, goalLinkedValue: () => 0,
   tipoConta: () => tipo, ehPro: () => true,
+  mesContabil: t => String(t.date).slice(0, 7),   // sem fatura de cartao aqui: o mes do calendario
   persistSettings: () => {}, persistGoals: () => {}, persistBudgets: () => {},
   updateDashboard: () => {}, renderPerfil: () => {}, renderCatSelects: () => {}, renderSettings: () => {}, renderBillsPage: () => {},
   toast: m => avisos.push(m),
