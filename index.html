@@ -4971,6 +4971,7 @@ function setTema(tm){
 
 function initApp(){
   loadData();
+  if(ligarLancamentosDasContas())persist();
   if(!S.settings.chartPeriod&&window.matchMedia('(max-width:900px)').matches)S.settings.chartPeriod='month';
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   checkReminder();
@@ -7850,6 +7851,42 @@ function renderBudgetPage(){
 
 // ═══ CONTAS A PAGAR ═══
 function billPaidThisMonth(b,month){return (b.paidMonths||[]).includes(month);}
+// ═══ LANÇAMENTOS DAS CONTAS ═══
+// O lançamento que uma conta gera guarda de qual conta e de qual mês veio
+// (billId, billMes): a categoria e o nome da conta acompanham nele, e desfazer o
+// pagamento apaga o lançamento certo.
+function vencimentoNoMes(b,mes){const p=mes.split('-');return _isoDia(new Date(+p[0],+p[1]-1,Math.min(b.day,new Date(+p[0],+p[1],0).getDate())));}
+function sufixoConta(b){return b&&b.kind==='receive'?' (recebimento)':' (conta)';}
+// Lançamentos de antes do vínculo casam pelo nome que o app escreveu. Ganham o
+// vínculo, a categoria atual da conta e a data do vencimento mais perto do dia
+// em que foram marcados (o app antigo usava o dia do clique).
+function ligarLancamentosDasContas(){
+  const dist=(a,b)=>Math.abs(new Date(a)-new Date(b));
+  let mudou=false;
+  (S.bills||[]).forEach(b=>{
+    S.transactions.forEach(t=>{
+      if(t.billId||t.description!==b.name+sufixoConta(b))return;
+      const d=String(t.date||''),mes=d.slice(0,7);if(!/^\d{4}-\d{2}$/.test(mes))return;
+      const p=mes.split('-'),v1=vencimentoNoMes(b,mes),v0=vencimentoNoMes(b,monthKeyOf(new Date(+p[0],+p[1]-2,1)));
+      t.billId=b.id;t.billMes=mes;t.category=b.category;
+      t.date=dist(v1,d)<=dist(v0,d)?v1:v0;
+      mudou=true;
+    });
+  });
+  return mudou;
+}
+// categoria, nome e bolso acompanham; valor e data ficam, porque são o que foi pago
+function sincronizarLancamentosDaConta(b){
+  let n=0;
+  S.transactions.forEach(t=>{if(t.billId!==b.id)return;t.category=b.category;t.description=b.name+sufixoConta(b);if(b.ctx)t.ctx=b.ctx;n++;});
+  return n;
+}
+function apagarLancamentoDaConta(b,mes){
+  const i=S.transactions.findIndex(t=>t.billId===b.id&&t.billMes===mes);
+  if(i<0)return false;
+  S.transactions.splice(i,1);return true;
+}
+// ═══ FIM DOS LANÇAMENTOS DAS CONTAS ═══
 
 // ═══ A PAGAR E A RECEBER ═══
 //
@@ -7911,7 +7948,10 @@ function saveBill(){
   if(!day||day<1||day>31){showAlert('O dia do vencimento deve ser entre 1 e 31.');return;}
   if(S.billEditId){
     const b=S.bills.find(x=>x.id===S.billEditId);
-    if(b){b.name=name;b.amount=amt;b.day=day;b.category=cat;if(S.settings.empresarial)b.ctx=bolsoEscolhido('blctx');}
+    if(b){
+      b.name=name;b.amount=amt;b.day=day;b.category=cat;if(S.settings.empresarial)b.ctx=bolsoEscolhido('blctx');
+      if(sincronizarLancamentosDaConta(b)){persist();try{updateDashboard();}catch(e){}}
+    }
   }else{
     S.bills.push({id:newId(),name:name,amount:amt,day:day,category:cat,paidMonths:[],ctx:bolsoEscolhido('blctx'),kind:billsTab()});
   }
@@ -7934,14 +7974,16 @@ function markBillPaid(id){
   // como quitado tem de gerar RECEITA. Herda tambem o bolso, senão o recebimento
   // da empresa viraria uma receita pessoal.
   const rec=billKind(b)==='receive';
+  // nasce no dia do vencimento (não no do clique, e sem o fuso UTC que jogava a noite para amanhã)
   S.transactions.push({
     id:newId(),
     type:rec?'income':'expense',
-    description:b.name+(rec?' (recebimento)':' (conta)'),
+    description:b.name+sufixoConta(b),
     amount:b.amount,
-    date:new Date().toISOString().split('T')[0],
+    date:vencimentoNoMes(b,month),
     category:b.category,
-    ctx:ctxDe(b)
+    ctx:ctxDe(b),
+    billId:b.id,billMes:month
   });
   persistBills();persist();
   renderBillsPage();
@@ -7951,9 +7993,10 @@ function markBillPaid(id){
 }
 async function unmarkBillPaid(id){
   const b=S.bills.find(x=>x.id===id);if(!b)return;
-  if(!(await showConfirm('Desfazer o pagamento deste mês? A despesa lançada nas transações não é apagada — remova lá se precisar.',{title:'Desfazer pagamento',confirmLabel:'Desfazer'})))return;
+  if(!(await showConfirm('Desfazer o pagamento deste mês? O lançamento que ele criou nas transações também sai.',{title:'Desfazer pagamento',confirmLabel:'Desfazer'})))return;
   const month=monthKeyOf(new Date());
   b.paidMonths=(b.paidMonths||[]).filter(m=>m!==month);
+  if(apagarLancamentoDaConta(b,month)){persist();populateMonthFilter();updateDashboard();}
   persistBills();
   renderBillsPage();
   renderBillsAlert();
