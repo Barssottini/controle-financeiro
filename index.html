@@ -150,6 +150,26 @@ button.carregando::after{content:"";position:absolute;left:50%;top:50%;width:16p
 .banco-sec{grid-column:1/-1;margin:10px 0 2px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
 .banco-sec:first-child{margin-top:0}
 .banco-sec[hidden],.banco-op[hidden]{display:none}
+.dash-passos{position:relative}
+.ps-titulo{margin:0;font-size:18px;font-weight:800;letter-spacing:-.02em}
+.ps-sub{margin:6px 0 14px;font-size:13.5px;line-height:1.55;color:var(--ink2);max-width:60ch}
+.ps-barra{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ps-barra i{height:6px;border-radius:6px;background:var(--paper3)}
+.ps-barra i.on{background:var(--gold)}
+.ps-conta{margin:8px 0 6px;font-size:12px;color:var(--ink3)}
+.ps-lista{list-style:none;margin:0;padding:0}
+.ps-lista li{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--paper2)}
+.ps-lista li b{font-size:14px;font-weight:700}
+.ps-lista li.feito b{color:var(--ink3);text-decoration:line-through;font-weight:600}
+.ps-marca{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:2px solid var(--paper3)}
+.ps-lista li.agora .ps-marca{border-color:var(--gold)}
+.ps-lista li.feito .ps-marca{border-color:var(--gold);background:var(--gold);color:#0d0d0d}
+.ps-marca svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.ps-acoes{display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap}
+.ps-pular,.ps-ocultar{border:0;background:none;padding:4px 0;font:600 13px var(--ff);color:var(--ink3);cursor:pointer}
+.ps-pular:hover,.ps-ocultar:hover{color:var(--ink)}
+.ps-ocultar{position:absolute;top:20px;right:22px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .comp-btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .comp-opcoes{display:flex;flex-direction:column;border:1px solid var(--paper3);border-radius:12px;overflow:hidden}
 .comp-opcoes[hidden]{display:none}
@@ -1395,6 +1415,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
         <div class="sum-card expense"><span class="summary-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v16M5 13l7 7 7-7"/></svg></span><div class="sc-label">Despesas</div><div class="sc-val" id="total-expense">R$ 0,00</div><div class="sc-sub" id="expense-sub">total geral</div></div>
         <div class="sum-card cc" id="card-cc"><div class="sc-label">Cartão de Crédito</div><div class="sc-val" id="total-cc">R$ 0,00</div><div class="sc-sub" id="cc-sub">fatura acumulada</div></div>
       </div>
+      <div class="panel dash-passos" id="dash-passos" hidden></div>
       <div class="panel dash-foco" id="dash-foco" hidden></div>
       <div class="panel" id="dash-contas"><div class="panel-head"><span class="panel-title">Suas contas</span><button class="btn btn-secondary btn-sm" type="button" onclick="showPage('settings');setTimeout(()=>{const p=document.getElementById('set-contas');if(p)p.scrollIntoView({behavior:'smooth',block:'start'});},60)">Gerenciar</button></div><div id="dash-contas-lista"></div></div>
       <div class="panel">
@@ -3863,6 +3884,40 @@ function cicloEfetivo(dia,hoje){
   const antes=entradas(menos(c.ultimo,3),menos(c.ultimo,1)).map(t=>t.date).sort()[0];
   return {inicio:antes||_diaChave(c.ultimo),proximo:c.proximo,faltam:c.faltam,hoje:c.hoje};
 }
+// ═══ PRIMEIROS PASSOS ═══
+// Cada passo diz se ja foi feito olhando os dados, nao um clique: quem importou
+// pelo celular ve o passo marcado no computador tambem.
+const PASSOS=[
+  {id:'banco',titulo:'Cadastrar seu banco e o saldo',texto:'Escolha o banco e informe quanto já tem nele. Assim o saldo do app bate com o do banco.',botao:'Cadastrar banco',
+    feito:()=>contas().some(c=>bancoDe(c.nome)&&c.saldoInicial!=null),
+    acao:()=>{const c=contas()[0];if(precisaEscolherBanco())abrirEscolhaBanco('primeiro',()=>abrirConta(contas()[0].id));else abrirConta(c.id);}},
+  {id:'gasto',titulo:'Registrar o primeiro gasto',texto:'Leva dez segundos: valor, categoria e pronto.',botao:'Registrar gasto',
+    feito:()=>S.transactions.some(t=>t.type==='expense'),acao:()=>abrirPrimeiroGasto()},
+  {id:'extrato',titulo:'Trazer o extrato do banco',texto:'Importe o arquivo do banco (OFX, CSV ou PDF) e o mês inteiro entra de uma vez, já com as categorias.',botao:'Importar extrato',
+    feito:()=>!!S.settings.importou||S.transactions.length>=20,acao:()=>showPage('import')},
+  {id:'meta',titulo:'Criar uma meta',texto:'Reserva de emergência, viagem, carro: o app mostra quanto falta e quando você chega lá.',botao:'Criar meta',
+    feito:()=>S.goals.length>0,acao:()=>{showPage('goals');openModal('goal-modal');}},
+];
+function passosFeitos(){const pul=S.settings.passosPulados||[];return PASSOS.map(p=>p.feito()||pul.includes(p.id));}
+function renderPassos(){
+  const box=document.getElementById('dash-passos');if(!box)return;
+  const feitos=passosFeitos(),n=feitos.filter(Boolean).length;
+  if(S.settings.passosOcultos||n===PASSOS.length){box.hidden=true;return;}
+  box.hidden=false;
+  const prox=feitos.indexOf(false),falta=PASSOS.length-n;
+  box.innerHTML='<h3 class="ps-titulo">'+(falta===1?'Falta só um passo':'Seus primeiros passos')+'</h3>'+
+    '<p class="ps-sub">'+esc(PASSOS[prox].texto)+'</p>'+
+    '<div class="ps-barra" aria-hidden="true">'+feitos.map(f=>'<i'+(f?' class="on"':'')+'></i>').join('')+'</div>'+
+    '<p class="ps-conta">'+n+' de '+PASSOS.length+' concluídos</p>'+
+    '<ol class="ps-lista">'+PASSOS.map((p,k)=>'<li class="'+(feitos[k]?'feito':k===prox?'agora':'')+'"><span class="ps-marca" aria-hidden="true">'+(feitos[k]?'<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>':'')+'</span><div>'+
+      '<b>'+esc(p.titulo)+'</b>'+(feitos[k]?'<span class="sr-only"> (feito)</span>':'')+
+      (k===prox?'<div class="ps-acoes"><button class="btn btn-primary btn-sm" type="button" onclick="fazerPasso('+k+')">'+esc(p.botao)+'</button><button class="ps-pular" type="button" onclick="pularPasso('+k+')">Agora não</button></div>':'')+
+      '</div></li>').join('')+'</ol>'+
+    '<button class="ps-ocultar" type="button" onclick="ocultarPassos()">Ocultar</button>';
+}
+function fazerPasso(k){PASSOS[k].acao();}
+function pularPasso(k){const pul=S.settings.passosPulados||[];if(!pul.includes(PASSOS[k].id))pul.push(PASSOS[k].id);S.settings.passosPulados=pul;persistSettings();renderPassos();}
+function ocultarPassos(){S.settings.passosOcultos=true;persistSettings();renderPassos();toast('Os primeiros passos não aparecem mais');}
 function renderFoco(ctx){
   const box=document.getElementById('dash-foco');if(!box)return;
   let h='';
@@ -6892,6 +6947,7 @@ function updateDashboard(){
   const custos=expense-retir,lucro=income-custos;
   renderFoco(pj?{lucro,retir}:null);
   renderDashContas();
+  renderPassos();
   const rot=(sel,txt)=>{const el=document.querySelector('#dash-cards '+sel+' .sc-label');if(el)el.textContent=txt;};
   rot('.balance',pj?(lucro<0?'Prejuízo do período':'Lucro do período'):'Saldo do período');
   rot('.income',pj?'Faturamento':'Receitas');
@@ -7453,6 +7509,7 @@ async function confirmImport(){
     if(S.transactions.some(x=>contaDe(x)===contaLote&&x.description===t.description&&x.amount===t.amount&&x.date===t.date)){dup++;return;}
     S.transactions.push({id:newId(),...t,ctx:bolsoLote,conta:contaLote});added++;
   });
+  if(added&&!S.settings.importou){S.settings.importou=true;persistSettings();}
   persist();updateDashboard();populateMonthFilter();
   // Conciliação automática com o saldo final do extrato (LEDGERBAL)
   let balMsg='';
