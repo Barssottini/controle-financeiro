@@ -171,7 +171,9 @@ button.carregando::after{content:"";position:absolute;left:50%;top:50%;width:16p
 .ps-pular:hover,.ps-ocultar:hover{color:var(--ink)}
 .ps-ocultar{position:absolute;top:20px;right:22px}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-#budget-reco[hidden]{display:none}
+#budget-ia-open[hidden]{display:none}
+#budget-ia-modal .modal{max-width:620px}
+.ia-aplicado{font-size:12px;color:var(--green);font-weight:700}
 .reco-tag{font-size:12px;color:var(--ink3)}
 .reco{display:flex;gap:14px;padding:14px 0;border-top:1px solid var(--paper2)}
 .panel-head+.reco{border-top:0;padding-top:4px}
@@ -1654,11 +1656,11 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
         <div><h1 class="pt">Orçamento</h1><p class="ps">Limite de gasto mensal por categoria</p></div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <select class="field" style="width:auto;padding:7px 12px;font-size:12px" id="budget-month" onchange="renderBudgetPage()"></select>
+          <button class="btn btn-secondary ia-titulo" id="budget-ia-open" type="button" onclick="abrirIAOrcamento()">Recomendação da IA</button>
           <button class="btn btn-primary" onclick="openBudgetModal()">+ Definir limite</button>
         </div>
       </div>
       <div id="budget-summary"></div>
-      <div class="panel" id="budget-reco" hidden></div>
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Limites por categoria</span></div>
         <div id="budget-list"></div>
@@ -2248,6 +2250,17 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
         <button class="btn btn-secondary" onclick="closeModal('reconcile-modal')">Cancelar</button>
         <button class="btn btn-primary" onclick="doReconcile()">Conciliar</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: RECOMENDAÇÃO DA IA -->
+<div class="overlay" id="budget-ia-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="budget-ia-title" tabindex="-1">
+    <div class="mhead"><h3 id="budget-ia-title">Recomendação da IA</h3><button class="xbtn" type="button" aria-label="Fechar recomendação" onclick="closeModal('budget-ia-modal')">✕</button></div>
+    <div class="mbody">
+      <div id="budget-reco"></div>
+      <div class="factions"><button class="btn btn-primary" type="button" onclick="closeModal('budget-ia-modal')">OK</button></div>
     </div>
   </div>
 </div>
@@ -5146,6 +5159,10 @@ function openModal(id){
 }
 function closeModal(id){
   if(id==='msg-modal'){closeMsgModal(false);return;}
+  if(id==='budget-ia-modal'){
+    _ia.confirmar=false;
+    document.getElementById('budget-ia-open').focus();
+  }
   document.getElementById(id).classList.remove('open');
   if(id==='welcome-modal'){S.settings.manualSeen=true;persistSettings();}
   if(id==='tx-modal')resetTxForm();
@@ -7942,28 +7959,41 @@ function descreverResumo(r){
     (r.renda_media?'<li>Renda média: '+fmtCur(r.renda_media)+'</li>':'')+(r.objetivo?'<li>Objetivo: '+esc(r.objetivo)+'</li>':'')+
     r.categorias.map(c=>'<li>'+esc(c.nome)+': média '+fmtCur(c.media)+', este mês '+fmtCur(c.gasto_mes)+(c.limite!=null?', limite '+fmtCur(c.limite):'')+'</li>').join('')+'</ul>';
 }
+function abrirIAOrcamento(){
+  if(!exigePro('ia'))return;
+  _ia.confirmar=false;
+  renderIAOrcamento(mesAtual());
+  openModal('budget-ia-modal');
+  document.querySelector('#budget-ia-modal .modal').focus();
+}
 function renderIAOrcamento(month){
-  const box=document.getElementById('budget-reco');if(!box)return;
-  // a análise é sobre o mês que ainda dá para mudar
-  if(month!==mesAtual()){box.hidden=true;return;}
-  box.hidden=false;
-  const pro=ehPro();
-  const head='<div class="panel-head"><span class="panel-title ia-titulo">'+ICO_IA+'Recomendação da IA</span>'+(pro?'':'<span class="ia-pro">PRO</span>')+'</div>';
-  if(!pro){
-    box.innerHTML=head+'<p class="ia-texto">A IA olha o seu mês e diz onde cortar, que limite usar em cada categoria e como fechar o mês no azul.</p><button class="btn btn-secondary btn-sm" type="button" onclick="exigePro(\'ia\')">Recurso do Pro</button>';
-    return;
+  const botao=document.getElementById('budget-ia-open');
+  if(botao){
+    botao.hidden=month!==mesAtual();
+    botao.innerHTML=ICO_IA+'Recomendação da IA'+(ehPro()?'':' <span class="ia-pro">PRO</span>');
   }
+  const box=document.getElementById('budget-reco');if(!box)return;
+  if(!ehPro()){box.innerHTML='';return;}
   const r=resumoParaIA(month),salvo=S.settings.iaOrc&&S.settings.iaOrc.mes===month?S.settings.iaOrc:null;
   let corpo;
   if(_ia.carregando)corpo='<p class="ia-carregando" role="status"><span class="ia-spin" aria-hidden="true"></span>Analisando o seu mês…</p>';
   else if(_ia.confirmar)corpo='<div class="ia-confirma"><p class="ia-texto">Para gerar a análise, este resumo vai para a <b>Anthropic</b>, a empresa do Claude. Só ele: nada de descrições, lojas, bancos ou o seu nome. O North não guarda o resumo no servidor.</p>'+
     descreverResumo(r)+'<div class="ia-acoes"><button class="btn btn-primary btn-sm" type="button" onclick="confirmarIA()">Enviar e pedir</button><button class="btn btn-secondary btn-sm" type="button" onclick="cancelarIA()">Cancelar</button></div></div>';
   else if(salvo)corpo=(salvo.resumo?'<p class="ia-resumo">'+esc(salvo.resumo)+'</p>':'')+salvo.itens.map((x,i)=>'<div class="reco"><span class="reco-ic">'+ICO_IA+'</span><div class="reco-txt"><b>'+esc(x.titulo)+'</b><p>'+esc(x.texto)+'</p>'+
-      (x.categoria&&x.limite_sugerido?'<button class="btn btn-secondary btn-sm" type="button" onclick="usarLimiteIA('+i+')">Usar '+fmtCur(x.limite_sugerido)+' em '+esc(x.categoria)+'</button>':'')+'</div></div>').join('')+
+      (x.categoria&&x.limite_sugerido?(S.budgets.some(b=>b.category===x.categoria&&b.limit===x.limite_sugerido)?'<span class="ia-aplicado" role="status">Limite aplicado</span>':'<button class="btn btn-secondary btn-sm" type="button" onclick="usarLimiteIA('+i+')">Usar '+fmtCur(x.limite_sugerido)+' em '+esc(x.categoria)+'</button>'):'')+'</div></div>').join('')+
     '<p class="ia-rodape">Gerada em '+new Date(salvo.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' · '+salvo.usados+' de '+salvo.limite+' pedidos este mês · <button class="ia-link" type="button" onclick="pedirIA()">Pedir de novo</button></p>';
   else corpo='<p class="ia-texto">Peça uma análise do seu mês: onde cortar, que limite usar em cada categoria e como fechar no azul. A IA recebe só um resumo com os totais de cada categoria.</p><button class="btn btn-primary btn-sm" type="button" onclick="pedirIA()">Pedir recomendação</button>';
-  box.innerHTML=head+corpo+(_ia.confirmar||_ia.carregando?'':'<details class="ia-envio"><summary>O que é enviado para a IA</summary>'+descreverResumo(r)+'</details>');
+  const tinhaFoco=box.contains(document.activeElement);
+  box.innerHTML=corpo+(_ia.confirmar||_ia.carregando?'':'<details class="ia-envio"><summary>O que é enviado para a IA</summary>'+descreverResumo(r)+'</details>');
+  if(tinhaFoco)document.querySelector('#budget-ia-modal .modal').focus();
 }
+document.getElementById('budget-ia-modal').addEventListener('keydown',e=>{
+  if(e.key!=='Tab')return;
+  const itens=[...e.currentTarget.querySelectorAll('button:not([disabled]),summary,[href],input,select,textarea')];
+  const primeiro=itens[0],ultimo=itens[itens.length-1],ativo=document.activeElement;
+  if(e.shiftKey&&(ativo===primeiro||ativo.classList.contains('modal'))){e.preventDefault();ultimo.focus();}
+  else if(!e.shiftKey&&ativo===ultimo){e.preventDefault();primeiro.focus();}
+});
 async function pedirIA(){
   if(!exigePro('ia')||_ia.carregando)return;
   const m=mesAtual(),r=resumoParaIA(m);
