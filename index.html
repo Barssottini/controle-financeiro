@@ -1923,7 +1923,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
       </div>
       <div class="fgrp" id="tx-conta-grp" style="display:none"><label class="flbl">Conta</label><div style="display:flex;align-items:center;gap:9px"><span id="tx-conta-ic"></span><select class="field" id="tx-conta" onchange="renderIconeForm()"></select></div></div>
       <div class="fgrp" id="tx-ctx-grp" style="display:none"><label class="flbl">Bolso</label><div class="trow"><label class="topt"><input type="radio" name="txctx" value="pf" checked><span>Pessoal</span></label><label class="topt"><input type="radio" name="txctx" value="pj"><span>Empresa</span></label></div></div>
-      <div class="fgrp"><label class="flbl">Descrição</label><input class="field" type="text" id="tx-desc" placeholder="Ex: Salário, Aluguel..."></div>
+      <div class="fgrp"><label class="flbl">Descrição</label><input class="field" type="text" id="tx-desc" placeholder="Ex: Salário, Aluguel..." onchange="sugerirCategoria()"></div>
       <div class="frow">
         <div class="fgrp"><label class="flbl">Valor</label><input class="field" type="number" id="tx-amt" placeholder="0,00" step="0.01" min="0.01"></div>
         <div class="fgrp"><label class="flbl">Data</label><input class="field" type="date" id="tx-date"></div>
@@ -4323,7 +4323,7 @@ function transacoesDoTexto(linhas,anoBase,hoje){
     desc=desc.replace(/R\$/g,' ').replace(/\s+/g,' ').trim()||'Sem descrição';
     const baixo=desc.toLowerCase(),entrada=PIX_IN_RE.test(baixo)||/recebid|dep[oó]sito|sal[aá]rio|estorno|rendimento/.test(baixo);
     const type=neg?'expense':pos?'income':entrada?'income':'expense',dc=cleanDesc(desc);
-    rows.push({type,description:dc,amount:amt,date:data||dataAtual,category:PIX_IN_RE.test(baixo)?'Outros':(known[dc]||guessCategory(desc))});
+    rows.push({type,description:dc,amount:amt,date:data||dataAtual,category:categoriaAprendida(dc,known)||(PIX_IN_RE.test(baixo)?'Outros':guessCategory(desc))});
   }
   return rows;
 }
@@ -4475,7 +4475,7 @@ async function lerArquivoComprovante(input){
     document.getElementById('tx-amt').value=r.amount.toFixed(2);
     document.getElementById('tx-date').value=r.date;
     document.getElementById('tx-desc').value=r.description;
-    const cat=r.type==='income'?(/sal[aá]rio/i.test(r.description)?'Salário':'Outros'):guessCategory(r.description);
+    const cat=categoriaAprendida(r.description)||(r.type==='income'?(/sal[aá]rio/i.test(r.description)?'Salário':'Outros'):guessCategory(r.description));
     const sel=document.getElementById('tx-cat');if(sel&&[...sel.options].some(o=>o.value===cat))sel.value=cat;
     closeModal('comp-modal');
     toast('Comprovante lido. Confira e salve');
@@ -6052,11 +6052,18 @@ function saveTx(){
     const ant=S.transactions.find(x=>x.id===S.editId);
     if(ant&&ant.ctx)tx.ctx=ant.ctx;
   }
-  if(S.editId){const i=S.transactions.findIndex(t=>t.id===S.editId);if(S.transactions[i]&&S.transactions[i].time)tx.time=S.transactions[i].time;S.transactions[i]=tx;}
+  // o formulário não tem todos os campos: mescla para não perder o vínculo com a conta a pagar e o horário
+  let corrigiu=false;
+  if(S.editId){
+    const i=S.transactions.findIndex(t=>t.id===S.editId);
+    if(i>=0){corrigiu=S.transactions[i].category!==tx.category;S.transactions[i]=Object.assign({},S.transactions[i],tx);}
+  }
   else S.transactions.push(tx);
+  if(corrigiu){lembrarCategoria(tx.description,tx.category);persistSettings();}
   persist();closeModal('tx-modal');updateDashboard();renderTxList();populateMonthFilter();
   toast('Transação salva');
   flashItem(tx.id);
+  if(corrigiu)corrigirMesmaLoja(tx);
 }
 function editTx(id){
   const t=S.transactions.find(x=>x.id===id);if(!t)return;
@@ -7444,7 +7451,7 @@ function parseOFX(text){
     const time=digits.length>=14?digits.substring(8,10)+':'+digits.substring(10,12)+':'+digits.substring(12,14):'';
     const dc=cleanDesc(memo);
     // Pix recebido sempre Outros; senão reaproveita categoria já usada pelo usuário; senão adivinha
-    const cat=PIX_IN_RE.test(memo.toLowerCase())?'Outros':(known[dc]||guessCategory(memo));
+    const cat=categoriaAprendida(dc,known)||(PIX_IN_RE.test(memo.toLowerCase())?'Outros':guessCategory(memo));
     // A especificacao da OFX manda debito com TRNAMT negativo, mas vario banco
     // brasileiro envia o valor positivo e deixa a direcao so no TRNTYPE. Valor
     // negativo ja e inequivoco, entao o TRNTYPE so decide quando o sinal nao diz
@@ -7467,7 +7474,7 @@ function parseCSV(text){
     const amt=parseValor(cols[cols.length-1]);if(isNaN(amt))continue;
     const date=normalizeDate(dateRaw);if(!date)continue;
     const dc=cleanDesc(desc);
-    const cat=PIX_IN_RE.test(desc.toLowerCase())?'Outros':(known[dc]||guessCategory(desc));
+    const cat=categoriaAprendida(dc,known)||(PIX_IN_RE.test(desc.toLowerCase())?'Outros':guessCategory(desc));
     const type=amt>=0?'income':'expense';
     rows.push({type,description:dc,amount:Math.abs(amt),date,category:cat});
   }
@@ -7500,6 +7507,60 @@ function cleanDesc(s){
     .trim()
     .substring(0,90);
 }
+// ═══ CATEGORIA APRENDIDA ═══
+// O app aprende a categoria pela LOJA, não pela descrição inteira: "SUP CASTANHA LTDA",
+// "Compra no débito - SUP CASTANHA" e "SUP CASTANHA 0412" são a mesma loja. Uma correção
+// da pessoa vira regra (S.settings.regrasCat); sem regra, vale a categoria mais usada
+// para a loja no histórico, sem contar "Outros", que é o "não sei".
+const _PREFIXO_LOJA=/^(compra (aprovada )?(no |com )?(cartao )?(de )?(debito|credito)|compra aprovada|compra|pagamento (de boleto|efetuado|realizado|aprovado|agendado)|pagamento|pagto|pgto|transferencia (enviada|recebida)( pelo pix)?|transferencia|pix (enviado|recebido|agendado)|envio de pix|recebimento( de pix)?|pix|ted|doc|debito automatico|deb aut|boleto)( (para|de|a|em))?\b/;
+const _RUIDO_LOJA=new Set(['ltda','me','epp','eireli','sa','cia','comercio','com','servicos','br','www','nu','pagamentos','ip','instituicao','agencia','conta','ag','cc','de','da','do','das','dos','e','a','o','em','no','na']);
+function chaveLoja(desc){
+  const base=String(desc||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/^(pag|pg|mp|pp)\s*\*\s*/,'');
+  for(const parte of base.split(/\s+[-|]\s+/)){
+    const palavras=parte.trim().replace(_PREFIXO_LOJA,'').replace(/[^a-z]+/g,' ').trim().split(' ').filter(p=>p.length>1&&!_RUIDO_LOJA.has(p));
+    if(palavras.length)return palavras.slice(0,2).join(' ');
+  }
+  return '';
+}
+function mapaLojas(){
+  const cont={},m={};
+  S.transactions.forEach(t=>{
+    if(!t.category||t.category==='Outros')return;
+    const k=chaveLoja(t.description);if(!k)return;
+    const c=cont[k]||(cont[k]={});c[t.category]=(c[t.category]||0)+1;
+  });
+  for(const k in cont)m[k]=Object.entries(cont[k]).sort((a,b)=>b[1]-a[1])[0][0];
+  return m;
+}
+// mapa: passe o mapaLojas() já montado quando for categorizar várias linhas de uma vez
+function categoriaAprendida(desc,mapa){
+  const k=chaveLoja(desc);if(!k)return '';
+  const regra=(S.settings.regrasCat||{})[k];
+  return regra||(mapa||mapaLojas())[k]||'';
+}
+function lembrarCategoria(desc,cat){
+  const k=chaveLoja(desc);if(!k||!cat)return '';
+  S.settings.regrasCat=Object.assign({},S.settings.regrasCat||{},{[k]:cat});
+  return k;
+}
+function outrasDaLoja(desc,cat,menosId){const k=chaveLoja(desc);return k?S.transactions.filter(t=>t.id!==menosId&&t.category!==cat&&chaveLoja(t.description)===k):[];}
+// ═══ FIM DA CATEGORIA APRENDIDA ═══
+function nomeDaLoja(k){return k.replace(/(^|\s)\S/g,c=>c.toUpperCase());}
+// depois de uma correção: oferece levar a categoria para as outras compras da mesma loja
+async function corrigirMesmaLoja(tx){
+  const outras=outrasDaLoja(tx.description,tx.category,tx.id);if(!outras.length)return;
+  const loja=nomeDaLoja(chaveLoja(tx.description));
+  if(!(await showConfirm('Mudar também '+(outras.length>1?'as outras '+outras.length+' transações':'a outra transação')+' de "'+loja+'" para '+tx.category+'? As próximas de lá já entram assim.',{title:'Mesma loja',confirmLabel:'Mudar '+(outras.length>1?'todas':'')}))) return;
+  outras.forEach(t=>{t.category=tx.category;});
+  persist();updateDashboard();renderTxList();
+  toast(outras.length+(outras.length>1?' transações atualizadas':' transação atualizada'));
+}
+function sugerirCategoria(){
+  const sel=document.getElementById('tx-cat'),d=document.getElementById('tx-desc');
+  if(!sel||!d||sel.value)return;   // a escolha da pessoa vale mais
+  const c=categoriaAprendida(d.value)||guessCategory(d.value);
+  if(c&&c!=='Outros'&&[...sel.options].some(o=>o.value===c))sel.value=c;
+}
 // Pix/transferência recebida entra sempre como Outros (dinheiro recebido sem classificação própria)
 const PIX_IN_RE=/transfer[eê]ncia recebida|pix recebido|recebimento (de )?pix|recebido pelo pix/;
 function guessCategory(desc){
@@ -7521,11 +7582,9 @@ function guessCategory(desc){
   return'Outros';
 }
 // Reaproveita a categoria que o usuário já usou para a mesma descrição (aprende com correções manuais)
-function knownCats(){
-  const m={};
-  S.transactions.forEach(t=>{if(t.description&&t.category)m[t.description]=t.category;});
-  return m;
-}
+// O mapa por loja (categoriaAprendida). Antes era por descrição idêntica e copiava até
+// "Outros": uma loja que entrou como Outros uma vez ficava Outros para sempre.
+function knownCats(){return mapaLojas();}
 const CATS=['Salário','Investimentos','Alimentação','Transporte','Moradia','Contas','Cartão de Crédito','Lazer','Saúde','Outros'];
 function renderImportPreview(filename){
   parsedFile=filename;

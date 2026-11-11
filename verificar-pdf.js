@@ -14,7 +14,7 @@ const j = t.indexOf('// ═══ FIM DO EXTRATO EM PDF ═══', i);
 if (i < 0 || j < 0) { console.error('nao achei o bloco EXTRATO EM PDF no index.html'); process.exit(2); }
 const real = re => { const m = t.match(re); if (!m) { console.error('nao achei ' + re); process.exit(2); } return m[0]; };
 const aux = [/function _isoDia\(d\)\{.*\}/, /const PIX_IN_RE=.*;/, /function parseValor\(s\)\{[\s\S]*?\n\}/].map(real).join('\n');
-const sandbox = { knownCats: () => ({}), cleanDesc: s => s.trim(), guessCategory: () => 'Outros', document: {}, showPromptCode: () => {}, showAlert: () => {} };
+const sandbox = { knownCats: () => ({}), categoriaAprendida: () => '', cleanDesc: s => s.trim(), guessCategory: () => 'Outros', document: {}, showPromptCode: () => {}, showAlert: () => {} };
 const nomes = Object.keys(sandbox);
 const C = new Function(...nomes, aux + '\n' + t.slice(i, j) + '\nreturn {linhasDosItens,transacoesDoTexto,anoDoTexto};')(...nomes.map(n => sandbox[n]));
 
