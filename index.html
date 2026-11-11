@@ -770,6 +770,23 @@ html:has(.overlay.open),body:has(.overlay.open){overflow:hidden}
 .topt input:checked+span{border-color:var(--gold);background:var(--goldl);color:var(--ink)}
 
 /* IMPORT */
+#import [hidden]{display:none!important}
+@media(max-width:700px){#import .imp-footer>span{display:none}#import .imp-footer .btn{width:100%;min-height:44px}#import .imp-toolbar button,#import .imp-filters button{min-height:36px}}
+.imp-steps{display:flex;gap:24px;list-style:none;padding:0;margin:0 0 24px;color:var(--ink3);font-size:12px}
+.imp-steps li{display:flex;gap:8px;align-items:center}.imp-steps [aria-current]{color:var(--goldd);font-weight:800}
+.imp-upload{text-align:center;padding:40px 24px!important;max-width:760px;margin:0 auto 20px!important}
+.imp-upload h2{font-size:28px;letter-spacing:-.035em;margin:16px 0 10px}.imp-upload p{color:var(--ink2);line-height:1.7}
+.imp-symbol{display:grid;place-items:center;width:56px;height:56px;border:1px solid var(--gold);border-radius:18px;color:var(--goldd);font-size:30px;margin:auto;background:var(--goldl)}
+.imp-upload .drop-zone{border-width:1px;padding:26px;margin:24px auto 12px;max-width:480px;cursor:default}.imp-drop-hint{font-size:12px;margin:12px 0 6px}.imp-formats{font-size:11px;letter-spacing:.16em;color:var(--ink3)}.imp-private{font-size:12px}
+.imp-help{max-width:760px;margin:20px auto!important}.imp-help summary{cursor:pointer;font-weight:600;font-size:13px}.imp-help select{margin:16px 0 12px}.imp-help p{font-size:13px;color:var(--ink2);line-height:1.7}
+.imp-file{display:flex;justify-content:space-between;gap:16px;align-items:start;flex-wrap:wrap}.imp-file h2{font-size:18px;margin:0 0 6px;overflow-wrap:anywhere}.imp-file p{font-size:12px;color:var(--ink3);margin:0}.imp-destination{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}.imp-destination label{flex:1;min-width:180px;font-size:12px;font-weight:600}.imp-destination select{margin-top:6px;width:100%}
+.imp-totals{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}.imp-total{padding:16px;background:var(--paper2);border-radius:12px}.imp-total span{display:block;font-size:11px;color:var(--ink3);margin-bottom:8px}.imp-total b{font-size:20px;font-variant-numeric:tabular-nums}
+.imp-toolbar,.imp-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0}.imp-filters button[aria-pressed="true"]{background:var(--goldl);border-color:var(--gold);color:var(--goldd)}
+#imp-rows .imp-row{display:grid;grid-template-columns:24px minmax(150px,1fr) 150px 90px 110px;gap:14px;padding:16px 12px;background:transparent;border-radius:0;border-bottom:1px solid var(--paper3);margin:0}
+.imp-desc{min-width:0;overflow-wrap:anywhere}.imp-desc small{display:block;margin-top:6px;color:var(--ink3);font-size:11px}.imp-value{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}.imp-date{font-size:12px;color:var(--ink3)}.imp-cat{width:100%;min-width:0;font-size:12px;padding:9px;border:1px solid var(--paper3);border-radius:8px;background:var(--paper);color:var(--ink)}
+.imp-compare{grid-column:2/-1;font-size:12px;color:var(--ink2)}.imp-compare summary{cursor:pointer}.imp-compare p{padding:10px;background:var(--warnl);border-radius:8px}.imp-footer{position:sticky;bottom:12px;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px;background:var(--paper);border:1px solid var(--paper3);border-radius:14px;box-shadow:0 8px 28px #0001;margin-top:18px}.imp-footer span{font-size:12px;color:var(--ink2)}.imp-success{text-align:center;padding:36px!important}.imp-success h2{font-size:24px}.imp-success p{color:var(--ink2);line-height:1.7}.imp-success .ia-acoes{justify-content:center}.imp-empty{padding:24px;text-align:center;color:var(--ink3)}
+@media(max-width:700px){.imp-upload{padding:28px 16px!important}.imp-upload h2{font-size:24px}.imp-totals{gap:6px}.imp-total{padding:12px 8px}.imp-total b{font-size:15px}#imp-rows .imp-row{grid-template-columns:24px minmax(0,1fr) auto;gap:10px}.imp-cat{grid-column:2;grid-row:auto}.imp-date{grid-column:3;font-size:11px}.imp-value{grid-column:3;grid-row:1}.imp-desc{grid-column:2;grid-row:1}.imp-footer{bottom:calc(80px + env(safe-area-inset-bottom));flex-wrap:wrap}.imp-footer .btn{flex:1}.imp-toolbar .field{max-width:100%}.imp-steps{gap:20px}}
+
 .drop-zone{border:2px dashed var(--paper3);border-radius:12px;padding:38px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:14px}
 .drop-zone:hover,.drop-zone.drag-over{border-color:var(--gold);background:var(--goldl)}
 .imp-row{display:flex;align-items:center;gap:9px;padding:10px;border-radius:8px;background:var(--paper2);margin-bottom:7px;font-size:13px;flex-wrap:wrap}
@@ -1628,26 +1645,20 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
 
     <!-- IMPORT -->
     <div class="page" id="import">
-      <div class="ph">
-        <div><h1 class="pt">Importar Extrato</h1><p class="ps">OFX, CSV e PDF — todos os bancos brasileiros, com correção de encoding</p></div>
-      </div>
-      <div class="panel">
-        <h3 class="panel-title" style="margin-bottom:16px">Selecionar Arquivo</h3>
-        <div class="drop-zone" id="drop-zone"
-          onclick="document.getElementById('ffile').click()"
-          ondragover="event.preventDefault();this.classList.add('drag-over')"
-          ondragleave="this.classList.remove('drag-over')"
-          ondrop="handleDrop(event)">
-          <div style="font-weight:700;margin-bottom:5px">Arraste seu arquivo ou clique para selecionar</div>
-          <div style="font-size:13px;color:var(--ink3)">Formatos aceitos: .OFX · .CSV · .PDF</div>
+      <div class="ph"><div><h1 class="pt">Importar extrato</h1><p class="ps">Do seu banco para uma vida mais organizada.</p></div></div>
+      <ol class="imp-steps" aria-label="Etapas da importação"><li id="imp-step-1" aria-current="step">1 <span>Enviar</span></li><li id="imp-step-2">2 <span>Revisar</span></li><li id="imp-step-3">3 <span>Concluir</span></li></ol>
+      <div id="imp-upload" class="panel imp-upload">
+        <div class="imp-symbol" aria-hidden="true">↥</div>
+        <h2>Seu extrato, organizado.</h2><p>Escolha o arquivo do banco.<br>Você revisa tudo antes de importar.</p>
+        <div class="drop-zone" id="drop-zone" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
+          <button class="btn btn-gold" type="button" onclick="document.getElementById('ffile').click()">Selecionar extrato</button>
+          <p class="imp-drop-hint">Ou arraste seu arquivo até aqui</p><span class="imp-formats">OFX · CSV · PDF</span>
         </div>
-        <input type="file" id="ffile" accept=".ofx,.csv,.txt,.pdf" style="display:none" onchange="handleFileInput(event)">
-        <div id="import-preview"></div>
+        <input type="file" id="ffile" accept=".ofx,.qfx,.csv,.txt,.pdf" hidden onchange="handleFileInput(event)">
+        <p class="imp-private">A leitura do arquivo acontece no seu aparelho.</p>
       </div>
-      <div class="panel" style="background:var(--paper2)">
-        <h3 class="panel-title" style="margin-bottom:14px">Como exportar o extrato</h3>
-        <div id="bank-guide-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-top:12px"></div>
-      </div>
+      <div id="import-preview" aria-live="polite"></div>
+      <details class="panel imp-help" id="imp-help"><summary>Como exportar do meu banco?</summary><div id="bank-guide-grid"></div></details>
     </div>
 
     <!-- BUDGET -->
@@ -4342,10 +4353,10 @@ function transacoesDoTexto(linhas,anoBase,hoje){
 }
 async function importarPdf(file){
   try{
-    const linhas=await linhasDoPdf(file);if(!linhas)return;
+    const linhas=await linhasDoPdf(file);if(!linhas){erroImport('Leitura cancelada. Escolha outro arquivo para continuar.');return;}
     parsedBal=null;parsedRows=transacoesDoTexto(linhas,anoDoTexto(linhas));
     renderImportPreview(file.name);
-  }catch(e){showAlert(PDF_ILEGIVEL);}
+  }catch(e){erroImport(PDF_ILEGIVEL);}
 }
 // ═══ FIM DO EXTRATO EM PDF ═══
 // ═══ COMPROVANTE E NOTIFICAÇÃO ═══
@@ -7395,17 +7406,23 @@ function handleDrop(e){
 function handleFileInput(e){const f=e.target.files[0];if(f)processFile(f);e.target.value='';}
 
 function processFile(file){
+  if(imp.reading||imp.busy)return;
   if(precisaEscolherBanco()){abrirEscolhaBanco('primeiro',()=>processFile(file));return;}
+  if(!/\.(ofx|qfx|csv|txt|pdf)$/i.test(file.name)){erroImport('Formato não reconhecido. Escolha um arquivo OFX, CSV ou PDF.');return;}
+  resetImport();imp.reading=true;
+  document.getElementById('import-preview').innerHTML='<div class="panel ia-carregando" role="status"><span class="ia-spin" aria-hidden="true"></span>Lendo seu extrato…</div>';
   if(/\.pdf$/i.test(file.name)){importarPdf(file);return;}
-  lerTexto(file,t=>finishParse(t,file.name));
+  lerTexto(file,t=>{try{finishParse(t,file.name);}catch(e){erroImport('Não foi possível ler este arquivo. Tente exportar novamente pelo banco.');}});
 }
 // lê o arquivo como texto; se os acentos vierem quebrados (Windows-1252), relê
 function lerTexto(file,pronto){
   const reader=new FileReader();
+  reader.onerror=()=>erroImport('Não foi possível abrir o arquivo. Tente selecioná-lo novamente.');
   reader.onload=ev=>{
     const text=ev.target.result;
     if(hasEncodingIssues(text)){
       const r2=new FileReader();
+      r2.onerror=()=>erroImport('Não foi possível ler o arquivo. Tente exportá-lo novamente.');
       r2.onload=ev2=>{
         let fixed='';
         try{
@@ -7603,88 +7620,63 @@ function guessCategory(desc){
 // "Outros": uma loja que entrou como Outros uma vez ficava Outros para sempre.
 function knownCats(){return mapaLojas();}
 const CATS=['Salário','Investimentos','Alimentação','Transporte','Moradia','Contas','Cartão de Crédito','Lazer','Saúde','Outros'];
+const imp={choices:new Map(),filter:'all',busy:false,reading:false,undo:[],account:null,ctx:null};
+function etapaImport(n){
+  document.getElementById('imp-upload').hidden=n!==1;
+  document.getElementById('imp-help').hidden=n!==1;
+  for(let i=1;i<=3;i++){const el=document.getElementById('imp-step-'+i);if(i===n)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');}
+}
+function erroImport(msg){imp.reading=false;etapaImport(1);document.getElementById('import-preview').innerHTML='<div class="panel" role="alert">'+esc(msg)+'</div>';}
+function resetImport(){if(imp.busy||imp.reading)return;parsedRows=[];parsedBal=null;parsedFile='';imp.choices.clear();imp.filter='all';imp.account=null;imp.ctx=null;etapaImport(1);document.getElementById('import-preview').innerHTML='';}
+function estadoImport(){
+  const alvo=imp.account||contaDoImport();
+  return parsedRows.map((t,i)=>{
+    const iguais=S.transactions.filter(x=>contaDe(x)===alvo&&x.amount===t.amount&&x.date===t.date&&x.type===t.type);
+    const exact=iguais.some(x=>x.description===t.description),maybe=!exact&&iguais.length>0;
+    return {t,i,exact,maybe,iguais,checked:!exact&&(imp.choices.has(i)?imp.choices.get(i):!maybe)};
+  });
+}
+function filtrarImport(f){imp.filter=f;renderImportPreview(parsedFile);}
+function marcarImport(i,v){imp.choices.set(i,v);atualizarTotaisImport();}
+function atualizarTotaisImport(){
+  const rows=estadoImport().filter(r=>r.checked),soma=tipo=>rows.filter(r=>r.t.type===tipo).reduce((a,r)=>a+r.t.amount,0);
+  document.getElementById('imp-in').textContent=fmtCur(soma('income'));document.getElementById('imp-out').textContent=fmtCur(soma('expense'));document.getElementById('imp-count').textContent=rows.length;
+  const btn=document.getElementById('imp-submit');btn.textContent=imp.busy?'Importando…':'Importar '+rows.length+' lançamentos';btn.disabled=imp.busy||!rows.length;
+}
+function categoriaLote(){const c=document.getElementById('imp-bulk').value;if(!c)return;estadoImport().filter(r=>r.checked).forEach(r=>r.t.category=c);renderImportPreview(parsedFile);}
 function renderImportPreview(filename){
-  parsedFile=filename;
-  const prev=document.getElementById('import-preview');
-  if(!parsedRows.length){
-    prev.innerHTML='<div style="background:var(--redl);color:var(--red);padding:13px;border-radius:10px;margin-top:6px">Nenhuma transação encontrada em <strong>'+esc(filename)+'</strong>. Verifique se é um OFX, CSV ou PDF do banco. PDF que é foto ou digitalização não tem texto para ler.</div>';
-    return;
-  }
-  // Duplicata é SEMPRE dentro da mesma conta. O mesmo Uber de R$ 50 no mesmo dia
-  // pode existir de verdade no Nubank e no Itaú; comparar entre contas engoliria
-  // um lançamento legítimo em silêncio.
-  const alvo=contaDoImport();
-  const naConta=x=>contaDe(x)===alvo;
-  const rows=parsedRows.map((t,i)=>{
-    const exact=S.transactions.some(x=>naConta(x)&&x.description===t.description&&x.amount===t.amount&&x.date===t.date);
-    const maybe=!exact&&S.transactions.some(x=>naConta(x)&&x.amount===t.amount&&x.date===t.date);
-    return {t,i,exact,maybe};
-  });
-  const nExact=rows.filter(r=>r.exact).length;
-  const nMaybe=rows.filter(r=>r.maybe).length;
-  const nNew=rows.length-nExact-nMaybe;
-  const summary='<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;margin-bottom:12px">'+
-    '<span><b style="color:var(--green)">'+nNew+'</b> nova(s)</span>'+
-    (nMaybe?'<span><b style="color:var(--warn)">'+nMaybe+'</b> possível(is) duplicata(s) — revise antes de importar</span>':'')+
-    (nExact?'<span><b style="color:var(--ink3)">'+nExact+'</b> já importada(s)</span>':'')+
-    '</div>';
-  prev.innerHTML=
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;margin-top:10px;flex-wrap:wrap;gap:8px">'+
-    '<div style="font-weight:700;font-size:14px">'+esc(filename)+' — <span style="color:var(--gold)">'+parsedRows.length+' transação(ões)</span>'+(parsedBal?' · Saldo final do extrato: <span style="color:var(--gold)">'+fmtCur(parsedBal.amt)+'</span>':'')+'</div>'+
-    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-    '<button class="btn btn-secondary btn-sm" onclick="toggleAllImport(true)">Selecionar tudo</button>'+
-    '<button class="btn btn-secondary btn-sm" onclick="toggleAllImport(false)">Desmarcar tudo</button>'+
-    (contas().length>1
-      ?'<label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink2)">Conta:'+
-       '<select class="field" id="imp-conta" onchange="renderImportPreview(parsedFile)" style="width:auto;padding:6px 10px;font-size:12px">'+
-       contas().map(c=>'<option value="'+c.id+'"'+(c.id===alvo?' selected':'')+'>'+esc(c.nome)+'</option>').join('')+
-       '</select></label>'
-      :'')+
-    (S.settings.empresarial
-      ?'<label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink2)">Importar para:'+
-       '<select class="field" id="imp-ctx" style="width:auto;padding:6px 10px;font-size:12px">'+
-       '<option value="pf"'+(S.settings.ctxView==='pj'?'':' selected')+'>Pessoal</option>'+
-       '<option value="pj"'+(S.settings.ctxView==='pj'?' selected':'')+'>Empresa</option>'+
-       '</select></label>'
-      :'')+
-    '<button class="btn btn-gold" onclick="confirmImport()">Importar selecionadas</button></div></div>'+
-    summary+
-    '<div id="imp-rows">'+rows.map(({t,i,exact,maybe})=>{
-      const flag=exact
-        ?'<span class="badge" style="background:var(--paper3);color:var(--ink3)">Já importada</span>'
-        :maybe?'<span class="badge" style="background:var(--warnl);color:var(--warn)">Possível duplicata</span>':'';
-      return '<div class="imp-row"'+(exact?' style="opacity:.5"':(maybe?' style="background:var(--warnl);border-left:3px solid var(--warnb)"':''))+'>'+
-      '<input type="checkbox" class="chk imp-chk" data-i="'+i+'"'+(maybe?' data-maybe="1"':'')+(exact?' disabled':(maybe?'':' checked'))+'>'+
-      '<span class="badge '+(t.type==='income'?'badge-in':'badge-out')+'" onclick="flipImportType(this,'+i+')" title="Clique para inverter entre receita e despesa" style="cursor:pointer">'+(t.type==='income'?'Receita':'Despesa')+'</span>'+
-      '<span style="flex:1;font-weight:500;min-width:120px">'+esc(t.description)+'</span>'+
-      flag+
-      '<select class="imp-cat" data-i="'+i+'" onchange="parsedRows[this.dataset.i].category=this.value" style="font-size:12px;padding:4px 6px;border-radius:8px;border:1px solid var(--paper3);background:var(--paper);color:var(--ink3)">'+CATS.map(c=>'<option'+(c===t.category?' selected':'')+'>'+c+'</option>').join('')+'</select>'+
-      '<span style="color:var(--ink3);font-size:12px">'+fmtDate(t.date)+'</span>'+
-      '<span style="font-weight:700;color:'+(t.type==='income'?'var(--green)':'var(--red)')+'">'+fmtCur(t.amount)+'</span>'+
-      '</div>';
-    }).join('')+'</div>';
+  imp.reading=false;parsedFile=filename;
+  if(!parsedRows.length){erroImport('Nenhuma transação encontrada. Escolha um OFX, CSV ou PDF com texto selecionável; fotos e digitalizações não são lidas aqui.');return;}
+  const alvo=imp.account||contaDoImport();imp.account=alvo;imp.ctx=imp.ctx||(S.settings.ctxView==='pj'?'pj':'pf');etapaImport(2);
+  const rows=estadoImport(),dates=parsedRows.map(t=>t.date).sort(),review=r=>!r.exact&&(r.maybe||r.t.category==='Outros');
+  const filtros=[['all','Todas',rows.length],['review','Para revisar',rows.filter(review).length],['maybe','Possíveis duplicatas',rows.filter(r=>r.maybe).length],['exact','Já importadas',rows.filter(r=>r.exact).length]];
+  const vis=rows.filter(r=>imp.filter==='all'||imp.filter==='review'&&review(r)||imp.filter==='maybe'&&r.maybe||imp.filter==='exact'&&r.exact);
+  document.getElementById('import-preview').innerHTML='<div class="panel"><div class="imp-file"><div><h2>'+esc(filename)+'</h2><p>'+fmtDate(dates[0])+' — '+fmtDate(dates[dates.length-1])+' · '+rows.length+' lançamentos encontrados</p></div><button class="btn btn-secondary btn-sm" onclick="resetImport()">Trocar arquivo</button></div>'+
+    '<div class="imp-destination"><label>Conta de destino<select class="field" id="imp-conta" onchange="imp.account=Number(this.value);renderImportPreview(parsedFile)">'+contas().map(c=>'<option value="'+c.id+'"'+(c.id===alvo?' selected':'')+'>'+esc(c.nome)+'</option>').join('')+'</select></label>'+
+    (S.settings.empresarial?'<label>Importar para<select class="field" id="imp-ctx" onchange="imp.ctx=this.value"><option value="pf"'+(imp.ctx==='pf'?' selected':'')+'>Pessoal</option><option value="pj"'+(imp.ctx==='pj'?' selected':'')+'>Empresa</option></select></label>':'')+'</div>'+
+    '<div class="imp-totals"><div class="imp-total"><span>Selecionados</span><b id="imp-count"></b></div><div class="imp-total"><span>Entradas</span><b id="imp-in" style="color:var(--green)"></b></div><div class="imp-total"><span>Saídas</span><b id="imp-out"></b></div></div>'+
+    '<div class="imp-filters" role="group" aria-label="Filtrar lançamentos">'+filtros.map(([f,n,c])=>'<button class="btn btn-secondary btn-sm" aria-pressed="'+(imp.filter===f)+'" onclick="filtrarImport(\''+f+'\')">'+n+' · '+c+'</button>').join('')+'</div>'+
+    '<div class="imp-toolbar"><button class="btn btn-secondary btn-sm" onclick="toggleAllImport(true)">Selecionar novas</button><button class="btn btn-secondary btn-sm" onclick="toggleAllImport(false)">Desmarcar todas</button><select id="imp-bulk" class="field" style="width:auto" aria-label="Categoria para os selecionados"><option value="">Categoria em lote</option>'+CATS.map(c=>'<option>'+esc(c)+'</option>').join('')+'</select><button class="btn btn-secondary btn-sm" onclick="categoriaLote()">Aplicar aos selecionados</button></div>'+
+    '<div id="imp-rows">'+(vis.length?vis.map(({t,i,exact,maybe,iguais,checked})=>'<div class="imp-row"><input type="checkbox" class="chk imp-chk" aria-label="Selecionar '+esc(t.description)+'" data-i="'+i+'"'+(exact?' disabled':'')+(checked?' checked':'')+' onchange="marcarImport('+i+',this.checked)"><div class="imp-desc">'+esc(t.description)+'<small><button class="ia-link" type="button" onclick="flipImportType(this,'+i+')"'+(exact?' disabled':'')+'>'+ (t.type==='income'?'Receita':'Despesa')+'</button>'+(exact?' · Já importada':maybe?' · Possível duplicata':t.category==='Outros'?' · Revisar categoria':'')+'</small></div><select class="imp-cat" aria-label="Categoria de '+esc(t.description)+'" onchange="parsedRows['+i+'].category=this.value"'+(exact?' disabled':'')+'>'+[...new Set([...CATS,t.category])].map(c=>'<option'+(c===t.category?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select><span class="imp-date">'+fmtDate(t.date)+'</span><span class="imp-value" style="color:'+(t.type==='income'?'var(--green)':'var(--ink)')+'">'+fmtCur(t.amount)+'</span>'+(maybe?'<details class="imp-compare"><summary>Comparar com o que já existe</summary>'+iguais.map(x=>'<p>'+esc(x.description)+' · '+fmtDate(x.date)+' · '+fmtCur(x.amount)+' · '+esc(x.category)+'</p>').join('')+'</details>':'')+'</div>').join(''):'<p class="imp-empty">Nenhum lançamento neste filtro.</p>')+'</div></div>'+
+    '<div class="imp-footer"><span>Revise a conta e os lançamentos antes de confirmar.</span><button id="imp-submit" class="btn btn-gold" onclick="confirmImport()"></button></div>';
+  atualizarTotaisImport();
 }
-// Nenhuma heuristica cobre todo layout de CSV, e errar o lado de um lancamento
-// e corromper o saldo. Um toque no badge inverte a linha antes de importar.
-function flipImportType(el,i){
-  const t=parsedRows[i];if(!t)return;
-  t.type=t.type==='income'?'expense':'income';
-  const inc=t.type==='income';
-  el.className='badge '+(inc?'badge-in':'badge-out');
-  el.textContent=inc?'Receita':'Despesa';
-  const val=el.parentElement.lastElementChild;
-  if(val)val.style.color=inc?'var(--green)':'var(--red)';
-}
-function toggleAllImport(state){
-  document.querySelectorAll('.imp-chk').forEach(c=>{
-    if(state&&c.dataset.maybe==='1')return; // "Selecionar tudo" não marca possíveis duplicatas sozinho
-    c.checked=state;
-  });
+function flipImportType(el,i){const t=parsedRows[i];if(!t)return;t.type=t.type==='income'?'expense':'income';renderImportPreview(parsedFile);}
+function toggleAllImport(state){estadoImport().forEach(r=>{if(!r.exact&&(!state||!r.maybe))imp.choices.set(r.i,state);});renderImportPreview(parsedFile);}
+async function desfazerImport(){
+  if(!imp.undo.length||imp.busy)return;
+  if(!await showConfirm('Remover os lançamentos deste último lote, incluindo o ajuste de saldo, se criado? Alterações feitas nesses lançamentos também serão removidas.',{title:'Desfazer importação',confirmLabel:'Desfazer'}))return;
+  const ids=new Set(imp.undo);S.transactions=S.transactions.filter(t=>!ids.has(t.id));imp.undo=[];persist();updateDashboard();populateMonthFilter();resetImport();toast('Importação desfeita');
 }
 async function confirmImport(){
-  const sel=[...document.querySelectorAll('.imp-chk:checked')].map(c=>parseInt(c.dataset.i));
+  if(imp.busy)return;
+  const selecionadas=estadoImport().filter(r=>r.checked);
+  const sel=selecionadas.map(r=>r.i);
   if(!sel.length){showAlert('Selecione ao menos uma.');return;}
-  const maybeChecked=document.querySelectorAll('.imp-chk:checked[data-maybe="1"]').length;
+  const maybeChecked=selecionadas.filter(r=>r.maybe).length;
+  imp.busy=true;atualizarTotaisImport();
+  document.querySelectorAll('#import-preview button,#import-preview input,#import-preview select').forEach(el=>el.disabled=true);
+  try{
   if(maybeChecked>0){
     const msg=maybeChecked===1
       ?'1 transação selecionada tem a mesma data e valor de um lançamento que já existe. Quer importar mesmo assim?'
@@ -7697,11 +7689,11 @@ async function confirmImport(){
   // Mesma ideia para a conta: o extrato do Nubank entra inteiro no Nubank, e a
   // duplicata é conferida só contra o que já está nessa mesma conta.
   const contaLote=contaDoImport();
-  let added=0,dup=0;
+  let added=0,dup=0;imp.undo=[];
   sel.forEach(i=>{
     const t=parsedRows[i];
-    if(S.transactions.some(x=>contaDe(x)===contaLote&&x.description===t.description&&x.amount===t.amount&&x.date===t.date)){dup++;return;}
-    S.transactions.push({id:newId(),...t,ctx:bolsoLote,conta:contaLote});added++;
+    if(S.transactions.some(x=>contaDe(x)===contaLote&&x.description===t.description&&x.amount===t.amount&&x.date===t.date&&x.type===t.type)){dup++;return;}
+    const id=newId();imp.undo.push(id);S.transactions.push({id,...t,ctx:bolsoLote,conta:contaLote});added++;
   });
   if(added&&!S.settings.importou){S.settings.importou=true;persistSettings();}
   persist();updateDashboard();populateMonthFilter();
@@ -7718,15 +7710,18 @@ async function confirmImport(){
     if(Math.abs(diff)<0.01){
       balMsg='<br>Saldo conferido: bate com o extrato ('+fmtCur(parsedBal.amt)+')';
     }else if(await showConfirm('O extrato informa saldo final de '+fmtCur(parsedBal.amt)+'.\nO app calculou '+fmtCur(saldoConta)+' para '+esc(nomeDaConta(contaLote))+'.\n\nCriar ajuste automático de '+fmtCur(Math.abs(diff))+' para conciliar?',{title:'Conciliar saldo',confirmLabel:'Criar ajuste'})){
-      S.transactions.push({id:newId(),type:diff>0?'income':'expense',description:'Ajuste de conciliação (saldo do extrato)',amount:Math.abs(diff),date:parsedBal.date,category:'Outros',ctx:bolsoLote,conta:contaLote});
+      const ajusteId=newId();imp.undo.push(ajusteId);
+      S.transactions.push({id:ajusteId,type:diff>0?'income':'expense',description:'Ajuste de conciliação (saldo do extrato)',amount:Math.abs(diff),date:parsedBal.date,category:'Outros',ctx:bolsoLote,conta:contaLote});
       persist();updateDashboard();populateMonthFilter();
       balMsg='<br>Saldo conciliado automaticamente com o extrato ('+fmtCur(parsedBal.amt)+')';
     }else{
       balMsg='<br>Saldo do app difere do extrato em '+fmtCur(Math.abs(diff))+' — use Conciliar Saldo se quiser ajustar.';
     }
   }
-  document.getElementById('import-preview').innerHTML='<div style="background:var(--greenl);color:var(--green);padding:14px;border-radius:10px;font-weight:600">'+added+' transação(ões) importada(s)!'+(dup?' ('+dup+' duplicata(s) ignorada(s))':'')+balMsg+'</div>';
+  etapaImport(3);
+  document.getElementById('import-preview').innerHTML='<div class="panel imp-success"><div class="imp-symbol" aria-hidden="true">✓</div><h2>'+added+' lançamentos importados</h2><p>'+esc(nomeDaConta(contaLote))+(dup?' · '+dup+' duplicatas ignoradas':'')+'</p><p>'+balMsg+'</p><div class="ia-acoes"><button class="btn btn-gold" onclick="showPage(\'transactions\')">Ver lançamentos</button><button class="btn btn-secondary" onclick="resetImport()">Concluir</button>'+(imp.undo.length?'<button class="btn btn-secondary" onclick="desfazerImport()">Desfazer importação</button>':'')+'</div></div>';
   parsedRows=[];parsedBal=null;
+  }finally{imp.busy=false;if(document.getElementById('imp-submit'))renderImportPreview(parsedFile);}
 }
 
 // ═══ BANK GUIDE ═══
@@ -7745,7 +7740,13 @@ function buildBankGuide(){
   ];
   const el=document.getElementById('bank-guide-grid');
   if(!el)return;
-  el.innerHTML=guides.map(g=>'<div style="background:var(--paper);border-radius:10px;padding:15px;border:1px solid var(--paper3)"><div style="font-weight:700;font-size:13px;margin-bottom:4px">'+g.n+'</div><div style="font-size:12px;color:var(--ink3)">'+g.h+'</div></div>').join('');
+  el.innerHTML='<select class="field" aria-label="Banco para consultar instruções" id="imp-guide-bank">'+guides.map((g,i)=>'<option value="'+i+'">'+esc(g.n)+'</option>').join('')+'</select><p id="imp-guide-text"></p><p>Os menus podem variar conforme a versão do aplicativo do banco. Se disponível, prefira OFX.</p>';
+  const select=document.getElementById('imp-guide-bank');
+  const nome=nomeDaConta(contaDoImport()).toLowerCase();
+  const idx=guides.findIndex(g=>nome.includes(g.n.toLowerCase()));
+  select.value=String(Math.max(0,idx));
+  const atualizar=()=>{document.getElementById('imp-guide-text').textContent=guides[Number(select.value)].h;};
+  select.onchange=atualizar;atualizar();
 }
 
 // ═══ PERSISTENCE ═══
