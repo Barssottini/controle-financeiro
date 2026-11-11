@@ -76,7 +76,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
   <img src="logo-192.png" alt="North Finances" class="badge">
   <div class="brand">North<span> Finances</span></div>
   <div class="doc-title">Termos de Uso &amp; Privacidade</div>
-  <div class="doc-date">Última atualização: 9 de novembro de 2026</div>
+  <div class="doc-date">Última atualização: 11 de novembro de 2026</div>
 </div>
 
 <div class="wrap">
@@ -130,7 +130,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
   <h2><span class="num">5</span> Onde seus dados ficam e como são protegidos</h2>
   <ul>
     <li><strong>Servidor no Brasil:</strong> seus dados são armazenados em banco de dados PostgreSQL gerenciado pela <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a>, em região de <strong>São Paulo</strong>.</li>
-    <li><strong>Criptografia de ponta a ponta:</strong> seus dados financeiros são <strong>cifrados dentro do seu navegador</strong>, no seu dispositivo, <strong>antes</strong> de subir para a nuvem. No servidor fica apenas texto cifrado — <strong>sem a sua senha ou a sua chave de recuperação, nem a North consegue lê-los</strong>. A chave é derivada da sua senha no seu próprio aparelho e nunca é enviada para nós. Como o aplicativo é de <strong>código aberto</strong>, qualquer pessoa pode auditar como isso funciona. Isso vale para tudo que você digita ou importa <strong>dentro</strong> do aplicativo. Há um caminho previsto que não funcionará assim — lançar por mensagem — e ele está descrito abaixo, na seção 5.1.</li>
+    <li><strong>Criptografia de ponta a ponta:</strong> seus dados financeiros são <strong>cifrados dentro do seu navegador</strong>, no seu dispositivo, <strong>antes</strong> de subir para a nuvem. No servidor fica apenas texto cifrado — <strong>sem a sua senha ou a sua chave de recuperação, nem a North consegue lê-los</strong>. A chave é derivada da sua senha no seu próprio aparelho e nunca é enviada para nós. Como o aplicativo é de <strong>código aberto</strong>, qualquer pessoa pode auditar como isso funciona. Isso vale para tudo que você digita ou importa <strong>dentro</strong> do aplicativo. Há dois caminhos que não funcionam assim, os dois opcionais e só quando você pede: lançar por mensagem (seção 5.1, ainda não está no ar) e a recomendação do orçamento por IA (seção 5.2).</li>
     <li><strong>Isolamento por usuário:</strong> regras de segurança no nível do banco de dados garantem que <strong>cada usuário só acessa os próprios dados</strong> — nenhum outro usuário enxerga suas informações.</li>
     <li><strong>Senha criptografada</strong> e conexões protegidas por criptografia (HTTPS/TLS). Exigimos <strong>senha forte</strong> e o sistema recusa a reutilização da senha anterior na troca.</li>
     <li><strong>Verificação em duas etapas (2FA) opcional:</strong> você pode ativar nas Configurações um segundo código, gerado no seu celular, exigido a cada login — mesmo quem descobrir sua senha não entra sem ele.</li>
@@ -160,11 +160,27 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
   </ul>
   <p>Dizer "nem nós lemos seus dados" e manter um canal que não é privado seria uma contradição. Por isso ela está escrita aqui, e não em letra miúda.</p>
 
+  <h2><span class="num">5.2</span> Recomendação do orçamento por IA (plano Pro)</h2>
+  <p>No plano Pro, a tela de Orçamento pode pedir uma análise do seu mês a uma inteligência artificial. A IA não consegue ler dados cifrados, então este é o segundo caminho do North que não é de ponta a ponta. Por isso ele <strong>só acontece quando você pede</strong>.</p>
+  <h3>O que sai do seu aparelho</h3>
+  <ul>
+    <li>Só um <strong>resumo montado no seu aparelho</strong>: o nome de cada categoria, a média de gasto dela nos meses anteriores, quanto já foi gasto no mês atual e o limite que você definiu; a sua renda média; o objetivo que você escolheu no perfil; e o dia do mês.</li>
+    <li><strong>Nunca</strong> saem descrições de lançamentos, nomes de lojas ou de pessoas, bancos, contas, o seu nome ou o seu e-mail.</li>
+    <li>Antes do primeiro envio, o app mostra exatamente esse resumo e pede a sua confirmação. Depois, ele continua visível em "O que é enviado para a IA", na própria tela.</li>
+  </ul>
+  <h3>Quem processa</h3>
+  <ul>
+    <li><strong>O nosso servidor</strong> confere se a conta é Pro, repassa o resumo e devolve a resposta. Ele <strong>não guarda nem registra</strong> o resumo. Fica registrado na sua conta apenas quantos pedidos você fez no mês, para controlar o limite mensal.</li>
+    <li><strong>A Anthropic</strong>, empresa do modelo de IA Claude, recebe o resumo para gerar a recomendação e o trata conforme os termos comerciais dela para o uso da API.</li>
+  </ul>
+  <p>A recomendação que volta fica guardada com os seus dados, cifrada. Quem não pede a análise não envia nada, e o resto do app continua cifrado de ponta a ponta. As recomendações são sugestões automáticas para organizar o orçamento, não consultoria financeira.</p>
+
   <h2><span class="num">6</span> Compartilhamento com terceiros</h2>
   <p><strong>Nós não vendemos, alugamos ou compartilhamos seus dados pessoais.</strong> Utilizamos apenas fornecedores técnicos estritamente necessários para o funcionamento do app:</p>
   <ul>
     <li><strong>Supabase</strong> — infraestrutura de banco de dados e autenticação (onde seus dados ficam hospedados, com segurança).</li>
     <li><strong>Stripe</strong> — processa o pagamento da assinatura do Pro, na página de pagamento do próprio Stripe. Seus dados de cartão são tratados diretamente pelo Stripe e <strong>não passam pelos nossos servidores</strong>.</li>
+    <li><strong>Anthropic</strong> — gera a recomendação do orçamento por IA, no plano Pro e só quando você pede. Recebe apenas o resumo descrito na seção 5.2.</li>
     <li><strong>Resend</strong> — serviço de envio dos nossos e-mails; recebe apenas o seu endereço e o conteúdo da mensagem. Enviamos: códigos de confirmação, alertas de segurança de novo login, avisos sobre a sua conta e um <strong>lembrete mensal</strong>, no dia 1º, para você exportar o extrato do banco. O lembrete pode ser desligado em Configurações → Notificações por e-mail; os demais são essenciais ao serviço.</li>
     <li><strong>Cloudflare Turnstile</strong> — verificação anti-robô nas telas de login e cadastro; processa dados técnicos do navegador (como o IP) apenas para distinguir pessoas de robôs.</li>
     <li><strong>brapi.dev</strong> e <strong>CoinGecko</strong> — fornecem apenas <strong>cotações públicas</strong> de ativos e criptomoedas. Enviamos a eles somente o código do ativo (ex.: "BOVA11"); <strong>nenhum dado seu, saldo ou informação pessoal é compartilhado</strong>.</li>
@@ -172,8 +188,8 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
     <li><strong>Meta (Facebook/Instagram)</strong> — medição de publicidade, e <strong>somente se você aceitou o aviso de cookies</strong> no site northfinances.com.br. No site, a medição é por cookie. No aplicativo <strong>não há cookie nem script da Meta</strong>: se você chegou pelo site tendo aceitado o aviso, no momento em que o teste grátis começa o nosso servidor informa à Meta que houve um cadastro, enviando o seu e-mail de forma embaralhada (hash), o endereço IP e o navegador usado. Quem entra direto no aplicativo, ou recusou o aviso, <strong>não é informado à Meta em momento nenhum</strong>. A Meta <strong>nunca recebe dado financeiro seu</strong> e não tem acesso ao conteúdo do aplicativo. Veja a seção 9.</li>
   </ul>
   <h3>Transferência internacional de dados</h3>
-  <p>Seus dados financeiros ficam armazenados <strong>no Brasil</strong>, na região de São Paulo. Ainda assim, alguns fornecedores acima são empresas sediadas no exterior e podem tratar dados a partir de fora do país — é o caso de <strong>Supabase</strong>, <strong>Stripe</strong>, <strong>Resend</strong>, <strong>Cloudflare</strong>, <strong>GitHub</strong> e <strong>Meta</strong>.</p>
-  <p>Essas transferências ocorrem nos termos dos <strong>artigos 33 a 35 da LGPD</strong>, amparadas nas cláusulas contratuais de proteção de dados oferecidas por cada fornecedor e limitadas ao <strong>estritamente necessário para executar o contrato</strong> com você. Vale lembrar o que mais importa aqui: como o conteúdo financeiro é cifrado no seu aparelho, o que trafega e o que fica armazenado nesses serviços é <strong>texto embaralhado</strong> — nenhum deles tem como lê-lo. A <strong>única exceção prevista</strong> é a mensagem enviada pelo canal do WhatsApp, quando ele existir: ela chega em texto claro à Meta e ao nosso servidor, pelo motivo e com os limites explicados na <strong>seção 5.1</strong>.</p>
+  <p>Seus dados financeiros ficam armazenados <strong>no Brasil</strong>, na região de São Paulo. Ainda assim, alguns fornecedores acima são empresas sediadas no exterior e podem tratar dados a partir de fora do país — é o caso de <strong>Supabase</strong>, <strong>Stripe</strong>, <strong>Resend</strong>, <strong>Cloudflare</strong>, <strong>GitHub</strong>, <strong>Meta</strong> e <strong>Anthropic</strong>.</p>
+  <p>Essas transferências ocorrem nos termos dos <strong>artigos 33 a 35 da LGPD</strong>, amparadas nas cláusulas contratuais de proteção de dados oferecidas por cada fornecedor e limitadas ao <strong>estritamente necessário para executar o contrato</strong> com você. Vale lembrar o que mais importa aqui: como o conteúdo financeiro é cifrado no seu aparelho, o que trafega e o que fica armazenado nesses serviços é <strong>texto embaralhado</strong> — nenhum deles tem como lê-lo. As <strong>exceções</strong> são duas, ambas só quando você pede: a mensagem enviada pelo canal do WhatsApp, quando ele existir, que chega em texto claro à Meta e ao nosso servidor (<strong>seção 5.1</strong>); e o resumo do orçamento enviado à Anthropic na recomendação por IA (<strong>seção 5.2</strong>).</p>
 
   <h2><span class="num">7</span> Seus direitos (LGPD)</h2>
   <p>A qualquer momento, você pode exercer os direitos garantidos pela LGPD:</p>
@@ -263,6 +279,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
     <table>
       <thead><tr><th>Data</th><th>O que mudou</th></tr></thead>
       <tbody>
+        <tr><td class="dt">11/11/2026</td><td>Nova seção 5.2: recomendação do orçamento por IA, no plano Pro e só quando você pede. Sai do aparelho apenas um resumo com os totais de cada categoria, a renda média, os limites, o objetivo e o dia do mês, que vai para a Anthropic (empresa do Claude), incluída na lista de fornecedores (seção 6). As seções 5 e 6 passaram a apontar essa segunda exceção à criptografia de ponta a ponta.</td></tr>
         <tr><td class="dt">09/11/2026</td><td>O pagamento da assinatura passa a ser processado pelo Stripe, no lugar do Mercado Pago (seções 1 e 4). Declarados os planos Free e Pro: o fim do teste ou da assinatura devolve a conta ao Free, sem bloquear o acesso nem esconder o que já existe. O teste gratuito passa a ter 7 dias. Removida a menção à separação entre finanças pessoais e da empresa, que saiu do aplicativo.</td></tr>
         <tr><td class="dt">06/11/2026</td><td>Declarado, antes de existir, o único caminho do North que não será de ponta a ponta: o lançamento por mensagem no WhatsApp (nova seção 5.1). A mensagem é legível pela Meta e pelo nosso servidor, que extrai valor, descrição e categoria, cifra o resultado com a sua chave pública e descarta o texto original. O recurso é opcional e ainda não está no ar. As seções 5 e 6 passaram a apontar essa exceção em vez de afirmar que nada é legível.</td></tr>
         <tr><td class="dt">08/09/2026</td><td>Portabilidade deixa de ser lacuna declarada e passa a ser recurso: exportação de tudo em JSON e dos lançamentos em CSV, direto no app, sem precisar solicitar. Acrescentada a separação opcional entre finanças pessoais e da empresa, para quem é MEI ou autônomo.</td></tr>

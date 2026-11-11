@@ -184,6 +184,23 @@ button.carregando::after{content:"";position:absolute;left:50%;top:50%;width:16p
 .reco-txt p{margin:3px 0 0;font-size:13px;line-height:1.55;color:var(--ink2);max-width:70ch}
 .reco-txt .btn{margin-top:10px}
 .reco-vazio{margin:0;font-size:13px;line-height:1.55;color:var(--ink3)}
+.ia-titulo{display:inline-flex;align-items:center;gap:8px}
+.ia-titulo svg,.reco-ic svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.ia-titulo svg{width:18px;height:18px;color:var(--gold)}
+.ia-pro{padding:3px 9px;border-radius:100px;font-size:10px;font-weight:800;letter-spacing:.14em;background:linear-gradient(180deg,#e2b862,#c8903a);color:#0d0d0d}
+.ia-texto{margin:0 0 12px;font-size:13.5px;line-height:1.6;color:var(--ink2);max-width:70ch}
+.ia-resumo{margin:0 0 6px;font-size:14.5px;line-height:1.6;color:var(--ink);max-width:70ch}
+.ia-rodape{margin:12px 0 0;font-size:12px;color:var(--ink3)}
+.ia-link{border:0;background:none;padding:0;font:700 12px var(--ff);color:var(--goldd);cursor:pointer}
+.ia-envio{margin-top:14px;font-size:12.5px;color:var(--ink3)}
+.ia-envio summary{cursor:pointer;font-weight:600}
+.ia-lista{margin:8px 0 0;padding-left:18px;font-size:12.5px;line-height:1.7;color:var(--ink2)}
+.ia-confirma .ia-lista{margin-bottom:14px}
+.ia-acoes{display:flex;gap:8px;flex-wrap:wrap}
+.ia-carregando{display:flex;align-items:center;gap:10px;margin:4px 0;font-size:13.5px;color:var(--ink2)}
+.ia-spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--paper3);border-top-color:var(--gold);animation:ia-gira .8s linear infinite}
+@keyframes ia-gira{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.ia-spin{animation-duration:2.4s}}
 .comp-btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .comp-opcoes{display:flex;flex-direction:column;border:1px solid var(--paper3);border-radius:12px;overflow:hidden}
 .comp-opcoes[hidden]{display:none}
@@ -3020,6 +3037,7 @@ const PRO_SO={
   investimento:'Acompanhar investimentos',
   conta:'Ter mais de uma conta',
   bill:'Contas a pagar e receber',
+  ia:'A recomendação por IA',
 };
 function ehPro(){return subAccess(_nfSub).ok;}
 function exigePro(qual){
@@ -5257,8 +5275,8 @@ function doReconcile(){
 //
 // Ao mudar os termos: atualize as duas constantes abaixo com a data do topo de
 // termos.html. O sync-termos.ps1 confere se elas batem e falha se divergirem.
-const TERMOS_VERSAO='2026-11-09';
-const TERMOS_RESUMO='O pagamento do plano Pro passa a ser feito pelo Stripe, no lugar do Mercado Pago, e o teste grátis do Pro agora é de 7 dias. Quando o teste ou a assinatura termina, a conta volta ao plano Free: nada é bloqueado nem apagado.';
+const TERMOS_VERSAO='2026-11-11';
+const TERMOS_RESUMO='No plano Pro, o Orçamento ganhou a recomendação por IA. Ela só acontece quando você pede, e sai do aparelho apenas um resumo com os totais de cada categoria, enviado à Anthropic, a empresa do Claude. Descrições, lojas e bancos nunca saem.';
 function renderAvisoTermos(){
   const bar=document.getElementById('termos-bar');if(!bar)return;
   if(S.settings.termosVistos===TERMOS_VERSAO){bar.classList.add('hidden');return;}
@@ -7831,103 +7849,94 @@ function saveBudget(){
 function delBudget(id){
   delFromArray(S.budgets,id,persistBudgets,renderBudgetPage,'Limite removido');
 }
-// ═══ RECOMENDAÇÕES DO ORÇAMENTO ═══
-// Calculadas aqui no aparelho, a partir dos lançamentos: nenhuma IA, e nada sai do aparelho.
-// Base: os 3 meses anteriores que têm gastos (média por categoria e renda) e o mês atual.
-const CATS_FORA_DO_LIMITE=['Cartão de Crédito','Investimentos','Salário'];
-const CATS_FACEIS_DE_CORTAR=['Lazer','Alimentação','Outros','Transporte'];
-// toFixed: 200*1.1 da 220.00000000000003, e sem ele o arredondamento para cima viraria 230
-function arredLimite(v){const p=v<500?10:v<2000?50:100;return Math.ceil(+(v/p).toFixed(6))*p;}
+// ═══ RESUMO PARA A IA ═══
+// É tudo o que sai do aparelho quando a pessoa pede a recomendação por IA: os totais
+// de cada categoria (média dos 3 meses anteriores com gasto, o mês atual e o limite),
+// a renda média, o objetivo e o dia do mês. Nunca descrições, lojas, bancos ou nomes.
 function mesAntes(m,n){const p=m.split('-');return monthKeyOf(new Date(+p[0],+p[1]-1-n,1));}
-function recomendacoesOrcamento(m,hoje){
+function resumoParaIA(m,hoje){
   hoje=hoje||new Date();
+  const r2=v=>Math.round(v*100)/100;
   const hist=[1,2,3].map(k=>mesAntes(m,k)).map(k=>({gasto:spentByCat(k),
     renda:txVis().filter(t=>t.type==='income'&&mesDe(t.date)===k).reduce((s,t)=>s+t.amount,0)}))
     .filter(h=>Object.values(h.gasto).some(v=>v>0));
   const n=hist.length,media={};
   hist.forEach(h=>Object.entries(h.gasto).forEach(([c,v])=>{media[c]=(media[c]||0)+v/n;}));
-  const renda=n?hist.reduce((s,h)=>s+h.renda,0)/n:0;
-  const gastoMedio=Object.entries(media).filter(([c])=>c!==CAT_RETIRADA).reduce((s,[,v])=>s+v,0);
-  const atual=spentByCat(m),temLimite=new Set(S.budgets.map(b=>b.category));
-  const [de,ate]=faixaDoMes(m),total=_diasEntre(de,ate);
-  const passados=Math.min(total,Math.max(1,_diasEntre(de,_isoDia(hoje)))),f=passados/total,restam=total-passados+1;
-  const est=[],rit=[],out=[];
-  S.budgets.forEach(b=>{
-    const v=atual[b.category]||0,md=media[b.category]||0,u=v/b.limit;
-    if(v>b.limit){
-      const realista=md>b.limit*1.1,sug=arredLimite(md);
-      est.push({tipo:'estourou',peso:v-b.limit,titulo:b.category+' passou do limite em '+fmtCur(v-b.limit),
-        texto:realista?(n===1?'No mês passado você gastou ':'Nos últimos meses você gastou em média ')+fmtCur(md)+' aqui. Um limite de '+fmtCur(sug)+' é mais realista.':'Até o fim do mês, vale segurar os gastos aqui.',
-        acao:realista?{lote:[{cat:b.category,limite:sug}],rotulo:'Usar '+fmtCur(sug)}:null});
-    }else if(u>=.6&&u-f>=.25&&restam>=2){
-      rit.push({tipo:'ritmo',peso:u-f,titulo:b.category+' vai estourar no ritmo atual',
-        texto:'Você já usou '+Math.round(u*100)+'% do limite e o mês está em '+Math.round(f*100)+'%. Para fechar dentro, gaste até '+fmtCur((b.limit-v)/restam)+' por dia.',acao:null});
-    }
-  });
-  out.push(...est.sort((a,b)=>b.peso-a.peso),...rit.sort((a,b)=>b.peso-a.peso));
-  if(n&&renda>0){
-    const sobra=renda-gastoMedio,taxa=sobra/renda,pct=Math.round(taxa*100);
-    if(taxa>=.2)out.push({tipo:'guarda',titulo:'Você guarda '+pct+'% do que recebe',texto:'Acima dos 20% que costumam ser recomendados. Que tal mandar parte disso para uma meta ou investimento?',acao:null});
-    else{
-      const falta=gastoMedio-.8*renda;
-      const corte=CATS_FACEIS_DE_CORTAR.filter(c=>media[c]>0).sort((a,b)=>media[b]-media[a])[0];
-      const novo=corte?arredLimite(Math.max(media[corte]-falta,media[corte]*.7)):0;
-      out.push({tipo:'poupanca',
-        titulo:taxa<0?'Você gastou mais do que recebeu':'Você guarda '+pct+'% do que recebe',
-        texto:(taxa<0?(n===1?'No mês passado, saíram ':'Na média dos últimos meses, saíram ')+fmtCur(-sobra)+' a mais do que entrou, por mês. ':'')+
-          'Cortar '+fmtCur(falta)+' por mês leva você a guardar 20% da renda.'+(corte?' O lugar mais fácil costuma ser '+corte+', com média de '+fmtCur(media[corte])+'.':''),
-        acao:corte&&novo<(S.budgets.find(b=>b.category===corte)||{limit:Infinity}).limit?{lote:[{cat:corte,limite:novo}],rotulo:'Limite de '+fmtCur(novo)+' em '+corte}:null});
-    }
-  }
-  const semLimite=Object.entries(media).filter(([c,v])=>!temLimite.has(c)&&!CATS_FORA_DO_LIMITE.includes(c)&&c!==CAT_RETIRADA&&v>=50&&v>=gastoMedio*.05)
-    .sort((a,b)=>b[1]-a[1]).map(([c,v])=>({cat:c,limite:arredLimite(v),media:v}));
-  if(!S.budgets.length&&semLimite.length){
-    out.push({tipo:'comecar',titulo:'Crie limites com base no que você já gasta',
-      texto:semLimite.map(x=>x.cat+' '+fmtCur(x.limite)).join(' · ')+'. Os valores saem '+(n===1?'do que você gastou no mês passado':'da sua média dos últimos meses')+', e dá para ajustar depois.',
-      acao:{lote:semLimite.map(({cat,limite})=>({cat,limite})),rotulo:'Criar '+semLimite.length+(semLimite.length>1?' limites':' limite')}});
-  }else semLimite.slice(0,2).forEach(x=>out.push({tipo:'sem-limite',titulo:x.cat+' não tem limite',
-    texto:(n===1?'No mês passado foram '+fmtCur(x.media)+' aqui.':'Você gasta em média '+fmtCur(x.media)+' por mês aqui.')+' Com um limite, o North avisa antes de passar.',
-    acao:{lote:[{cat:x.cat,limite:x.limite}],rotulo:'Limite de '+fmtCur(x.limite)}}));
-  if(n>=2){
-    const folga=S.budgets.map(b=>({b,md:media[b.category]||0})).filter(x=>x.md>0&&x.b.limit>=1.5*x.md&&(atual[x.b.category]||0)<=x.b.limit)
-      .map(x=>({...x,sug:arredLimite(x.md*1.1)})).filter(x=>x.b.limit-x.sug>=20).sort((a,b)=>(b.b.limit-b.sug)-(a.b.limit-a.sug))[0];
-    if(folga)out.push({tipo:'folga',titulo:folga.b.category+' tem folga',
-      texto:'O limite é '+fmtCur(folga.b.limit)+' e a média dos últimos meses foi '+fmtCur(folga.md)+'. Baixar para '+fmtCur(folga.sug)+' deixa '+fmtCur(folga.b.limit-folga.sug)+' por mês livres para guardar.',
-      acao:{lote:[{cat:folga.b.category,limite:folga.sug}],rotulo:'Baixar para '+fmtCur(folga.sug)}});
-  }
-  return {itens:out.slice(0,5),meses:n};
+  const atual=spentByCat(m),lim={};S.budgets.forEach(b=>{lim[b.category]=b.limit;});
+  const nomes=new Set([...Object.keys(media),...Object.keys(atual),...Object.keys(lim)]);
+  nomes.delete(CAT_RETIRADA);
+  const categorias=[...nomes].map(c=>({nome:String(c).slice(0,40),media:r2(media[c]||0),gasto_mes:r2(atual[c]||0),limite:lim[c]!=null?r2(lim[c]):null}))
+    .filter(c=>c.media>0||c.gasto_mes>0||c.limite!=null).sort((a,b)=>(b.media+b.gasto_mes)-(a.media+a.gasto_mes)).slice(0,30);
+  const [de,ate]=faixaDoMes(m),dias=_diasEntre(de,ate);
+  const renda=n?hist.reduce((s,h)=>s+h.renda,0)/n:0,obj=OBJETIVOS[S.settings.objetivo];
+  return {mes:monthLabel(m),dia:Math.min(dias,Math.max(1,_diasEntre(de,_isoDia(hoje)))),dias_no_mes:dias,
+    meses_de_historico:n,renda_media:renda>0?r2(renda):null,objetivo:obj?obj.rotulo:null,categorias};
 }
-// ═══ FIM DAS RECOMENDAÇÕES DO ORÇAMENTO ═══
-const RECO_IC={estourou:'<path d="M12 8v5M12 16.5v.5"/><path d="M10.3 3.8L2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0z"/>',
-  ritmo:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/>',
-  poupanca:'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',guarda:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
-  'sem-limite':'<circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/>',comecar:'<circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/>',
-  folga:'<path d="M12 4v16M6 14l6 6 6-6"/>'};
-let _recos=[];
-function renderRecomendacoes(month){
+// ═══ FIM DO RESUMO PARA A IA ═══
+const ICO_IA='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>';
+const MSG_IA={nao_pro:'A recomendação por IA faz parte do plano Pro.',limite:'Você já usou os pedidos de recomendação deste mês. Eles voltam no dia 1º.',
+  ia_nao_configurada:'A recomendação por IA ainda está sendo ligada. Tente de novo mais tarde.',ocupada:'A IA está ocupada agora. Tente de novo em alguns minutos.',
+  recusada:'A IA não conseguiu analisar este mês. Tente de novo mais tarde.',unauthorized:'Sua sessão expirou. Entre de novo.'};
+const _ia={carregando:false,confirmar:false};
+function descreverResumo(r){
+  return '<ul class="ia-lista"><li>'+esc(r.mes)+', dia '+r.dia+' de '+r.dias_no_mes+'</li>'+
+    (r.renda_media?'<li>Renda média: '+fmtCur(r.renda_media)+'</li>':'')+(r.objetivo?'<li>Objetivo: '+esc(r.objetivo)+'</li>':'')+
+    r.categorias.map(c=>'<li>'+esc(c.nome)+': média '+fmtCur(c.media)+', este mês '+fmtCur(c.gasto_mes)+(c.limite!=null?', limite '+fmtCur(c.limite):'')+'</li>').join('')+'</ul>';
+}
+function renderIAOrcamento(month){
   const box=document.getElementById('budget-reco');if(!box)return;
-  // conselho e sobre o mes que ainda da para mudar
+  // a análise é sobre o mês que ainda dá para mudar
   if(month!==mesAtual()){box.hidden=true;return;}
   box.hidden=false;
-  const r=recomendacoesOrcamento(month);_recos=r.itens;
-  const lista=r.itens.length?r.itens.map((x,i)=>'<div class="reco reco-'+x.tipo+'"><span class="reco-ic"><svg viewBox="0 0 24 24" aria-hidden="true">'+RECO_IC[x.tipo]+'</svg></span>'+
-      '<div class="reco-txt"><b>'+esc(x.titulo)+'</b><p>'+esc(x.texto)+'</p>'+(x.acao?'<button class="btn btn-secondary btn-sm" type="button" onclick="usarRecomendacao('+i+')">'+esc(x.acao.rotulo)+'</button>':'')+'</div></div>').join('')
-    :'<p class="reco-vazio">'+(r.meses?'Tudo dentro do planejado este mês. As sugestões aparecem aqui quando algum gasto sair do ritmo.':'Com um mês de lançamentos, o North passa a sugerir limites e a avisar quando um gasto sai do ritmo.')+'</p>';
-  box.innerHTML='<div class="panel-head"><span class="panel-title">Recomendações</span><span class="reco-tag">calculadas no seu aparelho</span></div>'+lista;
+  const pro=ehPro();
+  const head='<div class="panel-head"><span class="panel-title ia-titulo">'+ICO_IA+'Recomendação da IA</span>'+(pro?'':'<span class="ia-pro">PRO</span>')+'</div>';
+  if(!pro){
+    box.innerHTML=head+'<p class="ia-texto">A IA olha o seu mês e diz onde cortar, que limite usar em cada categoria e como fechar o mês no azul.</p><button class="btn btn-secondary btn-sm" type="button" onclick="exigePro(\'ia\')">Recurso do Pro</button>';
+    return;
+  }
+  const r=resumoParaIA(month),salvo=S.settings.iaOrc&&S.settings.iaOrc.mes===month?S.settings.iaOrc:null;
+  let corpo;
+  if(_ia.carregando)corpo='<p class="ia-carregando" role="status"><span class="ia-spin" aria-hidden="true"></span>Analisando o seu mês…</p>';
+  else if(_ia.confirmar)corpo='<div class="ia-confirma"><p class="ia-texto">Para gerar a análise, este resumo vai para a <b>Anthropic</b>, a empresa do Claude. Só ele: nada de descrições, lojas, bancos ou o seu nome. O North não guarda o resumo no servidor.</p>'+
+    descreverResumo(r)+'<div class="ia-acoes"><button class="btn btn-primary btn-sm" type="button" onclick="confirmarIA()">Enviar e pedir</button><button class="btn btn-secondary btn-sm" type="button" onclick="cancelarIA()">Cancelar</button></div></div>';
+  else if(salvo)corpo=(salvo.resumo?'<p class="ia-resumo">'+esc(salvo.resumo)+'</p>':'')+salvo.itens.map((x,i)=>'<div class="reco"><span class="reco-ic">'+ICO_IA+'</span><div class="reco-txt"><b>'+esc(x.titulo)+'</b><p>'+esc(x.texto)+'</p>'+
+      (x.categoria&&x.limite_sugerido?'<button class="btn btn-secondary btn-sm" type="button" onclick="usarLimiteIA('+i+')">Usar '+fmtCur(x.limite_sugerido)+' em '+esc(x.categoria)+'</button>':'')+'</div></div>').join('')+
+    '<p class="ia-rodape">Gerada em '+new Date(salvo.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' · '+salvo.usados+' de '+salvo.limite+' pedidos este mês · <button class="ia-link" type="button" onclick="pedirIA()">Pedir de novo</button></p>';
+  else corpo='<p class="ia-texto">Peça uma análise do seu mês: onde cortar, que limite usar em cada categoria e como fechar no azul. A IA recebe só um resumo com os totais de cada categoria.</p><button class="btn btn-primary btn-sm" type="button" onclick="pedirIA()">Pedir recomendação</button>';
+  box.innerHTML=head+corpo+(_ia.confirmar||_ia.carregando?'':'<details class="ia-envio"><summary>O que é enviado para a IA</summary>'+descreverResumo(r)+'</details>');
 }
-function usarRecomendacao(i){
-  const a=_recos[i]&&_recos[i].acao;if(!a)return;
-  const antes=JSON.parse(JSON.stringify(S.budgets));
-  a.lote.forEach(({cat,limite})=>{const b=S.budgets.find(x=>x.category===cat);if(b)b.limit=limite;else S.budgets.push({id:newId(),category:cat,limit:limite});});
+async function pedirIA(){
+  if(!exigePro('ia')||_ia.carregando)return;
+  const m=mesAtual(),r=resumoParaIA(m);
+  if(!r.categorias.length){showAlert('Lance alguns gastos primeiro: a IA precisa de movimento no mês para analisar.');return;}
+  if(!S.settings.iaOrcAceite){_ia.confirmar=true;renderIAOrcamento(m);return;}
+  _ia.carregando=true;_ia.confirmar=false;renderIAOrcamento(m);
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session)throw new Error(MSG_IA.unauthorized);
+    const res=await fetch(FN_BASE+'/orcamento-ia',{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'},body:JSON.stringify(r)});
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok||!Array.isArray(j.recomendacoes))throw new Error(MSG_IA[j.error]||'Não deu para gerar a recomendação agora. Tente de novo em instantes.');
+    S.settings.iaOrc={mes:m,em:new Date().toISOString(),resumo:j.resumo||'',itens:j.recomendacoes,usados:j.usados,limite:j.limite};
+    persistSettings();
+  }catch(e){showAlert(e&&e.message?e.message:'Não deu para gerar a recomendação agora.');}
+  finally{_ia.carregando=false;renderIAOrcamento(mesAtual());}
+}
+function confirmarIA(){S.settings.iaOrcAceite=true;persistSettings();_ia.confirmar=false;pedirIA();}
+function cancelarIA(){_ia.confirmar=false;renderIAOrcamento(mesAtual());}
+function usarLimiteIA(i){
+  const x=S.settings.iaOrc&&S.settings.iaOrc.itens[i];if(!x||!x.categoria||!x.limite_sugerido)return;
+  const antes=JSON.parse(JSON.stringify(S.budgets)),b=S.budgets.find(y=>y.category===x.categoria);
+  if(b)b.limit=x.limite_sugerido;else S.budgets.push({id:newId(),category:x.categoria,limit:x.limite_sugerido});
   persistBudgets();renderBudgetPage();
-  toastUndo(a.lote.length>1?a.lote.length+' limites criados':'Limite de '+a.lote[0].cat+' salvo',()=>{S.budgets.splice(0,S.budgets.length,...antes);persistBudgets();renderBudgetPage();});
+  toastUndo('Limite de '+x.categoria+' salvo',()=>{S.budgets.splice(0,S.budgets.length,...antes);persistBudgets();renderBudgetPage();});
 }
 function renderBudgetPage(){
   populateBudgetMonths();
   const list=document.getElementById('budget-list');if(!list)return;
   const sel=document.getElementById('budget-month');
   const month=(sel&&sel.value)||mesAtual();
-  renderRecomendacoes(month);
+  renderIAOrcamento(month);
   const summary=document.getElementById('budget-summary');
   if(!S.budgets.length){
     summary.innerHTML='';
