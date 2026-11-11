@@ -150,6 +150,16 @@ button.carregando::after{content:"";position:absolute;left:50%;top:50%;width:16p
 .banco-sec{grid-column:1/-1;margin:10px 0 2px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
 .banco-sec:first-child{margin-top:0}
 .banco-sec[hidden],.banco-op[hidden]{display:none}
+.comp-btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.comp-opcoes{display:flex;flex-direction:column;border:1px solid var(--paper3);border-radius:12px;overflow:hidden}
+.comp-opcoes[hidden]{display:none}
+.comp-opcoes button{display:flex;flex-direction:column;gap:2px;padding:14px 16px;border:0;border-bottom:1px solid var(--paper3);background:var(--paper);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.comp-opcoes button:last-child{border-bottom:0}
+.comp-opcoes button:hover{background:var(--paper2)}
+.comp-opcoes b{font-size:14.5px}
+.comp-opcoes small{font-size:12.5px;color:var(--ink3)}
+.comp-status{margin:12px 0 0;font-size:13px;line-height:1.5;color:var(--ink2);text-align:center}
+.comp-status:empty{display:none}
 .conta-topo{display:flex;align-items:center;gap:12px;margin-bottom:18px}
 .conta-topo .cbadge{width:44px;height:44px;border-radius:12px}
 .conta-topo b{flex:1;min-width:0;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1778,7 +1788,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
 
 <div class="overlay" id="tx-modal">
   <div class="modal">
-    <div class="mhead"><h3 id="modal-title">Nova Transação</h3><button class="xbtn" onclick="closeModal('tx-modal')">✕</button></div>
+    <div class="mhead"><h3 id="modal-title">Nova Transação</h3><span style="display:flex;gap:8px"><button class="xbtn comp-btn" type="button" onclick="abrirComprovante()" title="Importar comprovante" aria-label="Importar comprovante"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9h8M8 12h8M8 15h5"/></svg></button><button class="xbtn" onclick="closeModal('tx-modal')">✕</button></span></div>
     <div class="mbody">
       <div class="fgrp">
         <label class="flbl">Tipo</label>
@@ -2185,6 +2195,23 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
 </div>
 
 <!-- MODAL: ESCOLHER O BANCO (lista, nao texto livre) -->
+<div class="overlay" id="comp-modal">
+  <div class="modal" style="max-width:440px">
+    <div class="mhead"><h3>Importar comprovante</h3><button class="xbtn" onclick="closeModal('comp-modal')">✕</button></div>
+    <div class="mbody">
+      <p style="font-size:13px;color:var(--ink3);line-height:1.6;margin:0 0 14px">Lemos o valor, a data e o nome do comprovante e preenchemos o lançamento. A imagem é lida aqui no aparelho e não vai para servidor nenhum.</p>
+      <div class="comp-opcoes" id="comp-opcoes">
+        <button type="button" onclick="escolherComprovante('gal')"><b>Galeria</b><small>Print ou foto do comprovante</small></button>
+        <button type="button" onclick="escolherComprovante('cam')"><b>Câmera</b><small>Tirar a foto agora</small></button>
+        <button type="button" onclick="escolherComprovante('pdf')"><b>PDF</b><small>Arquivo de comprovante do banco</small></button>
+      </div>
+      <p class="comp-status" id="comp-status" role="status" aria-live="polite"></p>
+      <input type="file" id="comp-gal" accept="image/*" hidden onchange="lerArquivoComprovante(this)">
+      <input type="file" id="comp-cam" accept="image/*" capture="environment" hidden onchange="lerArquivoComprovante(this)">
+      <input type="file" id="comp-pdf" accept="application/pdf,.pdf" hidden onchange="lerArquivoComprovante(this)">
+    </div>
+  </div>
+</div>
 <div class="overlay" id="conta-modal">
   <div class="modal" style="max-width:460px">
     <div class="mhead"><h3>Editar conta</h3><button class="xbtn" onclick="closeModal('conta-modal')">✕</button></div>
@@ -4064,6 +4091,155 @@ async function importarPdf(file){
   }catch(e){showAlert(PDF_ILEGIVEL);}
 }
 // ═══ FIM DO EXTRATO EM PDF ═══
+// ═══ COMPROVANTE E NOTIFICAÇÃO ═══
+// Le valor, data, nome e se o dinheiro entrou ou saiu, a partir do texto de um
+// comprovante (PDF, print ou foto, lidos no aparelho) ou de uma notificacao do
+// banco. Nada sai do aparelho.
+const _MESES_CURTOS={jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
+const _NUM_BR='(\\d{1,3}(?:\\.\\d{3})+,\\d{2}|\\d+,\\d{2})';
+function _num(s){return parseFloat(s.replace(/\./g,'').replace(',','.'));}
+// "R$" que a leitura de imagem as vezes troca por "RS"
+function valorDoTexto(txt){
+  const linhas=String(txt).split(/\n/),cifra=new RegExp('(?:R\\$|\\bRS)\\s*'+_NUM_BR,'i'),solto=new RegExp(_NUM_BR);
+  const fora=/saldo|tarifa|limite|dispon[ií]vel|taxa|juros|multa|desconto/i;
+  // linha com "valor" ganha: comprovante de boleto traz varios valores
+  for(const l of linhas){if(/valor/i.test(l)&&!fora.test(l)){const m=l.match(cifra)||l.match(solto);if(m)return _num(m[1]);}}
+  for(const l of linhas){if(fora.test(l))continue;const m=l.match(cifra);if(m)return _num(m[1]);}
+  return null;
+}
+function _isoValido(a,m,d){
+  const dt=new Date(a,m-1,d);
+  return dt.getFullYear()===a&&dt.getMonth()===m-1&&dt.getDate()===d?_isoDia(dt):null;
+}
+function dataDoTexto(txt,hoje){
+  const s=String(txt).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  let m=s.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})\b/);
+  if(m){const a=+m[3]<100?2000+(+m[3]):+m[3];const r=_isoValido(a,+m[2],+m[1]);if(r)return r;}
+  m=s.match(/\b(\d{1,2})\s+(?:de\s+)?(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*\.?\s+(?:de\s+)?(\d{4})\b/);
+  if(m){const r=_isoValido(+m[3],_MESES_CURTOS[m[2]],+m[1]);if(r)return r;}
+  // "10/11" sem ano, comum em notificacao: o ano de hoje
+  m=s.match(/\b(\d{1,2})\/(\d{1,2})\b/);
+  const h=hoje||new Date();
+  if(m){const r=_isoValido(h.getFullYear(),+m[2],+m[1]);if(r)return r;}
+  return _isoDia(h);
+}
+function tipoDoTexto(txt){
+  const s=String(txt).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const saiu=/(pix|transferencia|ted|doc) enviad|voce (enviou|pagou|transferiu)|compra|pagamento (efetuado|realizado|de boleto|aprovado|agendado)|comprovante de pagamento|valor pago|saque|debito automatico/;
+  const entrou=/(pix|transferencia|ted|doc|deposito) recebid|voce recebeu|recebimento|credito em conta|entrada de/;
+  if(saiu.test(s)&&!entrou.test(s))return 'expense';
+  if(entrou.test(s)&&!saiu.test(s))return 'income';
+  if(entrou.test(s)&&saiu.test(s))return s.search(entrou)<s.search(saiu)?'income':'expense';
+  return /recebid|recebeu|credito/.test(s)?'income':'expense';
+}
+// "PADARIA DOCE PAO" vira "Padaria Doce Pao"; nome ja escrito com maiusculas e minusculas fica como esta
+function _nomeBonito(n){
+  n=cleanDesc(String(n)).replace(/[,;:.\-]+$/,'').trim();
+  if(n!==n.toUpperCase())return n;
+  return n.toLowerCase().replace(/(^|\s)(\S)/g,(x,e,c)=>e+c.toUpperCase()).replace(/\s(De|Da|Do|Das|Dos|E)(?=\s)/g,x=>x.toLowerCase());
+}
+const _NAO_NOME=/cpf|cnpj|ag[eê]ncia|conta|institui|banco|chave|tipo|valor|data|hor[aá]rio|\bid\b|autentica|comprovante|transa|pix|ted|c[oó]digo|n[uú]mero|documento|vencimento|pagamento|\*\*\*/i;
+function _pareceNome(l){return /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9 .'&*\/-]{2,}$/.test(l.trim())&&!_NAO_NOME.test(l);}
+function nomeDoComprovante(txt,tipo){
+  const linhas=String(txt).split(/\n/).map(l=>l.trim()).filter(Boolean);
+  const outro=tipo==='income'?/^(origem|de|pagador|remetente|quem (pagou|enviou|transferiu)|dados do pagador)\b/i:/^(destino|para|recebedor|favorecido|benefici[aá]rio|quem recebeu|estabelecimento|dados do recebedor|cedente)\b/i;
+  const meu=tipo==='income'?/^(destino|para|recebedor|quem recebeu|dados do recebedor)\b/i:/^(origem|pagador|quem pagou|dados do pagador)\b/i;
+  let dentro=false;
+  for(let k=0;k<linhas.length;k++){
+    const l=linhas[k];
+    if(outro.test(l)){
+      dentro=true;
+      const resto=l.replace(outro,'').replace(/^[\s:–-]+/,'').replace(/^nome\b[\s:]*/i,'');
+      if(resto&&_pareceNome(resto))return _nomeBonito(resto);
+      continue;
+    }
+    if(meu.test(l)){dentro=false;continue;}
+    if(!dentro)continue;
+    const nome=l.match(/^nome\b[\s:]*(.*)$/i);
+    if(nome){if(nome[1]&&_pareceNome(nome[1]))return _nomeBonito(nome[1]);const prox=linhas[k+1];if(prox&&_pareceNome(prox))return _nomeBonito(prox);continue;}
+    if(_pareceNome(l))return _nomeBonito(l);
+  }
+  return '';
+}
+function lerComprovante(txt,hoje){
+  const amount=valorDoTexto(txt);
+  if(!amount)return null;
+  const type=tipoDoTexto(txt),nome=nomeDoComprovante(txt,type);
+  return{type,amount,date:dataDoTexto(txt,hoje),description:nome||(type==='income'?'Dinheiro recebido':'Pagamento')};
+}
+// notificacao vem numa linha so: o nome vem depois de "em", "para" ou "de"
+function nomeDaNotificacao(txt){
+  let s=String(txt).replace(/\n/g,' ').replace(/\s+/g,' ');
+  const tipo=tipoDoTexto(s);
+  const re=tipo==='income'?/\bde\s+(?!R\$)([^,]+?)(?:\s*$|,|\.\s)/i:/\b(?:em|para)\s+(?!R\$)([^.]+?)(?:\s*$|\.\s)/i;
+  // tira o valor e o "de" que vem antes dele: em "Pix de R$ 50,00 de MARIA" o nome e MARIA
+  s=s.replace(new RegExp('(?:\\b(?:no valor de|valor de|valor|de)\\s*)?R\\$\\s*'+_NUM_BR,'gi'),' ').replace(/\s+/g,' ');
+  const m=s.match(re);if(!m)return '';
+  let n=m[1].replace(/\s+(para|no|com|do) (o |seu )?cart[aã]o.*$/i,'').replace(/\s+(com )?final \d+.*$/i,'').trim();
+  // "em 10/11 às 15:57, PADARIA": data no lugar do nome, o nome vem depois da virgula
+  if(/^\d/.test(n)){const p=m.input.slice(m.index).split(',');n=(p[p.length-1]||'').trim();}
+  return n&&!/^\d/.test(n)?_nomeBonito(n):'';
+}
+function lerNotificacao(txt,hoje){
+  const s=String(txt),amount=valorDoTexto(s);
+  if(!amount)return null;
+  const type=tipoDoTexto(s);
+  return{type,amount,date:dataDoTexto(s,hoje),description:nomeDaNotificacao(s)||(type==='income'?'Dinheiro recebido':'Compra')};
+}
+// ═══ FIM DE COMPROVANTE E NOTIFICAÇÃO ═══
+// imagem grande (foto de 12 MP) deixa a leitura lenta: reduz o lado maior para 1800 px
+async function _imagemMenor(file){
+  try{
+    const bmp=await createImageBitmap(file),k=Math.min(1,1800/Math.max(bmp.width,bmp.height));
+    if(k===1)return file;
+    const c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);
+    c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+    return await new Promise(r=>c.toBlob(b=>r(b||file),'image/png'));
+  }catch(e){return file;}
+}
+function _carregarTesseract(){
+  if(window.Tesseract)return Promise.resolve();
+  return new Promise((ok,erro)=>{const s=document.createElement('script');s.src='vendor/tesseract/tesseract.min.js';s.onload=ok;s.onerror=()=>erro(new Error('leitor nao carregou'));document.head.appendChild(s);});
+}
+async function textoDaImagem(file,progresso){
+  await _carregarTesseract();
+  const base=new URL('vendor/tesseract/',location.href).href;
+  // caminhos absolutos: o worker resolve relativo a ele mesmo, nao a pagina
+  const w=await Tesseract.createWorker('por',1,{workerPath:base+'worker.min.js',corePath:base,langPath:base.replace(/\/$/,''),gzip:false,workerBlobURL:false,
+    logger:m=>{if(progresso&&m.status==='recognizing text')progresso(Math.round(m.progress*100));}});
+  try{const r=await w.recognize(await _imagemMenor(file));return r.data.text||'';}
+  finally{w.terminate();}
+}
+function abrirComprovante(){
+  document.getElementById('comp-status').textContent='';
+  document.getElementById('comp-opcoes').hidden=false;
+  openModal('comp-modal');
+}
+function escolherComprovante(qual){document.getElementById('comp-'+qual).click();}
+async function lerArquivoComprovante(input){
+  const file=input.files&&input.files[0];input.value='';
+  if(!file)return;
+  const st=document.getElementById('comp-status'),op=document.getElementById('comp-opcoes');
+  op.hidden=true;st.textContent='Lendo o comprovante…';
+  try{
+    let txt;
+    if(/pdf$/i.test(file.type)||/\.pdf$/i.test(file.name)){const linhas=await linhasDoPdf(file);if(!linhas){op.hidden=false;st.textContent='';return;}txt=linhas.join('\n');}
+    else txt=await textoDaImagem(file,p=>{st.textContent='Lendo o comprovante… '+p+'%';});
+    const r=lerComprovante(txt);
+    if(!r){op.hidden=false;st.textContent='Não achei o valor nesse comprovante. Tente outra imagem ou preencha à mão.';return;}
+    const radio=document.querySelector('input[name="txtype"][value="'+r.type+'"]');if(radio)radio.checked=true;
+    document.getElementById('tx-amt').value=r.amount.toFixed(2);
+    document.getElementById('tx-date').value=r.date;
+    document.getElementById('tx-desc').value=r.description;
+    const cat=r.type==='income'?(/sal[aá]rio/i.test(r.description)?'Salário':'Outros'):guessCategory(r.description);
+    const sel=document.getElementById('tx-cat');if(sel&&[...sel.options].some(o=>o.value===cat))sel.value=cat;
+    closeModal('comp-modal');
+    toast('Comprovante lido. Confira e salve');
+  }catch(e){
+    op.hidden=false;st.textContent='Não consegui ler esse arquivo. Tente de novo ou preencha à mão.';
+  }
+}
+
 
 // ═══ CONFERIR FATURA ═══
 // Compara a fatura do cartão (OFX ou CSV) com o que foi lançado no Cartão. Uma
