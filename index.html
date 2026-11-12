@@ -2672,9 +2672,11 @@ document.addEventListener('touchmove',event=>{
 },{passive:false});
 // ═══ PWA ═══
 // Service worker só fora do Electron (bug no CacheStorage do Electron 33 derruba o renderer)
+const IS_ELECTRON=/Electron/i.test(navigator.userAgent);
 // O app de Windows se apresenta como "NorthApp": o main.js troca o User-Agent do
-// Electron por um sem acento, e a palavra "Electron" some dele.
-const IS_ELECTRON=/NorthApp|Electron/i.test(navigator.userAgent);
+// Electron por um sem acento, e a palavra "Electron" some dele. Por isso
+// IS_ELECTRON nunca é verdadeiro lá; os recursos do Windows usam esta constante.
+const IS_NORTHAPP=/NorthApp/i.test(navigator.userAgent);
 // ═══ TELA DE PRIVACIDADE ═══
 // So no celular: no computador a janela perde o foco a toda hora (outra janela,
 // ferramentas do navegador) e a capa atrapalharia. "blur" chega antes do
@@ -4786,19 +4788,21 @@ function renderDevedores(){
 // então esconder o botão de download não basta: a trava mora aqui, no app que a
 // janela carrega, e por isso vale também para as versões já instaladas. A conta
 // pessoal não perde nada: os dados seguem na nuvem e abrem no navegador e no celular.
-const WINDOWS_EXCLUSIVO_EM='2026-12-01';   // até a véspera, a conta pessoal só vê o aviso
+// Data (AAAA-MM-DD) em que a conta pessoal passa a ser barrada no app de Windows; até a
+// véspera ela só vê o aviso. Vazia = trava desligada. A data é do Pedro: combinar antes de preencher.
+const WINDOWS_EXCLUSIVO_EM='';
 // 'livre' | 'aviso' | 'bloqueado'. Conta ainda sem tipo passa: a pergunta vem antes.
-function estadoWindows(noApp,tipo,hoje){
-  if(!noApp||tipo!=='pf')return 'livre';
-  return hoje>=WINDOWS_EXCLUSIVO_EM?'bloqueado':'aviso';
+function estadoWindows(noApp,tipo,hoje,data=WINDOWS_EXCLUSIVO_EM){
+  if(!noApp||tipo!=='pf'||!data)return 'livre';
+  return hoje>=data?'bloqueado':'aviso';
 }
 function aplicarWindows(){
-  const est=estadoWindows(IS_ELECTRON,S.settings.accountType?tipoConta():'',_diaChave(new Date()));
+  const est=estadoWindows(IS_NORTHAPP,S.settings.accountType?tipoConta():'',_diaChave(new Date()));
   const tela=document.getElementById('windows-screen'),bar=document.getElementById('win-bar');
   if(tela)tela.style.display=est==='bloqueado'?'flex':'none';
   if(est==='bloqueado')document.getElementById('app').classList.remove('visible');
   if(!bar)return;
-  const [a,m,d]=WINDOWS_EXCLUSIVO_EM.split('-');
+  const [a,m,d]=(WINDOWS_EXCLUSIVO_EM||'--').split('-');
   document.getElementById('win-bar-data').textContent=d+'/'+m+'/'+a;
   bar.classList.toggle('hidden',est!=='aviso'||S.settings.avisoWindows===WINDOWS_EXCLUSIVO_EM);
 }
@@ -4826,7 +4830,7 @@ function avisosDoDia(agora){
   return out;
 }
 function avisarNoWindows(){
-  if(!IS_ELECTRON||!('Notification' in window))return;
+  if(!IS_NORTHAPP||!('Notification' in window))return;
   const hoje=_diaChave(new Date());
   if(S.settings.avisoWinDia===hoje)return;
   const av=avisosDoDia();if(!av.length)return;
@@ -5811,7 +5815,7 @@ function renderCatSelects(){
 // confirmação do e-mail). Em outro aparelho, a pergunta aparece na entrada.
 let _tipoCadastro='';
 function escolherTipoCadastro(tp){
-  if(tp==='pf'&&IS_ELECTRON)return;   // no app de Windows só nasce conta Empresarial
+  if(tp==='pf'&&IS_NORTHAPP)return;   // no app de Windows só nasce conta Empresarial
   _tipoCadastro=tp;
   document.querySelectorAll('#setup-tipo button').forEach(b=>b.setAttribute('aria-checked',b.dataset.tipo===tp?'true':'false'));
 }
@@ -5825,7 +5829,7 @@ function tipoDoCadastro(email){
   }catch(e){return '';}
 }
 function prepararCadastro(temSessao){
-  if(IS_ELECTRON){
+  if(IS_NORTHAPP){
     escolherTipoCadastro('pj');
     const pf=document.querySelector('#setup-tipo button[data-tipo="pf"]');if(pf)pf.disabled=true;
     const nota=document.getElementById('setup-tipo-nota');

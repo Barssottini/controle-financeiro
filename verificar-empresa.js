@@ -41,7 +41,7 @@ const sandbox = {
   updateDashboard: () => {}, renderPerfil: () => {}, renderCatSelects: () => {}, renderSettings: () => {}, renderBillsPage: () => {},
   toast: m => avisos.push(m),
   openModal: () => {}, closeModal: id => fechados.push(id), showPage: () => {},
-  aplicarTipoNaTela: () => {}, IS_ELECTRON: false,
+  aplicarTipoNaTela: () => {}, IS_NORTHAPP: false,
   document: { getElementById: id => dom[id] || null, addEventListener() {} },
 };
 const nomes = Object.keys(sandbox);
@@ -157,12 +157,13 @@ C.escolherTipo('pj');
 checa('conta sem tipo escolhe normalmente, mesmo com lancamento', S.settings.accountType, 'pj');
 
 // 8. App de Windows: exclusivo do Empresarial
-const W = C.WINDOWS_EXCLUSIVO_EM, vespera = C._diaChave(new Date(new Date(W + 'T12:00:00').getTime() - 86400000));
-checa('fora do app de Windows, tudo livre', [C.estadoWindows(false, 'pf', '2030-01-01'), C.estadoWindows(false, 'pj', '2030-01-01')], ['livre', 'livre']);
-checa('conta Empresarial no Windows: livre', C.estadoWindows(true, 'pj', '2030-01-01'), 'livre');
-checa('conta pessoal no Windows, antes da data: so o aviso', C.estadoWindows(true, 'pf', vespera), 'aviso');
-checa('conta pessoal no Windows, na data: bloqueada', C.estadoWindows(true, 'pf', W), 'bloqueado');
-checa('conta ainda sem tipo passa (a pergunta vem antes)', C.estadoWindows(true, '', '2030-01-01'), 'livre');
+const W = '2026-12-01', vespera = '2026-11-30';   // data de exemplo: a real ainda sera combinada
+checa('fora do app de Windows, tudo livre', [C.estadoWindows(false, 'pf', '2030-01-01', W), C.estadoWindows(false, 'pj', '2030-01-01', W)], ['livre', 'livre']);
+checa('conta Empresarial no Windows: livre', C.estadoWindows(true, 'pj', '2030-01-01', W), 'livre');
+checa('conta pessoal no Windows, antes da data: so o aviso', C.estadoWindows(true, 'pf', vespera, W), 'aviso');
+checa('conta pessoal no Windows, na data: bloqueada', C.estadoWindows(true, 'pf', W, W), 'bloqueado');
+checa('conta ainda sem tipo passa (a pergunta vem antes)', C.estadoWindows(true, '', '2030-01-01', W), 'livre');
+checa('sem data combinada a trava fica desligada, como publicado', [C.WINDOWS_EXCLUSIVO_EM, C.estadoWindows(true, 'pf', '2030-01-01')], ['', 'livre']);
 
 // 9. Avisos do Windows: DAS a tres dias ou menos e recebimentos do dia
 tipo = 'pj'; S.settings = { regime: 'mei' }; S.transactions = [];
