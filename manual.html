@@ -15,6 +15,7 @@
   --green:#267a48;--greenl:#d2edde;--red:#b83228;--redl:#f8e4e2;--purple:#7c3aed;--purplel:#ede9fe;
   --ff:'Plus Jakarta Sans',sans-serif;
 }
+html{scroll-behavior:smooth}
 body{font-family:var(--ff);background:var(--ink);color:var(--ink2);line-height:1.75;-webkit-font-smoothing:antialiased}
 
 /* HERO */
@@ -27,22 +28,46 @@ body{font-family:var(--ff);background:var(--ink);color:var(--ink2);line-height:1
 .doc-date{font-size:12.5px;color:var(--ink4);margin-top:14px}
 
 /* CARD */
-.wrap{max-width:820px;margin:-30px auto 0;padding:0 20px 80px}
+.wrap{max-width:860px;margin:-30px auto 0;padding:0 20px 80px}
 .card{background:var(--paper);border-radius:20px;padding:56px 52px;box-shadow:0 40px 90px rgba(0,0,0,.5)}
-.intro{font-size:15px;color:var(--ink2);border-left:3px solid var(--gold);padding:4px 0 4px 20px;margin-bottom:44px;background:linear-gradient(90deg,var(--goldl),transparent);border-radius:0 8px 8px 0}
+.intro{font-size:15px;color:var(--ink2);border-left:3px solid var(--gold);padding:4px 0 4px 20px;margin-bottom:36px;background:linear-gradient(90deg,var(--goldl),transparent);border-radius:0 8px 8px 0}
 
-/* SUMÁRIO */
-.toc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-bottom:48px}
-.toc-col h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;font-weight:700}
-.toc-col ol{list-style:none;display:flex;flex-direction:column;gap:7px}
-.toc-col a{font-size:13.5px;color:var(--ink2);text-decoration:none;font-weight:600;border-bottom:none}
-.toc-col a:hover{color:var(--gold-d)}
-.toc-col a span{color:var(--gold);font-weight:800;margin-right:6px}
+/* OS DOIS CAMINHOS */
+.caminhos{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;scroll-margin-top:20px}
+.caminho{border:1px solid var(--paper3);border-radius:16px;padding:26px 26px 22px;background:var(--paper);display:flex;flex-direction:column}
+.caminho .eyebrow{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-d);font-weight:800}
+.caminho h3{font-size:20px;font-weight:800;letter-spacing:-.4px;margin:4px 0 2px;line-height:1.25}
+.caminho .desc{font-size:13px;color:var(--ink3);line-height:1.55;margin-bottom:16px}
+.caminho ol{list-style:none;counter-reset:c;display:flex;flex-direction:column;gap:7px;margin:0 0 18px;padding:0}
+.caminho li{counter-increment:c;padding-left:30px;margin:0;font-size:13.5px;line-height:1.5}
+.caminho li::before{content:counter(c,decimal-leading-zero);background:none;width:auto;height:auto;border-radius:0;left:0;top:1px;color:var(--gold);font-weight:800;font-size:12px}
+.caminho li a{color:var(--ink2);border-bottom:none;font-weight:600}
+.caminho li a:hover{color:var(--gold-d)}
+.caminho .ir{margin-top:auto;align-self:flex-start;font-size:13px;font-weight:800;color:var(--gold-d);border-bottom:none}
+.caminho.emp{background:var(--ink);border-color:rgba(200,144,58,.5)}
+.caminho.emp .eyebrow,.caminho.emp .ir{color:var(--gold)}
+.caminho.emp h3,.caminho.emp li a{color:var(--paper)}
+.caminho.emp li a:hover{color:var(--gold)}
+.caminho.emp .desc{color:var(--ink4)}
+
+/* ÍNDICE COMUM */
+.toc-comum{border:1px solid var(--paper3);border-radius:16px;padding:22px 26px;background:var(--paper2);margin-bottom:8px}
+.toc-comum>h4{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-d);font-weight:800;margin-bottom:12px}
+.toc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 28px}
+.toc-grid a{display:block;font-size:13.5px;color:var(--ink2);text-decoration:none;font-weight:600;border-bottom:none}
+.toc-grid a:hover{color:var(--gold-d)}
+
+/* PARTES */
+.part{margin:64px 0 4px;padding-top:34px;border-top:2px solid var(--gold);scroll-margin-top:16px}
+.part .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-d);font-weight:800}
+.part .pt-title{font-size:25px;font-weight:800;color:var(--ink);letter-spacing:-.6px;line-height:1.2;margin:6px 0 8px}
+.part p{color:var(--ink3);margin-bottom:0}
+.part + h2{border-top:none;padding-top:0;margin-top:30px}
 
 /* SECTIONS */
-h2{font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-.4px;margin:44px 0 14px;padding-top:26px;border-top:1px solid var(--paper3);display:flex;align-items:baseline;gap:12px}
-h2:first-of-type{border-top:none;padding-top:0;margin-top:0}
+h2{font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-.4px;line-height:1.35;margin:44px 0 14px;padding-top:26px;border-top:1px solid var(--paper3);display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;scroll-margin-top:12px}
 h2 .num{font-size:13px;font-weight:800;color:var(--gold);background:var(--goldl);width:30px;height:30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+h2 .tit{flex:1;min-width:200px}
 h3{font-size:14.5px;font-weight:700;color:var(--ink);margin:22px 0 8px}
 p{font-size:14.5px;color:var(--ink2);margin-bottom:14px}
 ul{margin:0 0 16px 4px;padding:0;list-style:none}
@@ -52,8 +77,8 @@ strong{color:var(--ink);font-weight:700}
 a{color:var(--gold-d);font-weight:600;text-decoration:none;border-bottom:1px solid var(--goldl)}
 a:hover{border-bottom-color:var(--gold-d)}
 
-.group-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-d);font-weight:800;margin:50px 0 -6px}
-.group-label:first-of-type{margin-top:0}
+.tag{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-d);border:1px solid rgba(200,144,58,.55);border-radius:20px;padding:2px 9px;white-space:nowrap;align-self:center}
+.tag.escura{background:var(--ink);color:var(--gold);border-color:var(--ink)}
 
 .highlight{background:var(--goldl);border-radius:12px;padding:18px 22px;margin:18px 0;font-size:14px;color:var(--ink2)}
 .highlight strong{color:var(--gold-d)}
@@ -65,6 +90,11 @@ ol.steps li{counter-increment:s;font-size:14.5px;color:var(--ink2);padding-left:
 ol.steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:24px;height:24px;border-radius:8px;
   background:var(--gold);color:var(--paper);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
 code{font-family:Consolas,monospace;font-size:.88em;background:var(--paper2);border:1px solid var(--paper3);border-radius:4px;padding:.1em .35em}
+kbd{display:inline-block;min-width:26px;text-align:center;font-family:var(--ff);font-size:12px;font-weight:700;color:var(--ink);background:var(--paper2);border:1px solid var(--paper3);border-bottom-width:2px;border-radius:7px;padding:2px 8px;line-height:1.5}
+
+.voltar{margin:26px 0 0;font-size:12.5px}
+.voltar a{color:var(--ink3);border-bottom:none}
+.voltar a:hover{color:var(--gold-d)}
 
 /* TELA SIMULADA */
 .mock{background:var(--paper2);border:1px solid var(--paper3);border-radius:14px;overflow:hidden;margin-top:8px}
@@ -88,21 +118,44 @@ code{font-family:Consolas,monospace;font-size:.88em;background:var(--paper2);bor
 .mcard{background:var(--paper2);border:1px solid var(--paper3);border-radius:10px;padding:10px 12px}
 .mcard .l{display:block;font-size:10.5px;color:var(--ink3);margin-bottom:3px}
 .mcard .v{font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.mcard small{display:block;font-size:10.5px;color:var(--ink3);margin-top:2px}
 .bar-bg{height:7px;background:var(--paper2);border-radius:20px;overflow:hidden;margin:6px 0}
 .bar-fill{height:100%;border-radius:20px}
-.pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px}
+.pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
+/* escolha do tipo de conta, como no cadastro */
+.tipos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.tipos div{border:1.5px solid var(--paper3);background:var(--paper2);border-radius:10px;padding:10px 12px}
+.tipos div.on{border-color:var(--gold);background:var(--goldl)}
+.tipos b{display:block;font-size:13px}
+.tipos small{font-size:11px;color:var(--ink3)}
+/* folha do relatório */
+.folha{background:#fff;border:1px solid var(--paper3);border-radius:6px;padding:18px 20px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+.folha-topo{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:2px solid var(--gold);padding-bottom:9px;margin-bottom:12px}
+.folha-topo b{display:block;font-size:16px;font-weight:800;letter-spacing:-.3px;line-height:1.2}
+.folha-topo small{font-size:10.5px;color:var(--ink3)}
+.folha .cards4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.folha .cards4 div{border:1px solid var(--paper3);border-radius:8px;padding:8px 10px}
+.folha .cards4 span{display:block;font-size:8.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.folha .cards4 b{font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.folha .lin{display:flex;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--paper2);font-variant-numeric:tabular-nums}
+.folha .rot{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-d);margin:10px 0 2px}
+/* atalhos */
+.atalhos{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:9px 14px;align-items:center;font-size:13px;color:var(--ink2)}
 
-.footer{text-align:center;margin-top:48px;padding-top:30px;border-top:1px solid var(--paper3)}
+.footer{text-align:center;margin-top:56px;padding-top:30px;border-top:1px solid var(--paper3)}
 .footer p{font-size:12.5px;color:var(--ink3)}
 .footer .sig{font-weight:800;color:var(--ink);font-size:14px;margin-bottom:4px}
 .footer .sig span{color:var(--gold)}
 .footer .cta{display:inline-block;margin-top:16px;background:var(--gold);color:var(--ink);font-weight:800;text-decoration:none;border:none;padding:12px 26px;border-radius:10px;font-size:13.5px}
 
 @media(max-width:640px){
-  .card{padding:36px 24px}
+  .card{padding:36px 22px}
   .hero{padding:48px 20px 44px}
-  .toc-grid{grid-template-columns:1fr}
+  .caminhos,.toc-grid{grid-template-columns:1fr}
   .cards3{grid-template-columns:1fr}
+  .folha .cards4{grid-template-columns:1fr 1fr}
+  .atalhos{grid-template-columns:auto 1fr}
+  .part .pt-title{font-size:22px}
 }
 </style>
 </head>
@@ -112,68 +165,215 @@ code{font-family:Consolas,monospace;font-size:.88em;background:var(--paper2);bor
   <img src="logo-192.png" alt="North Finances" class="badge">
   <div class="brand">North<span> Finances</span></div>
   <div class="doc-title">Manual do Usuário</div>
-  <div class="doc-date">Um guia rápido de cada menu do app · Atualizado em 11 de novembro de 2026</div>
+  <div class="doc-date">Um guia por tarefa, para a conta Pessoal e para a Empresarial · Atualizado em 12 de novembro de 2026</div>
 </div>
 
 <div class="wrap">
 <div class="card">
 
-  <p class="intro">Este guia explica o que cada menu do <strong>North Finances</strong> faz e como usar, na mesma ordem em que eles aparecem na barra lateral do app. Leva menos de 5 minutos pra ler e você sai sabendo tirar o máximo proveito de cada tela.</p>
+  <p class="intro">Este manual está organizado pelo que você quer <strong>fazer</strong>, não pelos menus. Escolha o seu caminho abaixo: cada um lista as tarefas na ordem em que costumam aparecer. O que vale para as duas contas, como criar a conta, importar o extrato e cuidar da segurança, fica numa parte comum.</p>
 
-  <div class="toc-grid">
-    <div class="toc-col">
-      <h4>Principal</h4>
+  <div class="caminhos" id="caminhos">
+    <div class="caminho">
+      <span class="eyebrow">Caminho 1</span>
+      <h3>Conta Pessoal</h3>
+      <p class="desc">As suas finanças: salário, contas de casa, cartão, investimentos e metas.</p>
       <ol>
-        <li><a href="#dashboard"><span>01</span>Dashboard</a></li>
-        <li><a href="#transacoes"><span>02</span>Transações</a></li>
-        <li><a href="#contas"><span>03</span>Contas a Pagar e a Receber</a></li>
-        <li><a href="#orcamento"><span>04</span>Orçamento</a></li>
-        <li><a href="#cartao"><span>05</span>Cartão de Crédito</a></li>
+        <li><a href="#criar-conta">Criar a conta e guardar a chave</a></li>
+        <li><a href="#lancar">Registrar gastos e receitas</a></li>
+        <li><a href="#importar">Importar o extrato do banco</a></li>
+        <li><a href="#painel">Entender o mês no painel</a></li>
+        <li><a href="#orcamento">Pôr limite nos gastos</a></li>
+        <li><a href="#contas">Não perder vencimentos</a></li>
+        <li><a href="#cartao">Acompanhar o cartão de crédito</a></li>
+        <li><a href="#quem-me-deve">Saber quem me deve</a></li>
+        <li><a href="#investimentos">Acompanhar investimentos</a></li>
+        <li><a href="#metas">Criar metas e a reserva</a></li>
       </ol>
+      <a class="ir" href="#pessoal">Ir para a conta Pessoal →</a>
     </div>
-    <div class="toc-col">
-      <h4>Patrimônio</h4>
+    <div class="caminho emp">
+      <span class="eyebrow">Caminho 2</span>
+      <h3>Conta Empresarial</h3>
+      <p class="desc">Para MEI e pequenos negócios: faturamento, custos, lucro, DAS e o que vai para o contador.</p>
       <ol>
-        <li><a href="#investimentos"><span>06</span>Investimentos</a></li>
-        <li><a href="#metas"><span>07</span>Metas &amp; Reserva</a></li>
+        <li><a href="#emp-criar">Criar a conta Empresarial</a></li>
+        <li><a href="#emp-categorias">Lançar com as categorias do negócio</a></li>
+        <li><a href="#emp-painel">Ler faturamento, custos e lucro</a></li>
+        <li><a href="#emp-retiradas">Registrar as retiradas do dono</a></li>
+        <li><a href="#emp-das">Informar o regime e lembrar do DAS</a></li>
+        <li><a href="#emp-teto">Acompanhar o teto do MEI</a></li>
+        <li><a href="#emp-metas">Criar a meta da empresa</a></li>
+        <li><a href="#emp-receber">Controlar o que tem a receber</a></li>
+        <li><a href="#emp-relatorio">Gerar o relatório para o contador</a></li>
+        <li><a href="#windows">Usar o app para Windows</a></li>
       </ol>
-    </div>
-    <div class="toc-col">
-      <h4>Sistema</h4>
-      <ol>
-        <li><a href="#importar"><span>08</span>Importar Extrato</a></li>
-        <li><a href="#config"><span>09</span>Perfil e configurações</a></li>
-        <li><a href="#excluir"><span>10</span>Excluir a conta</a></li>
-      </ol>
+      <a class="ir" href="#empresarial">Ir para a conta Empresarial →</a>
     </div>
   </div>
 
-  <div class="group-label">Comece aqui</div>
+  <div class="toc-comum">
+    <h4>Vale para as duas contas</h4>
+    <div class="toc-grid">
+      <a href="#criar-conta">Criar a conta e guardar a chave de recuperação</a>
+      <a href="#perfil">Ajustar o perfil e as preferências</a>
+      <a href="#onde-usar">Usar no celular e no computador</a>
+      <a href="#seguranca">Proteger a conta</a>
+      <a href="#lancar">Registrar um gasto ou uma receita</a>
+      <a href="#planos">Entender os planos Free e Pro</a>
+      <a href="#comprovante">Lançar a partir de um comprovante</a>
+      <a href="#dados">Exportar os meus dados</a>
+      <a href="#importar">Importar o extrato do banco</a>
+      <a href="#excluir">Excluir a conta</a>
+      <a href="#bancos">Cadastrar bancos e conferir o saldo</a>
+      <a href="#atalhos">Atalhos de teclado</a>
+    </div>
+  </div>
 
-  <h2 id="comece"><span class="num">★</span> Os primeiros cinco minutos</h2>
-  <p>Se você acabou de criar a conta, faça estes cinco passos na ordem. Depois deles o app já trabalha sozinho.</p>
+  <!-- ═══════════ PARTE 1 · PARA COMEÇAR ═══════════ -->
+  <div class="part" id="comecar">
+    <span class="eyebrow">Parte 1 · Vale para as duas contas</span>
+    <div class="pt-title">Para começar</div>
+    <p>Do cadastro ao primeiro extrato importado. Depois destes passos o app já trabalha quase sozinho.</p>
+  </div>
+
+  <h2 id="criar-conta"><span class="num">1</span><span class="tit">Criar a conta e guardar a chave de recuperação</span></h2>
   <ol class="steps">
-    <li><strong>Guarde a chave de recuperação.</strong> Logo após o cadastro o app mostra uma sequência de letras e números e o botão <strong>Guardar minha chave</strong>. No celular ele abre o menu de compartilhar (Notas, Google Drive, gerenciador de senhas). No computador você escolhe entre copiar, baixar um arquivo ou mandar para o seu próprio e-mail. <strong>Guarde a chave</strong>: é o assunto do quadro abaixo e o passo mais importante de todos.</li>
-    <li><strong>Importe seu extrato.</strong> Vá em <strong>Importar Extrato</strong>, exporte o OFX ou CSV do seu banco e arraste aqui. É o jeito mais rápido de encher o app com meses de histórico de uma vez.</li>
-    <li><strong>Confira as categorias sugeridas.</strong> A categorização é automática, por regras. Corrija o que ficou torto — o resto do app depende dela para os gráficos fazerem sentido.</li>
-    <li><strong>Cadastre suas contas fixas.</strong> Em <strong>Contas a Pagar</strong>, lance aluguel, luz, internet. O painel passa a te avisar quando o vencimento chegar.</li>
-    <li><strong>Crie uma meta.</strong> Em <strong>Metas &amp; Reserva</strong>, defina um objetivo (a reserva de emergência é o clássico) e vincule a um investimento. A barra passa a andar sozinha.</li>
+    <li>Abra <strong>app.northfinances.com.br</strong> e toque em <strong>Criar conta</strong>.</li>
+    <li>Escolha o <strong>tipo de conta</strong>: <strong>Pessoal</strong> ou <strong>Empresarial</strong>. São contas separadas, cada uma com o seu e-mail, e a escolha <strong>não muda depois</strong>. Tem as duas coisas para organizar? Crie duas contas (veja a <a href="#emp-criar">dica do e-mail</a> no caminho Empresarial).</li>
+    <li>Informe o e-mail e uma senha com pelo menos 8 caracteres, letra maiúscula e símbolo.</li>
+    <li>Digite o <strong>código de confirmação</strong> que chega no seu e-mail.</li>
+    <li><strong>Guarde a chave de recuperação.</strong> O app mostra uma sequência de letras e números e o botão <strong>Guardar minha chave</strong>. No celular ele abre o menu de compartilhar (Notas, Google Drive, gerenciador de senhas). No computador você escolhe entre copiar, baixar um arquivo ou mandar para o seu próprio e-mail.</li>
+    <li>Registre o primeiro gasto quando o app perguntar. É um chute rápido, dá para editar depois.</li>
   </ol>
-  <div class="highlight danger">🔑 <strong>Sobre a chave de recuperação — leia antes de seguir.</strong> Seus dados são cifrados no seu próprio aparelho, com uma chave que nasce da sua senha. Isso é o que permite dizer que <strong>nem nós conseguimos ler o que você escreve</strong>. O outro lado da moeda: se você esquecer a senha e não tiver a chave de recuperação, <strong>não existe "esqueci minha senha" que traga seus dados de volta</strong> — nem por nós, nem por ninguém. Não é falha, é o preço de ninguém mais poder abrir. Guarde o arquivo em dois lugares: no gerenciador de senhas e num pendrive ou na nuvem pessoal.</div>
+  <div class="mock">
+    <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
+    <div class="mock-body">
+      <div style="font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);margin-bottom:7px">Tipo de conta</div>
+      <div class="tipos">
+        <div class="on"><b>Pessoal</b><small>As minhas finanças</small></div>
+        <div><b>Empresarial</b><small>Para MEI e pequenos negócios</small></div>
+      </div>
+      <small style="color:var(--ink3);font-size:11.5px">Pessoal e Empresarial são contas separadas, cada uma com o seu e-mail. A escolha vale para esta conta e não muda depois.</small>
+    </div>
+  </div>
+  <div class="highlight danger">🔑 <strong>Sobre a chave de recuperação: leia antes de seguir.</strong> Seus dados são cifrados no seu próprio aparelho, com uma chave que nasce da sua senha. É o que permite dizer que <strong>nem nós conseguimos ler o que você escreve</strong>. O outro lado da moeda: se você esquecer a senha e não tiver a chave de recuperação, <strong>não existe "esqueci minha senha" que traga seus dados de volta</strong>, nem por nós, nem por ninguém. Não é falha, é o preço de ninguém mais poder abrir. Guarde a chave em dois lugares: no gerenciador de senhas e num pendrive ou na nuvem pessoal.</div>
 
-  <div class="group-label">Principal</div>
-
-  <h2 id="dashboard"><span class="num">1</span> Dashboard</h2>
-  <p>A visão geral do mês assim que você entra no app.</p>
+  <h2 id="onde-usar"><span class="num">2</span><span class="tit">Usar no celular e no computador</span></h2>
+  <p>A conta é a mesma em todo lugar: o que você lança num aparelho aparece nos outros em segundos.</p>
   <ul>
-    <li>Quatro cartões no topo: <strong>receitas, despesas, cartão de crédito e saldo</strong> — todos com o total geral, atualizados na hora. (O cartão de crédito só aparece se o módulo estiver ligado.)</li>
-    <li>Gráfico de receitas × despesas ao longo dos meses — escolha entre <strong>linhas</strong> ou <strong>barras</strong> no seletor ao lado do período.</li>
-    <li><strong>"Pra onde foi seu dinheiro"</strong> — ranking de gastos por categoria, comparado ao mês anterior. Passe o mouse (ou toque) numa cor do círculo para ver o nome da categoria, o valor e a porcentagem.</li>
-    <li>Aviso automático quando alguma <strong>conta a pagar</strong> está vencendo nos próximos dias.</li>
-    <li><strong>Suas contas:</strong> o saldo de cada banco e o <strong>saldo total</strong>. Toque numa conta para informar o <strong>saldo inicial</strong> (quanto havia nela antes dos lançamentos do app), o tipo de conta e se ela fica <strong>fora do saldo total</strong>. Vale-refeição e vale-alimentação ficam fora por padrão, porque não pagam boleto nem aluguel.</li>
+    <li><strong>No navegador:</strong> entre em <strong>app.northfinances.com.br</strong>, de qualquer computador ou celular. Não precisa instalar nada.</li>
+    <li><strong>No celular, como aplicativo:</strong> abra o endereço no navegador do telefone. No <strong>Android</strong>, toque no menu e em <strong>Instalar aplicativo</strong>. No <strong>iPhone</strong>, toque em Compartilhar e em <strong>Adicionar à Tela de Início</strong>. O North passa a abrir em tela cheia, com o ícone na tela inicial.</li>
+    <li><strong>No celular, os menus ficam embaixo:</strong> Principal, Transações, o botão <strong>+</strong> para lançar, Orçamento e <strong>Mais</strong>, que reúne todo o resto. No computador, eles ficam na barra lateral.</li>
+    <li><strong>App para Windows:</strong> é exclusivo do North Empresarial. Veja em <a href="#windows">Usar o app para Windows</a>. A conta Pessoal usa o navegador e o celular, com os mesmos dados.</li>
+  </ul>
+  <h3>O que fica sempre à mão</h3>
+  <ul>
+    <li><strong>Seu e-mail</strong>, no topo da barra lateral: clique para abrir o perfil. No celular, toque na sua inicial, no canto de cima.</li>
+    <li><strong>Status da sincronização</strong>, logo abaixo: mostra quando os dados subiram pela última vez.</li>
+    <li><strong>O olhinho</strong>, que esconde ou revela todos os valores em R$ de uma vez.</li>
+  </ul>
+
+  <h2 id="lancar"><span class="num">3</span><span class="tit">Registrar um gasto ou uma receita</span></h2>
+  <ol class="steps">
+    <li>No computador, clique em <strong>+ Nova Transação</strong>. No celular, toque no <strong>+</strong> da barra de baixo.</li>
+    <li>Escolha se é <strong>receita</strong> ou <strong>despesa</strong> e preencha descrição, valor e data.</li>
+    <li>Confira a <strong>categoria</strong> e a <strong>conta</strong> (o banco de onde o dinheiro saiu ou onde entrou) e salve.</li>
+  </ol>
+  <ul>
+    <li><strong>A categoria aprende com você.</strong> Corrigiu a categoria de uma loja uma vez, as próximas compras dela já entram certas, mesmo escritas de outro jeito pelo banco ("SUP CASTANHA LTDA" e "Compra no débito - SUP CASTANHA" são a mesma loja), e o app oferece corrigir as anteriores.</li>
+    <li>Em <strong>Transações</strong>, filtre por tipo, categoria ou mês, ou busque por texto. Qualquer lançamento pode ser editado ou excluído com um toque.</li>
+    <li>Não quer digitar? <a href="#importar">Importe o extrato</a> ou <a href="#comprovante">leia um comprovante</a>.</li>
+  </ul>
+  <div class="highlight">🧠 <strong>Sobre inteligência artificial.</strong> A categorização é feita por regras, no seu aparelho: nenhuma IA lê os seus lançamentos. A única função com IA é a <a href="#orcamento">recomendação do orçamento</a>, do plano Pro, que só roda quando você pede e envia apenas um resumo com totais por categoria.</div>
+  <div class="mock">
+    <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
+    <div class="mock-body">
+      <div class="chips"><span class="chip on">Todas</span><span class="chip">Receita</span><span class="chip">Despesa</span><span class="chip">Novembro 2026</span></div>
+      <div class="m-row"><span class="m-ic" style="background:var(--greenl)">💼</span><div class="m-info"><b>Salário</b><small>Salário · 05/11</small></div><span class="m-amt" style="color:var(--green)">+ R$ 4.250,00</span></div>
+      <div class="m-row"><span class="m-ic" style="background:var(--redl)">🍔</span><div class="m-info"><b>iFood</b><small>Alimentação · 14/11</small></div><span class="m-amt" style="color:var(--red)">− R$ 68,90</span></div>
+      <div class="m-row"><span class="m-ic" style="background:var(--redl)">🚗</span><div class="m-info"><b>Uber</b><small>Transporte · 12/11</small></div><span class="m-amt" style="color:var(--red)">− R$ 23,40</span></div>
+    </div>
+  </div>
+
+  <h2 id="comprovante"><span class="num">4</span><span class="tit">Lançar a partir de um comprovante</span></h2>
+  <ol class="steps">
+    <li>Abra um novo lançamento e toque no botão de <strong>comprovante</strong>, no canto de cima do formulário. No celular, também fica em <strong>Mais → Importar comprovante</strong>.</li>
+    <li>Escolha um print, uma foto ou o PDF do comprovante (Pix, transferência, boleto pago).</li>
+    <li>O North preenche <strong>valor, data, nome</strong> e se o dinheiro <strong>entrou ou saiu</strong>. Confira e salve.</li>
+  </ol>
+  <p>A imagem é lida <strong>no seu aparelho</strong> e não vai para servidor nenhum. Confira antes de salvar: foto de papel amassado pode sair com erro.</p>
+
+  <h2 id="importar"><span class="num">5</span><span class="tit">Importar o extrato do banco</span></h2>
+  <p>O jeito mais rápido de trazer meses de histórico de uma vez. O North não se conecta ao seu banco: você baixa o arquivo lá e importa aqui só o que quiser.</p>
+  <ol class="steps">
+    <li>No site ou no app do seu banco, exporte o extrato em <strong>OFX, CSV ou PDF</strong>.</li>
+    <li>Em <strong>Importar Extrato</strong>, selecione o arquivo ou arraste até a área indicada. No computador, dá para <strong>soltar o arquivo em qualquer ponto da janela</strong>: o North abre a importação.</li>
+    <li><strong>Revise.</strong> Confira a conta de destino, o período e os totais de entradas e saídas. Use os filtros <strong>Para revisar</strong>, <strong>Possíveis duplicatas</strong> e <strong>Já importadas</strong>; uma possível duplicata pode ser comparada com o lançamento existente antes de você decidir.</li>
+    <li>Corrija as categorias que ficaram tortas. Selecione vários lançamentos e use <strong>Categoria em lote</strong> para acertar todos de uma vez.</li>
+    <li><strong>Conclua.</strong> Se algo saiu errado, <strong>Desfazer importação</strong>, na tela de conclusão, remove apenas o lote recém-criado e o eventual ajuste de saldo.</li>
+  </ol>
+  <ul>
+    <li><strong>PDF:</strong> o North lê o texto do arquivo e mostra tudo na prévia para você conferir. Se o PDF tiver senha (muitos bancos usam o CPF), ela é pedida e usada só no aparelho.</li>
+    <li><strong>Sem duplicidade:</strong> o que já foi importado fica marcado, e duplicatas exatas permanecem bloqueadas.</li>
+    <li><strong>Saldo:</strong> no fim, concilie o saldo final do extrato com o que o app calculou.</li>
+    <li>A leitura do arquivo acontece no seu aparelho, e a categorização é por regras, que aprendem com as suas correções.</li>
+  </ul>
+  <div class="mock">
+    <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
+    <div class="mock-body">
+      <div style="border:1.5px dashed var(--paper3);border-radius:10px;padding:22px;text-align:center;color:var(--ink3);font-size:12.5px;margin-bottom:14px">
+        Arraste seu arquivo até aqui<br><span style="font-size:11px">OFX · CSV · PDF</span>
+      </div>
+      <div class="m-row"><span style="width:16px;height:16px;border:1.5px solid var(--gold);border-radius:4px;background:var(--gold);flex:none"></span><div class="m-info" style="margin-left:8px"><b>Supermercado Extra</b><small>sugerido: Alimentação</small></div><span class="m-amt">R$ 156,20</span></div>
+      <div class="m-row"><span style="width:16px;height:16px;border:1.5px solid var(--gold);border-radius:4px;background:var(--gold);flex:none"></span><div class="m-info" style="margin-left:8px"><b>Posto Shell</b><small>sugerido: Transporte</small></div><span class="m-amt">R$ 210,00</span></div>
+    </div>
+  </div>
+
+  <h2 id="bancos"><span class="num">6</span><span class="tit">Cadastrar bancos e conferir o saldo</span></h2>
+  <ul>
+    <li>No painel, o bloco <strong>Suas contas</strong> mostra o saldo de cada banco e o <strong>saldo total</strong>.</li>
+    <li>Toque numa conta para informar o <strong>saldo inicial</strong> (quanto havia nela antes dos lançamentos do app), o tipo de conta e se ela fica <strong>fora do saldo total</strong>. Assim o saldo do app bate com o do banco.</li>
+    <li>Ao adicionar um banco, a lista traz bancos, <strong>vales e benefícios</strong> (VR, Alelo, Ticket, Pluxee, Caju, Flash, iFood Benefícios, Swile), cartões de loja e corretoras, com busca pelo nome. Vale-refeição e vale-alimentação ficam fora do saldo total por padrão, porque não pagam boleto nem aluguel.</li>
+    <li><strong>Mais de uma conta</strong> faz parte do <a href="#planos">plano Pro</a>: cada banco com os seus lançamentos e o seu extrato, e o saldo de todos somado.</li>
+  </ul>
+
+  <h2 id="atalhos"><span class="num">7</span><span class="tit">Atalhos de teclado</span><span class="tag">Computador</span></h2>
+  <p>Funcionam quando nenhum campo de texto está em uso e nenhuma janela do app está aberta. Aperte <kbd>?</kbd> para ver a lista dentro do app.</p>
+  <div class="mock">
+    <div class="mock-body">
+      <div class="atalhos">
+        <kbd>N</kbd><span>Novo gasto</span>
+        <kbd>R</kbd><span>Nova receita</span>
+        <kbd>I</kbd><span>Importar extrato</span>
+        <kbd>/</kbd><span>Buscar nas transações</span>
+        <kbd>D</kbd><span>Painel</span>
+        <kbd>T</kbd><span>Transações</span>
+        <kbd>O</kbd><span>Orçamento</span>
+        <kbd>C</kbd><span>Contas a pagar e receber</span>
+        <kbd>?</kbd><span>Abrir a lista de atalhos</span>
+      </div>
+    </div>
+  </div>
+  <p class="voltar"><a href="#caminhos">↑ Voltar aos caminhos</a></p>
+
+  <!-- ═══════════ PARTE 2 · CONTA PESSOAL ═══════════ -->
+  <div class="part" id="pessoal">
+    <span class="eyebrow">Parte 2 · Caminho 1</span>
+    <div class="pt-title">Conta Pessoal</div>
+    <p>Depois de criar a conta e trazer os lançamentos (Parte 1), é aqui que o dinheiro começa a fazer sentido.</p>
+  </div>
+
+  <h2 id="painel"><span class="num">1</span><span class="tit">Entender o mês no painel</span></h2>
+  <p>A visão geral assim que você entra no app.</p>
+  <ul>
+    <li><strong>Saldo do período, receitas e despesas</strong>, atualizados na hora. O total do cartão de crédito aparece junto se o módulo estiver ligado.</li>
+    <li><strong>Gráfico de receitas × despesas</strong> ao longo dos meses: escolha entre linhas ou barras no seletor ao lado do período.</li>
+    <li><strong>Para onde foi o seu dinheiro:</strong> os gastos por categoria, comparados ao mês anterior. Passe o mouse (ou toque) numa cor do círculo para ver o nome da categoria, o valor e a porcentagem.</li>
+    <li><strong>Avisos:</strong> contas vencendo nos próximos dias e, se você respondeu às perguntas de <a href="#perfil">Sobre você</a>, o andamento da sua meta e quanto dá para gastar por dia até o pagamento.</li>
     <li><strong>Primeiros passos:</strong> para quem está começando, uma lista com barra de progresso: cadastrar o banco e o saldo, registrar o primeiro gasto, importar o extrato e criar uma meta. Dá para pular um passo ou ocultar a lista, e ela some quando tudo está feito.</li>
-    <li><strong>Personalize:</strong> em Configurações › Tela inicial, mude a ordem dos blocos e esconda o que você não usa.</li>
-    <li>Uma vez por mês, um lembrete para exportar o extrato do banco. Dá para dispensar por hoje no ✕, ou desligar de vez em Configurações.</li>
+    <li><strong>Personalize:</strong> em Perfil e configurações, na parte da tela inicial, mude a ordem dos blocos e esconda o que você não usa.</li>
+    <li>Uma vez por mês, um lembrete para exportar o extrato do banco. Dá para dispensar por hoje no ✕, ou desligar de vez nas configurações.</li>
   </ul>
   <div class="mock">
     <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
@@ -202,59 +402,19 @@ code{font-family:Consolas,monospace;font-size:.88em;background:var(--paper2);bor
     </div>
   </div>
 
-  <h2 id="transacoes"><span class="num">2</span> Transações</h2>
-  <p>Todo lançamento de receita e despesa, num só lugar.</p>
+  <h2 id="orcamento"><span class="num">2</span><span class="tit">Pôr limite nos gastos</span></h2>
+  <p>Em <strong>Orçamento</strong>, cada categoria ganha um teto mensal, com aviso antes de estourar.</p>
+  <ol class="steps">
+    <li>Defina um valor máximo por mês para categorias como Alimentação ou Lazer.</li>
+    <li>Acompanhe a barra: <strong>verde</strong> abaixo de 80%, <strong>dourada</strong> entre 80% e 99%, <strong>vermelha</strong> ao estourar.</li>
+    <li>Clique numa categoria para ver as transações que compõem aquele gasto.</li>
+  </ol>
   <ul>
-    <li>Lance na mão ou deixe a <strong>importação de extrato</strong> fazer isso por você.</li>
-    <li><strong>Importar comprovante:</strong> no formulário de lançamento, o botão no canto de cima lê um print, uma foto ou o PDF de um comprovante e preenche valor, data, nome e se o dinheiro entrou ou saiu. A imagem é lida no seu aparelho e não vai para servidor nenhum. Confira antes de salvar: foto de papel amassado pode sair com erro.</li>
-    <li>Ao adicionar um banco, a lista traz bancos, <strong>vales e benefícios</strong> (VR, Alelo, Ticket, Pluxee, Caju, Flash, iFood Benefícios, Swile), cartões de loja e corretoras, com busca pelo nome.</li>
-    <li>Filtre por tipo, categoria, mês, ou busque por texto.</li>
-    <li>Edite ou exclua qualquer lançamento com um toque.</li>
-    <li>A categoria é sugerida automaticamente e o app <strong>aprende com você</strong>: corrigiu a categoria de uma loja uma vez, as próximas compras dela já entram certas, mesmo escritas de outro jeito pelo banco ("SUP CASTANHA LTDA" e "Compra no débito - SUP CASTANHA" são a mesma loja), e o app oferece corrigir as anteriores. Isso é feito por regras, no seu aparelho: nenhuma IA lê os seus lançamentos.</li>
-  </ul>
-  <div class="mock">
-    <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
-    <div class="mock-body">
-      <div class="chips"><span class="chip on">Todas</span><span class="chip">Receita</span><span class="chip">Despesa</span><span class="chip">Julho 2026</span></div>
-      <div class="m-row"><span class="m-ic" style="background:var(--greenl)">💼</span><div class="m-info"><b>Salário</b><small>Salário · 05/07</small></div><span class="m-amt" style="color:var(--green)">+ R$ 4.250,00</span></div>
-      <div class="m-row"><span class="m-ic" style="background:var(--redl)">🍔</span><div class="m-info"><b>iFood</b><small>Alimentação · 14/07</small></div><span class="m-amt" style="color:var(--red)">− R$ 68,90</span></div>
-      <div class="m-row"><span class="m-ic" style="background:var(--redl)">🚗</span><div class="m-info"><b>Uber</b><small>Transporte · 12/07</small></div><span class="m-amt" style="color:var(--red)">− R$ 23,40</span></div>
-    </div>
-  </div>
-
-  <h2 id="contas"><span class="num">3</span> Contas a Pagar e a Receber</h2>
-  <p>Duas abas na mesma página: o que sai e o que entra todo mês.</p>
-  <ul>
-    <li><strong>A pagar</strong> são suas contas fixas, com lembrete antes do vencimento. <strong>A receber</strong> é o outro lado — mensalidade de cliente, aluguel que você recebe, o que for. Marcar como recebida lança uma <strong>receita</strong>, não uma despesa.</li>
-    <li>Cadastre nome, valor, categoria e o <strong>dia do vencimento</strong> — ela se repete todo mês.</li>
-    <li>O <strong>painel destaca</strong> as contas que estão perto de vencer ou já vencidas, assim que você abre o app: "Vence em 2 dias", "Vence hoje", "Venceu há 3 dias".</li>
-    <li>Marcar como paga já lança a despesa correspondente nas Transações — e marcar como recebida lança a receita.</li>
-    <li>O aviso do painel separa os dois: conta vencida é dívida sua, recebimento atrasado é dinheiro que alguém te deve.</li>
-  </ul>
-  <div class="highlight">🔒 <strong>Por que o aviso não vem por e-mail?</strong> Porque para mandar esse e-mail o nosso servidor precisaria <strong>ler quais contas você tem e quando elas vencem</strong> — e ele não consegue. Seus dados sobem cifrados, e a chave fica no seu aparelho. O lembrete por e-mail existiu até julho de 2026 e foi desligado justamente quando a criptografia de ponta a ponta entrou no ar. Trocamos uma comodidade pequena por uma garantia grande: nem nós vemos o que você deve.</div>
-  <div class="mock">
-    <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
-    <div class="mock-body">
-      <div class="cards3">
-        <div class="mcard"><span class="l">Total do mês</span><span class="v">R$ 1.950,00</span></div>
-        <div class="mcard"><span class="l">Pagas</span><span class="v" style="color:var(--green)">R$ 1.400,00</span></div>
-        <div class="mcard"><span class="l">Em aberto</span><span class="v" style="color:var(--red)">R$ 550,00</span></div>
-      </div>
-      <div class="m-row"><span class="m-ic" style="background:var(--greenl)">🏠</span><div class="m-info"><b>Aluguel</b><small>Todo dia 10</small></div><span class="pill" style="background:var(--greenl);color:var(--green)">Paga</span></div>
-      <div class="m-row"><span class="m-ic" style="background:var(--goldl)">💡</span><div class="m-info"><b>Conta de Luz</b><small>Todo dia 18</small></div><span class="pill" style="background:var(--goldl);color:var(--gold-d)">Vence em 2 dias</span></div>
-      <div class="m-row"><span class="m-ic" style="background:var(--redl)">📶</span><div class="m-info"><b>Internet</b><small>Todo dia 12</small></div><span class="pill" style="background:var(--redl);color:var(--red)">Vencida</span></div>
-    </div>
-  </div>
-
-  <h2 id="orcamento"><span class="num">4</span> Orçamento</h2>
-  <p>Um limite de gasto por categoria, com aviso antes de estourar.</p>
-  <ul>
-    <li>Defina um valor mensal máximo para categorias como Alimentação ou Lazer.</li>
-    <li>A barra fica verde abaixo de 80%, dourada entre 80–99%, e vermelha ao estourar.</li>
-    <li>Clique numa categoria pra ver as transações que compõem aquele gasto.</li>
     <li><strong>Fatura do cartão:</strong> o pagamento da fatura conta no mês das compras, não no mês em que você pagou. A fatura paga no começo de novembro entra no orçamento e no painel de outubro; na lista de transações, ela continua na data do pagamento, com o aviso "conta em outubro". Ao editar o lançamento, dá para escolher o mês.</li>
-    <li><strong>Recomendação da IA</strong> (plano Pro): no mês atual, abra <strong>Recomendação da IA</strong> e toque em <strong>Pedir recomendação</strong> e a IA analisa o seu mês: onde cortar, que limite usar em cada categoria e como fechar no azul. As sugestões aparecem em uma janela e se aplicam com um toque, com a opção de desfazer. Ao terminar, toque em <strong>OK</strong> para fechar a janela e voltar aos seus limites. Sai do aparelho só um resumo com os totais de cada categoria, a renda média, os limites e o dia do mês, nunca descrições, lojas ou bancos; o app mostra esse resumo antes do primeiro envio. São 10 pedidos por mês.</li>
   </ul>
+  <h3>Recomendação da IA <span class="tag">Pro</span></h3>
+  <p>No mês atual, abra <strong>Recomendação da IA</strong> e toque em <strong>Pedir recomendação</strong>. A IA analisa o seu mês: onde cortar, que limite usar em cada categoria e como fechar no azul. As sugestões aparecem em uma janela e se aplicam com um toque, com a opção de desfazer.</p>
+  <div class="highlight">🔒 <strong>O que sai do aparelho.</strong> Só um resumo com os totais de cada categoria, a renda média, os limites, o objetivo e o dia do mês, enviado à Anthropic, a empresa do Claude. Descrições, lojas e bancos nunca saem. O app mostra esse resumo <strong>antes do primeiro envio</strong>, e nada acontece sem você pedir. São 10 pedidos por mês.</div>
   <div class="mock">
     <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
     <div class="mock-body">
@@ -274,15 +434,39 @@ code{font-family:Consolas,monospace;font-size:.88em;background:var(--paper2);bor
     </div>
   </div>
 
-  <h2 id="cartao"><span class="num">5</span> Cartão de Crédito</h2>
-  <p>Módulo opcional pra separar os gastos do cartão do resto.</p>
+  <h2 id="contas"><span class="num">3</span><span class="tit">Não perder vencimentos</span><span class="tag">Pro</span></h2>
+  <p>Em <strong>Contas</strong>, duas abas na mesma página: <strong>A pagar</strong> e <strong>A receber</strong>.</p>
+  <ol class="steps">
+    <li>Em <strong>A pagar</strong>, toque em <strong>+ Nova Conta</strong> e cadastre nome, valor, categoria e o <strong>dia do vencimento</strong>. Ela se repete todo mês.</li>
+    <li>O <strong>painel destaca</strong> o que está perto de vencer ou já venceu, assim que você abre o app: "Vence em 2 dias", "Vence hoje", "Venceu há 3 dias".</li>
+    <li>Pagou? Marque como <strong>paga</strong>: a despesa é lançada nas Transações.</li>
+  </ol>
   <ul>
-    <li>Ative em <strong>Configurações</strong> se você quiser acompanhar a fatura à parte.</li>
-    <li>Mesmo padrão de categoria e lançamento das Transações comuns.</li>
-    <li><strong>Compras parceladas:</strong> informe o <strong>valor total</strong> e o <strong>número de parcelas</strong> (até 72). O app divide, distribui uma parcela por mês a partir da data da compra e mostra o andamento — "Parcela 3/10 · R$ 41,25/mês".</li>
-    <li><strong>Dois "em aberto", e a diferença importa:</strong> o do <strong>mês</strong> é o que cai nesta fatura; o <strong>total</strong> é tudo que você ainda deve, somando todas as parcelas futuras. É a diferença entre o que você paga agora e o que você já se comprometeu a pagar.</li>
-    <li>Cada parcela é quitada no botão <strong>"Pagar parcela"</strong>. Errou? <strong>"Estornar"</strong> volta uma.</li>
-    <li>O total do cartão aparece como mais um cartão no Dashboard.</li>
+    <li><strong>A receber</strong> é o outro lado: aluguel que você recebe, uma mensalidade, o que for. Marcar como recebida lança uma <strong>receita</strong>.</li>
+    <li>O aviso do painel separa os dois: conta vencida é dívida sua, recebimento atrasado é dinheiro que alguém te deve.</li>
+  </ul>
+  <div class="highlight">🔒 <strong>Por que o aviso não vem por e-mail?</strong> Porque para mandar esse e-mail o nosso servidor precisaria <strong>ler quais contas você tem e quando elas vencem</strong>, e ele não consegue. Seus dados sobem cifrados, e a chave fica no seu aparelho. Trocamos uma comodidade pequena por uma garantia grande: nem nós vemos o que você deve.</div>
+  <div class="mock">
+    <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
+    <div class="mock-body">
+      <div class="cards3">
+        <div class="mcard"><span class="l">Total do mês</span><span class="v">R$ 1.950,00</span></div>
+        <div class="mcard"><span class="l">Pagas</span><span class="v" style="color:var(--green)">R$ 1.400,00</span></div>
+        <div class="mcard"><span class="l">Em aberto</span><span class="v" style="color:var(--red)">R$ 550,00</span></div>
+      </div>
+      <div class="m-row"><span class="m-ic" style="background:var(--greenl)">🏠</span><div class="m-info"><b>Aluguel</b><small>Todo dia 10</small></div><span class="pill" style="background:var(--greenl);color:var(--green)">Paga</span></div>
+      <div class="m-row"><span class="m-ic" style="background:var(--goldl)">💡</span><div class="m-info"><b>Conta de Luz</b><small>Todo dia 18</small></div><span class="pill" style="background:var(--goldl);color:var(--gold-d)">Vence em 2 dias</span></div>
+      <div class="m-row"><span class="m-ic" style="background:var(--redl)">📶</span><div class="m-info"><b>Internet</b><small>Todo dia 12</small></div><span class="pill" style="background:var(--redl);color:var(--red)">Vencida</span></div>
+    </div>
+  </div>
+
+  <h2 id="cartao"><span class="num">4</span><span class="tit">Acompanhar o cartão de crédito</span></h2>
+  <p>Módulo opcional, para separar os gastos do cartão do resto. Ligue em <strong>Perfil e configurações</strong>.</p>
+  <ul>
+    <li><strong>Compras parceladas:</strong> informe o <strong>valor total</strong> e o <strong>número de parcelas</strong> (até 72). O app divide, distribui uma parcela por mês a partir da data da compra e mostra o andamento: "Parcela 3/10 · R$ 91,50/mês".</li>
+    <li><strong>Dois "em aberto", e a diferença importa:</strong> o do <strong>mês</strong> é o que cai nesta fatura; o <strong>total</strong> é tudo que você ainda deve, somando todas as parcelas futuras.</li>
+    <li>Cada parcela é quitada no botão <strong>Pagar parcela</strong>. Errou? <strong>Estornar</strong> volta uma.</li>
+    <li><strong>Conferir fatura:</strong> envie a fatura do banco (OFX, CSV ou PDF) e o North compara com o que você lançou: o que bate, o que falta e o que tem valor diferente.</li>
   </ul>
   <div class="mock">
     <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
@@ -292,28 +476,30 @@ code{font-family:Consolas,monospace;font-size:.88em;background:var(--paper2);bor
         <div class="mcard"><span class="l">Em aberto (total)</span><span class="v" style="color:var(--red)">R$ 442,00</span></div>
         <div class="mcard"><span class="l">Já pago</span><span class="v" style="color:var(--green)">R$ 288,60</span></div>
       </div>
-      <div class="m-row"><span class="m-ic" style="background:var(--purplel)">🎬</span><div class="m-info"><b>Netflix</b><small>Lazer · 03/07</small></div><span class="m-amt" style="color:var(--purple)">R$ 39,90</span></div>
+      <div class="m-row"><span class="m-ic" style="background:var(--purplel)">🎬</span><div class="m-info"><b>Netflix</b><small>Lazer · 03/11</small></div><span class="m-amt" style="color:var(--purple)">R$ 39,90</span></div>
       <div class="m-row"><span class="m-ic" style="background:var(--purplel)">💻</span><div class="m-info"><b>Notebook</b><small>Parcela <strong>3/10</strong> · R$ 91,50/mês</small></div><span class="m-amt" style="color:var(--purple)">R$ 915,00</span></div>
     </div>
   </div>
   <div class="highlight">💡 <strong>Por que os dois números.</strong> A fatura diz R$ 131,40, mas você deve R$ 442,00. O primeiro número é o do mês; o segundo é a soma de tudo que já foi parcelado e ainda vai chegar. Ver os dois lado a lado é o que evita a surpresa de dezembro.</div>
 
-  <div class="group-label">Patrimônio</div>
+  <h2 id="quem-me-deve"><span class="num">5</span><span class="tit">Saber quem me deve</span></h2>
+  <p>Em <strong>Quem me deve</strong>, registre empréstimos, vendas e rachas de conta, por pessoa, com a data combinada.</p>
+  <ul>
+    <li>Fica separado dos seus gastos: não mexe no saldo até o dinheiro voltar.</li>
+    <li><strong>Recebi tudo</strong> quita o registro. A edição aceita recebimento parcial.</li>
+    <li>O painel mostra quanto te devem e avisa quando um combinado passa da data.</li>
+  </ul>
 
-  <h2 id="investimentos"><span class="num">6</span> Investimentos</h2>
+  <h2 id="investimentos"><span class="num">6</span><span class="tit">Acompanhar investimentos</span><span class="tag">Pro</span></h2>
   <p>Sua carteira, com rendimento calculado automaticamente.</p>
   <ul>
-    <li><strong>Caixinhas</strong> com rendimento vinculado ao CDI (ex.: 100% ou 115% do CDI).</li>
-    <li><strong>Ativos com ticker</strong> — ETFs, FIIs, cripto — com cotação atualizada sozinha.</li>
-    <li>Preço médio e rentabilidade calculados automaticamente por dias úteis.</li>
-    <li><strong>Aportes e compras:</strong> cada vez que você põe dinheiro novo, registre pelo botão de aportes do investimento. Numa <strong>caixinha</strong>, você informa data e valor, e cada aporte rende <strong>a partir da sua própria data</strong> — não é preciso apagar e recriar a caixinha a cada depósito, e o histórico anterior é preservado. Num <strong>ativo com ticker</strong>, você informa a quantidade comprada e o preço pago por unidade, e o <strong>preço médio é recalculado sozinho pela fórmula ponderada</strong>, sem conta na mão.</li>
-    <li><strong>Topo da página:</strong> seu patrimônio investido, quanto a carteira rendeu <strong>neste mês</strong> comparado com o CDI do mesmo período, e uma linha com a <strong>evolução dos últimos 12 meses</strong>. Caixinhas e CDBs têm a história completa, refeita pelos aportes. Ações, FIIs e cripto entram a partir do mês em que o app começou a guardar o valor deles, porque os preços antigos não ficam guardados em lugar nenhum.</li>
-    <li><strong>Renda passiva:</strong> para quem tem ações, FIIs ou ETFs, a média de proventos por mês, o total dos últimos 12 meses e quanto essa renda já cobre do que você gasta por mês.</li>
-    <li><strong>Simulador:</strong> informe quanto guarda por mês, por quanto tempo e quanto rende, e veja onde chega, já sem o Imposto de Renda. Embaixo aparecem suas metas: quando cada uma fica pronta nesse ritmo e quanto guardar por mês para chegar no prazo.</li>
+    <li><strong>Caixinhas</strong> com rendimento vinculado ao CDI (por exemplo, 100% ou 115% do CDI) e <strong>ativos com ticker</strong> (ações, ETFs, FIIs, cripto), com cotação atualizada sozinha.</li>
+    <li><strong>Aportes e compras:</strong> cada vez que você põe dinheiro novo, registre pelo botão de aportes do investimento. Numa <strong>caixinha</strong>, você informa data e valor, e cada aporte rende <strong>a partir da sua própria data</strong>. Num <strong>ativo com ticker</strong>, você informa a quantidade e o preço pago, e o <strong>preço médio é recalculado sozinho</strong>.</li>
+    <li><strong>Topo da página:</strong> seu patrimônio investido, quanto a carteira rendeu <strong>neste mês</strong> comparado com o CDI do mesmo período, e a <strong>evolução dos últimos 12 meses</strong>. Caixinhas e CDBs têm a história completa, refeita pelos aportes. Ações, FIIs e cripto entram a partir do mês em que o app começou a guardar o valor deles.</li>
     <li><strong>Quanto cai na conta:</strong> em cada caixinha ou CDB aparece o valor <strong>se você resgatar hoje</strong>, já sem o Imposto de Renda (22,5% até 6 meses, caindo até 15% depois de 2 anos, contado para cada aporte) e sem o IOF dos primeiros 30 dias. Marque <strong>Isento de IR</strong> para LCI e LCA.</li>
-    <li><strong>Onde está:</strong> informe o banco ou a corretora de cada investimento. O cartão ganha o logo do banco, e você vê a carteira dividida por instituição.</li>
-    <li><strong>Proventos:</strong> em ações, FIIs e ETFs, o botão de proventos registra dividendos e rendimentos recebidos, com data e valor. O app soma tudo e mostra o total no topo da página: é a sua <strong>renda passiva acumulada</strong>, separada da valorização do ativo. Caixinhas não têm esse botão, porque rendem CDI e não pagam provento.</li>
-    <li><strong>Alocação da carteira:</strong> um gráfico de rosca mostra quanto do seu patrimônio está em cada tipo de investimento ou em cada banco. É o jeito rápido de ver se você está concentrado demais em uma coisa só. A carteira abaixo vem agrupada por tipo, com o subtotal de cada grupo e o peso de cada investimento.</li>
+    <li><strong>Proventos e renda passiva:</strong> em ações, FIIs e ETFs, o botão de proventos registra dividendos e rendimentos, com data e valor. O app mostra a média por mês, o total dos últimos 12 meses e quanto essa renda já cobre do que você gasta.</li>
+    <li><strong>Alocação da carteira:</strong> um gráfico de rosca mostra quanto do patrimônio está em cada tipo de investimento ou em cada banco. Informe o banco ou a corretora de cada investimento para ver a carteira dividida por instituição.</li>
+    <li><strong>Simulador:</strong> informe quanto guarda por mês, por quanto tempo e quanto rende, e veja onde chega, já sem o Imposto de Renda. Embaixo aparecem suas metas: quando cada uma fica pronta nesse ritmo.</li>
   </ul>
   <div class="mock">
     <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
@@ -342,12 +528,13 @@ code{font-family:Consolas,monospace;font-size:.88em;background:var(--paper2);bor
     </div>
   </div>
 
-  <h2 id="metas"><span class="num">7</span> Metas &amp; Reserva</h2>
-  <p>Objetivos que se acompanham sozinhos.</p>
-  <ul>
-    <li>Crie uma meta com valor-alvo (ex.: reserva de emergência de R$ 10.000).</li>
-    <li>Vincule a um investimento e a barra <strong>se atualiza sozinha</strong> conforme o dinheiro entra.</li>
-  </ul>
+  <h2 id="metas"><span class="num">7</span><span class="tit">Criar metas e a reserva</span></h2>
+  <p>Em <strong>Metas &amp; Reserva</strong>, objetivos que se acompanham sozinhos.</p>
+  <ol class="steps">
+    <li>Crie uma meta com valor-alvo, como uma reserva de emergência de R$ 10.000.</li>
+    <li>Vincule a um investimento: a barra <strong>se atualiza sozinha</strong> conforme o dinheiro entra.</li>
+  </ol>
+  <p>Respondeu qual é o seu objetivo nas perguntas de <a href="#perfil">Sobre você</a>? O North já cria a meta e mostra o progresso no painel.</p>
   <div class="mock">
     <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
     <div class="mock-body">
@@ -357,82 +544,267 @@ code{font-family:Consolas,monospace;font-size:.88em;background:var(--paper2);bor
       <small style="color:var(--ink3)">Vinculada à Caixinha Turbo · atualiza sozinha</small>
     </div>
   </div>
+  <p class="voltar"><a href="#caminhos">↑ Voltar aos caminhos</a></p>
 
-  <div class="group-label">Sistema</div>
+  <!-- ═══════════ PARTE 3 · CONTA EMPRESARIAL ═══════════ -->
+  <div class="part" id="empresarial">
+    <span class="eyebrow">Parte 3 · Caminho 2</span>
+    <div class="pt-title">Conta Empresarial</div>
+    <p>Para MEI e pequenos negócios. O jeito de lançar e importar é o mesmo da Parte 1; o que muda é o que o North mostra: faturamento, custos, lucro, o DAS e o que vai para o contador.</p>
+  </div>
 
-  <h2 id="importar"><span class="num">8</span> Importar Extrato</h2>
-  <p>O extrato do banco vira lançamento organizado.</p>
+  <h2 id="emp-criar"><span class="num">1</span><span class="tit">Criar a conta Empresarial</span></h2>
+  <ol class="steps">
+    <li>Em <strong>app.northfinances.com.br</strong>, toque em <strong>Criar conta</strong>.</li>
+    <li>Em <strong>Tipo de conta</strong>, escolha <strong>Empresarial</strong>.</li>
+    <li>Informe o e-mail da empresa e a senha, confirme o código que chega por e-mail e <a href="#criar-conta">guarde a chave de recuperação</a>.</li>
+    <li>Responda às três perguntas de <strong>Sobre a empresa</strong> (levam uns 20 segundos): como quer ser chamado, o <a href="#emp-das">regime</a> e o <a href="#emp-metas">objetivo</a>.</li>
+  </ol>
   <ul>
-    <li>Exporte o extrato do seu banco em <strong>OFX, CSV ou PDF</strong> e arraste aqui. No PDF, o North lê o texto do arquivo e mostra tudo na prévia para você conferir antes de importar; se o PDF tiver senha (muitos bancos usam o CPF), ela é pedida e usada só no aparelho. Na página do Cartão, <strong>Conferir fatura</strong> compara a fatura (OFX, CSV ou PDF) com o que você lançou: o que bate, o que falta e o que tem valor diferente.</li>
-    <li>Categorização automática, que aprende com as suas correções. Tudo por regras, no seu aparelho: nada de IA lendo seus lançamentos.</li>
-    <li>O fluxo tem três etapas: <strong>Enviar → Revisar → Concluir</strong>. Na revisão, confira a conta de destino, o período e os totais de entradas e saídas selecionadas.</li>
-    <li>Use os filtros <strong>Para revisar</strong>, <strong>Possíveis duplicatas</strong> e <strong>Já importadas</strong>. Você pode comparar uma possível duplicata com o lançamento existente antes de decidir.</li>
-    <li>Selecione os lançamentos e use <strong>Categoria em lote</strong> para corrigir vários de uma vez. As escolhas são preservadas ao trocar a conta; duplicatas exatas permanecem bloqueadas.</li>
-    <li>Após importar, use <strong>Concluir</strong> para limpar a revisão ou <strong>Desfazer importação</strong>, na tela de conclusão, para remover apenas o lote recém-criado e seu eventual ajuste de saldo.</li>
-    <li>Concilie o saldo final do extrato com o que o app calculou.</li>
+    <li><strong>O tipo não muda depois.</strong> Pessoal e Empresarial são contas separadas, cada uma com o seu acesso. Não existe trocar de uma para a outra por dentro do app.</li>
+    <li><strong>Já tem conta Pessoal?</strong> Continue com ela e crie a Empresarial com <strong>outro e-mail</strong>. Assim o dinheiro da empresa não se mistura com o seu.</li>
+    <li>Quando a conta é Empresarial, a barra lateral mostra o selo <strong>Empresarial</strong> abaixo do logo.</li>
+  </ul>
+  <div class="highlight">✉️ <strong>Dica para quem usa Gmail.</strong> O endereço <code>seunome+empresa@gmail.com</code> é aceito como um e-mail diferente, mas as mensagens chegam na mesma caixa de <code>seunome@gmail.com</code>. Dá para ter as duas contas sem criar outra caixa de entrada.</div>
+
+  <h2 id="emp-categorias"><span class="num">2</span><span class="tit">Lançar com as categorias do negócio</span></h2>
+  <p>A conta Empresarial já nasce com categorias de empresa. Lance na mão, <a href="#importar">importe o extrato</a> da conta PJ ou <a href="#comprovante">leia um comprovante</a>, como na Parte 1.</p>
+  <div class="mock">
+    <div class="mock-body">
+      <div style="font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--green);margin-bottom:7px">Receitas</div>
+      <div class="chips"><span class="chip">🧾 Vendas</span><span class="chip">🛠️ Serviços</span><span class="chip">💰 Outras receitas</span></div>
+      <div style="font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--red);margin-bottom:7px">Despesas</div>
+      <div class="chips" style="margin-bottom:0"><span class="chip">📦 Fornecedores</span><span class="chip">🏛️ Impostos</span><span class="chip">👥 Folha e pró-labore</span><span class="chip">🏢 Aluguel e estrutura</span><span class="chip">📣 Marketing</span><span class="chip">💻 Ferramentas e software</span><span class="chip">🏦 Taxas e tarifas</span><span class="chip on">👤 Retiradas do dono</span><span class="chip">📦 Outros</span></div>
+    </div>
+  </div>
+  <ul style="margin-top:16px">
+    <li>O app <strong>aprende com as suas correções</strong>: corrigiu a categoria de um fornecedor uma vez, os próximos lançamentos dele já entram certos.</li>
+    <li>Pagou o DAS? Lance em <strong>Impostos</strong>: é isso que deixa o <a href="#emp-das">lembrete do DAS</a> verde.</li>
+    <li>O que você tira para si vai em <a href="#emp-retiradas">Retiradas do dono</a>, não em Folha e pró-labore.</li>
+  </ul>
+
+  <h2 id="emp-painel"><span class="num">3</span><span class="tit">Ler faturamento, custos e lucro</span></h2>
+  <p>Na conta Empresarial, o painel troca receitas e despesas pelos números que importam para um negócio.</p>
+  <ul>
+    <li><strong>Faturamento:</strong> tudo o que entrou no período.</li>
+    <li><strong>Custos e despesas:</strong> tudo o que saiu, <strong>menos as retiradas do dono</strong>.</li>
+    <li><strong>Lucro do período</strong> (ou prejuízo): faturamento menos custos, com a <strong>margem</strong> em porcentagem ao lado.</li>
+    <li>Logo abaixo, as linhas de acompanhamento: o <a href="#emp-das">DAS</a>, o <a href="#emp-teto">teto do MEI</a> e as <a href="#emp-retiradas">retiradas</a> contra o lucro.</li>
   </ul>
   <div class="mock">
     <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
     <div class="mock-body">
-      <div style="border:1.5px dashed var(--paper3);border-radius:10px;padding:22px;text-align:center;color:var(--ink3);font-size:12.5px;margin-bottom:14px">
-        Arraste o arquivo OFX ou CSV aqui<br><span style="font-size:11px">ou clique para selecionar</span>
+      <div class="cards3">
+        <div class="mcard"><span class="l">Faturamento</span><span class="v" style="color:var(--green)">R$ 11.600,00</span></div>
+        <div class="mcard"><span class="l">Custos e despesas</span><span class="v" style="color:var(--red)">R$ 2.534,00</span></div>
+        <div class="mcard"><span class="l">Lucro do período</span><span class="v">R$ 9.066,00</span><small>margem de 78%</small></div>
       </div>
-      <div class="m-row"><span style="width:16px;height:16px;border:1.5px solid var(--gold);border-radius:4px;background:var(--gold);flex:none"></span><div class="m-info" style="margin-left:8px"><b>Supermercado Extra</b><small>sugerido: Alimentação</small></div><span class="m-amt">R$ 156,20</span></div>
-      <div class="m-row"><span style="width:16px;height:16px;border:1.5px solid var(--gold);border-radius:4px;background:var(--gold);flex:none"></span><div class="m-info" style="margin-left:8px"><b>Posto Shell</b><small>sugerido: Transporte</small></div><span class="m-amt">R$ 210,00</span></div>
+      <div class="m-row"><span class="m-ic" style="background:var(--goldl)">🧾</span><div class="m-info"><b>Faltam 2 dias para o DAS</b><small style="color:var(--gold-d)">Vence em 23/11. Depois de pagar, lance em Impostos e esta linha fica verde.</small></div></div>
+      <div class="m-row"><span class="m-ic" style="background:var(--paper2)">📈</span><div class="m-info"><b>Teto do MEI</b><small>R$ 71.600,00 de R$ 81.000,00 faturados em 2026 (88%)</small><div class="bar-bg"><div class="bar-fill" style="width:88%;background:var(--gold)"></div></div></div></div>
+      <div class="m-row"><span class="m-ic" style="background:var(--paper2)">👤</span><div class="m-info"><b>Retiradas do dono</b><small>R$ 3.000,00 de R$ 9.066,00 de lucro no período. Ainda dá para retirar R$ 6.066,00.</small><div class="bar-bg"><div class="bar-fill" style="width:33%;background:var(--green)"></div></div></div></div>
     </div>
   </div>
 
-  <h2 id="config"><span class="num">9</span> Perfil e configurações</h2>
-  <p>Clique no seu e-mail, no topo da barra lateral, ou em <strong>Perfil e configurações</strong> no menu. No celular, toque na sua inicial, no canto de cima. No topo da página ficam você, o seu plano e a segurança da conta; embaixo, as preferências do app.</p>
+  <h2 id="emp-retiradas"><span class="num">4</span><span class="tit">Registrar as retiradas do dono</span></h2>
+  <ol class="steps">
+    <li>Transferiu dinheiro da empresa para você? Lance uma <strong>despesa</strong> na categoria <strong>Retiradas do dono</strong>.</li>
+    <li>O dinheiro sai do caixa, mas <strong>não entra nos custos</strong>: o lucro da empresa não diminui por causa dele.</li>
+    <li>No painel, a linha <strong>Retiradas do dono</strong> compara o que saiu para você com o lucro do período e mostra quanto ainda dá para retirar.</li>
+  </ol>
+  <p>A regra é simples: o dono não retira mais do que a empresa lucrou. Se passar, a linha fica vermelha e diz de quanto foi o excesso.</p>
+
+  <h2 id="emp-das"><span class="num">5</span><span class="tit">Informar o regime e lembrar do DAS</span></h2>
+  <ol class="steps">
+    <li>Informe o <strong>regime</strong> da empresa: <strong>MEI</strong>, <strong>Simples Nacional</strong> ou <strong>Lucro Presumido ou Real</strong>. A pergunta aparece na primeira entrada e no painel; para mudar depois, vá em Perfil e configurações → <strong>Sobre a empresa</strong> → Editar respostas.</li>
+    <li>No MEI e no Simples, o painel passa a mostrar o <strong>lembrete do DAS</strong>, com os dias que faltam. O vencimento é o dia 20; se cair em fim de semana ou feriado, passa para o próximo dia útil.</li>
+    <li>Pagou a guia? Lance a despesa em <strong>Impostos</strong> (ou com "DAS" na descrição, como costuma vir no extrato). A linha fica <strong>verde</strong> e já mostra o vencimento do mês seguinte.</li>
+  </ol>
   <ul>
-    <li><strong>Seu nome e sua foto</strong> são opcionais. Com o nome, o avatar mostra as suas iniciais e o cartão Pro leva o seu nome. A foto entra pelo botão da câmera, no canto do avatar, e aparece no lugar das iniciais; para tirá-la, toque no lápis e em <strong>Remover foto</strong>. Os dois ficam cifrados junto com o resto dos seus dados.</li>
-    <li><strong>Sobre você:</strong> quatro perguntas opcionais, que aparecem uma vez no login e ficam no perfil para editar. O seu objetivo vira uma meta com o progresso no painel; o dia em que você recebe vira a contagem até o pagamento, com quanto dá para gastar por dia; e a renda (por faixa) vira limites sugeridos no Orçamento, se você ainda não tiver nenhum.</li>
-    <li><strong>Quem me deve:</strong> empréstimos, vendas e rachas de conta, por pessoa, com a data combinada. Fica separado dos seus gastos; "Recebi tudo" quita o registro, e a edição aceita recebimento parcial. O painel mostra quanto te devem e avisa quando um combinado passa da data.</li>
-    <li><strong>Conta de empresa:</strong> o painel mostra <strong>faturamento, custos e lucro</strong>, com a margem. O que você tira para si vai na categoria <strong>Retiradas do dono</strong>, que não conta como custo, e o painel compara as retiradas com o lucro do período. Com o regime informado, o painel avisa do <strong>DAS</strong> (vence dia 20, ou no próximo dia útil) e, no MEI, mostra quanto do <strong>teto do ano</strong> já foi faturado. O tipo da conta (pessoal ou empresa) só pode ser trocado até o primeiro lançamento.</li>
+    <li>A três dias ou menos do vencimento, a linha entra em alerta. Depois do vencimento, fica vermelha até o pagamento ser lançado.</li>
+    <li>O North <strong>não emite nem paga a guia</strong>: ele lembra da data. O pagamento continua sendo feito no Portal do Simples ou no app do seu banco.</li>
+    <li>No regime de Lucro Presumido ou Real não há lembrete do DAS, porque os impostos seguem outro calendário.</li>
+  </ul>
+
+  <h2 id="emp-teto"><span class="num">6</span><span class="tit">Acompanhar o teto do MEI</span></h2>
+  <p>Com o regime <strong>MEI</strong> informado, o painel mostra quanto do limite de faturamento do ano já foi usado.</p>
+  <div class="mock">
+    <div class="mock-body">
+      <div class="cards3" style="margin-bottom:0">
+        <div class="mcard"><span class="l">Teto em 2026</span><span class="v">R$ 81.000</span></div>
+        <div class="mcard"><span class="l">Teto em 2027</span><span class="v">R$ 110.000</span></div>
+        <div class="mcard"><span class="l">A partir de 2028</span><span class="v">R$ 140.000</span></div>
+      </div>
+    </div>
+  </div>
+  <ul style="margin-top:16px">
+    <li>Os valores são os da <strong>Lei Complementar 238/2026</strong>, e o app troca de teto sozinho na virada do ano.</li>
+    <li>A conta soma <strong>todas as entradas do ano</strong>, de todas as contas. É uma soma para mais, de propósito: melhor avisar cedo do que tarde.</li>
+    <li>A partir de <strong>80%</strong>, a linha vira <strong>Perto do teto do MEI</strong> e mostra quanto falta. Em <strong>100%</strong>, fica vermelha: é hora de falar com o contador, porque acima do teto a empresa deixa de ser MEI.</li>
+    <li>No ano em que a empresa foi aberta, o limite legal é <strong>proporcional</strong> aos meses de atividade. O app mostra o do ano cheio; se a sua empresa abriu neste ano, confirme o seu limite com o contador.</li>
+  </ul>
+
+  <h2 id="emp-metas"><span class="num">7</span><span class="tit">Criar a meta da empresa</span></h2>
+  <p>Na pergunta sobre o objetivo, escolha o que a empresa está buscando. O North cria a meta e mostra o progresso no painel.</p>
+  <ul>
+    <li><strong>Ter reserva de caixa:</strong> a sugestão é guardar 3 meses dos custos médios da empresa.</li>
+    <li><strong>Quitar dívidas da empresa:</strong> empréstimos, fornecedores atrasados.</li>
+    <li><strong>Juntar para um investimento:</strong> equipamento, reforma, estoque.</li>
+    <li><strong>Fazer o caixa render:</strong> aplicar o dinheiro parado da empresa.</li>
+    <li><strong>Só organizar:</strong> saber para onde vai o dinheiro, sem meta.</li>
+  </ul>
+  <p>Outras metas podem ser criadas a qualquer momento em <strong>Metas &amp; Reserva</strong>, como na <a href="#metas">conta Pessoal</a>.</p>
+
+  <h2 id="emp-receber"><span class="num">8</span><span class="tit">Controlar o que tem a receber</span><span class="tag">Pro</span></h2>
+  <ol class="steps">
+    <li>Abra <strong>Contas</strong>. Na conta Empresarial, a página já abre na aba <strong>A receber</strong>.</li>
+    <li>Toque em <strong>+ Novo Recebimento</strong> e cadastre o nome (o cliente ou o contrato), o valor, a categoria e o <strong>dia do mês</strong> em que o dinheiro cai. Ele se repete todo mês.</li>
+    <li>Recebeu? Marque como <strong>recebida</strong>: a receita é lançada nas Transações e entra no faturamento.</li>
+  </ol>
+  <ul>
+    <li>O painel avisa do que cai nos próximos dias e do que está <strong>atrasado</strong>.</li>
+    <li>A aba <strong>A pagar</strong> funciona do mesmo jeito para as contas fixas da empresa: aluguel, internet, sistema.</li>
+    <li>Contas a pagar e receber fazem parte do <a href="#planos">plano Pro</a>. O que já foi cadastrado continua visível se a conta voltar ao Free.</li>
+  </ul>
+  <div class="mock">
+    <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
+    <div class="mock-body">
+      <div class="chips"><span class="chip">A pagar</span><span class="chip on">A receber</span></div>
+      <div class="m-row"><span class="m-ic" style="background:var(--greenl)">🧾</span><div class="m-info"><b>Mensalidade · Cliente A</b><small>Todo dia 5</small></div><span class="pill" style="background:var(--greenl);color:var(--green)">Recebida</span></div>
+      <div class="m-row"><span class="m-ic" style="background:var(--goldl)">🛠️</span><div class="m-info"><b>Contrato de manutenção</b><small>Todo dia 15</small></div><span class="pill" style="background:var(--goldl);color:var(--gold-d)">Cai em 3 dias</span></div>
+      <div class="m-row"><span class="m-ic" style="background:var(--redl)">🧾</span><div class="m-info"><b>Mensalidade · Cliente B</b><small>Todo dia 10</small></div><span class="pill" style="background:var(--redl);color:var(--red)">Atrasada há 2 dias</span></div>
+    </div>
+  </div>
+
+  <h2 id="emp-relatorio"><span class="num">9</span><span class="tit">Gerar o relatório para o contador</span></h2>
+  <p>Um mês da empresa em uma folha, pronto para enviar.</p>
+  <ol class="steps">
+    <li>Abra <strong>Perfil e configurações</strong> e vá até <strong>Seus dados</strong>. No celular, o atalho é <strong>Mais → Relatório para o contador</strong>.</li>
+    <li>Escolha o <strong>mês</strong>.</li>
+    <li>Toque em <strong>Relatório para o contador (PDF)</strong>. O North abre a janela de impressão.</li>
+    <li>Em vez de uma impressora, escolha <strong>Salvar como PDF</strong> e guarde o arquivo.</li>
+  </ol>
+  <div class="mock">
+    <div class="mock-body" style="background:var(--paper2)">
+      <div class="folha">
+        <div class="folha-topo"><div><small>North Empresarial</small><b>Relatório mensal</b><small>Novembro de 2026</small></div><small style="text-align:right">MEI<br>Gerado em 12/11/2026</small></div>
+        <div class="cards4">
+          <div><span>Faturamento</span><b>R$ 11.600,00</b></div>
+          <div><span>Custos e despesas</span><b>R$ 2.534,00</b></div>
+          <div><span>Lucro · 78%</span><b>R$ 9.066,00</b></div>
+          <div><span>Retiradas do dono</span><b>R$ 3.000,00</b></div>
+        </div>
+        <div class="rot">Custos e despesas por categoria</div>
+        <div class="lin"><span>Fornecedores</span><span>R$ 2.300,00</span></div>
+        <div class="lin"><span>Ferramentas e software</span><span>R$ 189,00</span></div>
+        <div class="lin"><span>Taxas e tarifas</span><span>R$ 45,00</span></div>
+      </div>
+    </div>
+  </div>
+  <ul style="margin-top:16px">
+    <li><strong>O que vem na folha:</strong> faturamento, custos, lucro com a margem e retiradas do dono; o faturamento e os custos <strong>por categoria</strong>; e a lista de <strong>lançamentos do mês</strong>, com data, descrição, categoria e valor.</li>
+    <li>As <strong>retiradas do dono</strong> aparecem à parte, fora dos custos.</li>
+    <li>Vale o <strong>mês do calendário</strong>, pela data de cada lançamento, somando todas as contas.</li>
+    <li>Os valores saem abertos no papel, mesmo com "ocultar valores" ligado na tela.</li>
+    <li>O relatório é montado <strong>no seu aparelho</strong>: nada passa pelo nosso servidor. Ele serve de apoio ao contador e não substitui a escrituração contábil.</li>
+    <li>Precisa da planilha? Em <a href="#dados">Seus dados</a> também dá para baixar os lançamentos em CSV.</li>
+  </ul>
+
+  <h2 id="windows"><span class="num">10</span><span class="tit">Usar o app para Windows</span><span class="tag escura">Só no Empresarial</span></h2>
+  <p>O app para Windows é <strong>exclusivo do North Empresarial</strong>. É o mesmo North, na mesma conta, numa janela própria do computador.</p>
+  <ol class="steps">
+    <li>Baixe o instalador no site, em <strong>northfinances.com.br</strong>, na página do North Empresarial.</li>
+    <li>Se o Windows mostrar o aviso do <strong>SmartScreen</strong>, escolha <strong>Mais informações</strong> e depois <strong>Executar assim mesmo</strong>. É o aviso padrão para aplicativos de desenvolvedores independentes.</li>
+    <li>Abra o app e entre com o e-mail e a senha da conta <strong>Empresarial</strong>. Conta criada por dentro do app para Windows já nasce Empresarial.</li>
+  </ol>
+  <h3>O que o computador acrescenta</h3>
+  <ul>
+    <li><strong>Arrastar o extrato:</strong> solte o arquivo do banco (OFX, CSV ou PDF) em qualquer ponto da janela e o North abre a importação.</li>
+    <li><strong>Atalhos de teclado:</strong> <kbd>N</kbd> novo gasto, <kbd>R</kbd> nova receita, <kbd>I</kbd> importar, <kbd>/</kbd> buscar. A <a href="#atalhos">lista completa</a> está na Parte 1.</li>
+    <li><strong>Aviso do Windows:</strong> ao abrir o app, uma vez por dia, o North mostra uma notificação do próprio Windows quando o <strong>DAS</strong> está a 3 dias ou menos do vencimento (ou já venceu) e quando há <strong>recebimento previsto para o dia</strong>. Se as notificações do app estiverem desligadas no Windows, o aviso não aparece.</li>
+    <li><strong>Desbloqueio pelo Windows Hello</strong> (digital, rosto ou PIN), se você ligar o <a href="#seguranca">bloqueio</a>.</li>
+  </ul>
+  <div class="highlight">💻 <strong>E a conta Pessoal?</strong> Ela usa o navegador, em app.northfinances.com.br, e o celular, com os mesmos dados. Quem abrir o app para Windows com uma conta Pessoal vê um aviso e, depois, uma tela explicando que o app é do North Empresarial, com os botões <strong>Abrir no navegador</strong> e <strong>Instalar no celular</strong>. Nada é apagado: os dados continuam na nuvem, cifrados.</div>
+  <p class="voltar"><a href="#caminhos">↑ Voltar aos caminhos</a></p>
+
+  <!-- ═══════════ PARTE 4 · CONTA, SEGURANÇA E PLANOS ═══════════ -->
+  <div class="part" id="conta">
+    <span class="eyebrow">Parte 4 · Vale para as duas contas</span>
+    <div class="pt-title">Conta, segurança e planos</span></div>
+    <p>O que cuida de você e dos seus dados, seja a conta Pessoal ou a Empresarial.</p>
+  </div>
+
+  <h2 id="perfil"><span class="num">1</span><span class="tit">Ajustar o perfil e as preferências</span></h2>
+  <p>Clique no seu e-mail, no topo da barra lateral, ou em <strong>Perfil e configurações</strong>. No celular, toque na sua inicial, no canto de cima. No topo da página ficam você, o seu plano e a segurança da conta; embaixo, as preferências do app.</p>
+  <ul>
+    <li><strong>Seu nome e sua foto</strong> são opcionais. Com o nome, o avatar mostra as suas iniciais. A foto entra pelo botão da câmera, no canto do avatar; para tirá-la, toque no lápis e em <strong>Remover foto</strong>. Os dois ficam cifrados junto com o resto dos seus dados.</li>
+    <li><strong>Sobre você</strong> (conta Pessoal): quatro perguntas opcionais. O seu objetivo vira uma meta com o progresso no painel; o dia em que você recebe vira a contagem até o pagamento, com quanto dá para gastar por dia; e a renda (por faixa) vira limites sugeridos no Orçamento, se você ainda não tiver nenhum.</li>
+    <li><strong>Sobre a empresa</strong> (conta Empresarial): três perguntas, com o <a href="#emp-das">regime</a> e o <a href="#emp-metas">objetivo</a> da empresa.</li>
     <li><strong>Seus números:</strong> o patrimônio investido, quantos lançamentos você fez, há quantos meses registra, os seus bancos e as suas metas.</li>
-    <li><strong>Segurança:</strong> a criptografia de ponta a ponta, a <strong>verificação em duas etapas (2FA)</strong> (o app mostra o QR code para escanear no Google Authenticator), o aparelho em uso e o último login. Com o <strong>bloqueio</strong> ligado, o app pede o desbloqueio do aparelho ao abrir e depois de um minuto fora dele: <strong>Face ID</strong> no iPhone, <strong>digital</strong> no Android e <strong>Windows Hello</strong> (digital, rosto ou PIN) no computador. Ele vale só no aparelho em que foi ligado; se o desbloqueio falhar, a senha da conta abre. No celular, a lista de apps abertos mostra só o logo do North no lugar dos seus valores. Usou um computador público? <strong>Sair de todos os aparelhos</strong> encerra a sessão em todos de uma vez, inclusive neste.</li>
     <li><strong>Aparência e acessibilidade:</strong> tema claro ou escuro e, para quem tem daltonismo, a opção <strong>Para daltonismo</strong>, que troca o verde e o vermelho de receitas e despesas por azul e magenta em todo o app. A escolha das cores vale em todos os seus aparelhos.</li>
-    <li>Ligue ou desligue módulos, como o <strong>Cartão de Crédito</strong>. Desligar não apaga nada — só esconde.</li>
-    <li><strong>Notificações por e-mail:</strong> o único e-mail recorrente que enviamos é o lembrete mensal, no dia 1º, para você exportar o extrato do banco. Desmarque aqui se não quiser receber.</li>
-    <li><strong>Assinatura</strong>, no topo da página: o plano Free é gratuito e sem limite de lançamentos. O Pro custa R$ 19,90 por mês, sem fidelidade, e toda conta nova ganha <strong>7 dias grátis</strong> dele, contados da confirmação do e-mail. O pagamento é feito na página segura do Stripe; trocar o cartão e cancelar ficam em <strong>Gerenciar assinatura</strong>. Quem cancela continua no Pro até o fim do período já pago e depois volta ao Free, sem perder nada.</li>
-    <li><strong>Seus dados:</strong> baixe uma planilha CSV dos lançamentos do período — pronta para o Excel e para entregar ao contador — ou uma cópia completa da conta em JSON. Os arquivos são montados no seu aparelho; o servidor não participa, porque o que ele guarda é cifra que nem nós abrimos.</li>
-    <li>Fale com o <strong>suporte</strong> quando precisar.</li>
+    <li><strong>Tela inicial:</strong> mude a ordem dos blocos do painel e esconda o que você não usa.</li>
+    <li><strong>Módulos:</strong> ligue ou desligue o <strong>Cartão de Crédito</strong>. Desligar não apaga nada, só esconde.</li>
+    <li><strong>Notificações por e-mail:</strong> o único e-mail recorrente que enviamos é o lembrete mensal, no dia 1º, para você exportar o extrato do banco. Desmarque se não quiser receber.</li>
+    <li>Fale com o <strong>suporte</strong> quando precisar: <a href="mailto:suporte@northfinances.com.br">suporte@northfinances.com.br</a>.</li>
   </ul>
   <h3>Sincronização</h3>
   <p>Acontece sozinha: o que você muda sobe para a nuvem em segundos, já cifrado. Se a conexão cair, as alterações ficam guardadas no aparelho e sobem quando ela voltar, mesmo que você feche o app no meio do caminho.</p>
   <p>Se dois aparelhos mexerem nos dados enquanto estavam fora de sincronia, o North <strong>junta as duas versões</strong>, lançamento por lançamento: o que mudou em cada um é mantido. Se o mesmo lançamento foi alterado nos dois, vale a versão do aparelho que está em uso.</p>
-  <div class="mock">
-    <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
-    <div class="mock-body">
-      <div class="m-row"><div class="m-info"><b>Módulo Cartão de Crédito</b></div><span class="pill" style="background:var(--greenl);color:var(--green)">Ativado</span></div>
-      <div class="m-row"><div class="m-info"><b>Verificação em duas etapas</b></div><span class="pill" style="background:var(--paper2);color:var(--ink3)">Desativado</span></div>
-      <div class="m-row"><div class="m-info"><b>Assinatura</b><small>Pro · R$ 19,90/mês</small></div><span class="pill" style="background:var(--greenl);color:var(--green)">Ativa</span></div>
-    </div>
-  </div>
 
-  <h2 id="excluir"><span class="num">10</span> Excluir a conta</h2>
-  <p>Fica no fim da página de perfil, em <strong>Excluir minha conta</strong>: toque para abrir o aviso e o botão.</p>
-  <p>Ao pedir a exclusão você tem <strong>15 dias para se arrepender</strong>: nesse período o acesso fica bloqueado, mas basta entrar de novo com e-mail e senha para reativar tudo. Passados os 15 dias, os dados são apagados definitivamente — e, como eles estão cifrados, o que se apaga é justamente o texto embaralhado que só você poderia abrir.</p>
-
-  <div class="group-label">Barra lateral</div>
-
-  <h2><span class="num">↔</span> O que fica sempre à mão</h2>
+  <h2 id="seguranca"><span class="num">2</span><span class="tit">Proteger a conta</span></h2>
+  <p>A criptografia de ponta a ponta já vem ligada: os dados são cifrados no seu aparelho antes de ir para a nuvem. O resto fica em <strong>Perfil e configurações → Segurança</strong>.</p>
   <ul>
-    <li><strong>Seu e-mail</strong>, no topo — clique para abrir o perfil.</li>
-    <li><strong>Status da sincronização</strong>, logo abaixo: mostra quando os dados subiram pela última vez.</li>
-    <li><strong>O olhinho</strong>, que esconde ou revela todos os valores em R$ de uma vez.</li>
-    <li>No rodapé: <strong>Visitar o site</strong> e <strong>Sair da conta</strong>.</li>
+    <li><strong>Verificação em duas etapas (2FA):</strong> o app mostra o QR code para escanear no Google Authenticator. Depois disso, a senha sozinha não abre a conta.</li>
+    <li><strong>Bloqueio do app:</strong> com ele ligado, o North pede o desbloqueio do aparelho ao abrir e depois de um minuto fora dele: <strong>Face ID</strong> no iPhone, <strong>digital</strong> no Android e <strong>Windows Hello</strong> (digital, rosto ou PIN) no computador. Vale só no aparelho em que foi ligado; se o desbloqueio falhar, a senha da conta abre.</li>
+    <li><strong>Aviso a cada novo acesso:</strong> todo login gera um e-mail para você.</li>
+    <li><strong>Sair de todos os aparelhos:</strong> usou um computador público? Encerra a sessão em todos de uma vez, inclusive neste.</li>
   </ul>
-
-  <div class="group-label">Privacidade na tela</div>
-
-  <h2><span class="num">+</span> Proteções automáticas</h2>
-  <p>Três camadas extras que funcionam sozinhas, sem precisar configurar nada.</p>
+  <h3>Proteções que funcionam sozinhas</h3>
   <ul>
     <li><strong>Sessão única:</strong> se sua senha for usada em outro navegador ou aparelho, a sessão anterior é encerrada automaticamente, com um aviso na tela.</li>
     <li><strong>Bloqueio por inatividade:</strong> depois de alguns minutos parado, a tela borra os dados sozinha até você confirmar "Continuar".</li>
-    <li><strong>Ocultar valores:</strong> o botão de olho na barra lateral esconde todos os valores em R$ do app de uma vez — vem oculto por padrão, você decide quando revelar.</li>
+    <li><strong>Ocultar valores:</strong> o botão de olho esconde todos os valores em R$ do app de uma vez. Vem oculto por padrão, você decide quando revelar.</li>
+    <li><strong>No celular,</strong> a lista de apps abertos mostra só o logo do North no lugar dos seus valores.</li>
   </ul>
+  <div class="mock">
+    <div class="mock-bar"><div class="mock-addr">🔒 app.northfinances.com.br</div><div class="mock-ctrls"><i></i><i></i><i></i></div></div>
+    <div class="mock-body">
+      <div class="m-row"><div class="m-info"><b>Criptografia de ponta a ponta</b><small>Seus dados são cifrados neste aparelho</small></div><span class="pill" style="background:var(--greenl);color:var(--green)">Ativa</span></div>
+      <div class="m-row"><div class="m-info"><b>Verificação em duas etapas</b></div><span class="pill" style="background:var(--paper2);color:var(--ink3)">Desativada</span></div>
+      <div class="m-row"><div class="m-info"><b>Bloqueio do app</b><small>Windows Hello</small></div><span class="pill" style="background:var(--greenl);color:var(--green)">Ligado</span></div>
+    </div>
+  </div>
+
+  <h2 id="planos"><span class="num">3</span><span class="tit">Entender os planos Free e Pro</span></h2>
+  <div class="mock">
+    <div class="mock-body">
+      <div class="tipos" style="margin-bottom:0">
+        <div><b>Free · R$ 0</b><small>Sem prazo e sem limite de lançamentos: transações, orçamento, metas, importação de extrato e de comprovante, cartão de crédito, Quem me deve, segurança completa e exportação dos dados.</small></div>
+        <div class="on"><b>Pro · R$ 19,90 por mês</b><small>Tudo do Free, mais investimentos, mais de uma conta, contas a pagar e receber e a recomendação do orçamento por IA. Sem fidelidade.</small></div>
+      </div>
+    </div>
+  </div>
+  <ul style="margin-top:16px">
+    <li>Toda conta nova ganha <strong>7 dias grátis do Pro</strong>, contados da confirmação do e-mail, sem pedir cartão.</li>
+    <li>O pagamento é feito na página segura do <strong>Stripe</strong>. Trocar o cartão e cancelar ficam em Perfil e configurações → <strong>Gerenciar assinatura</strong>.</li>
+    <li><strong>Sem pagamento, nada se perde.</strong> Se o teste acabar, se você cancelar ou se uma cobrança falhar, a conta volta ao Free. O que você já cadastrou nos recursos do Pro continua visível, entra nas contas e pode ser exportado; só não dá para criar itens novos neles.</li>
+    <li><strong>Segurança e exportação dos dados são sempre grátis.</strong></li>
+    <li>A assinatura vale para a conta em que foi feita. Pessoal e Empresarial são contas separadas.</li>
+    <li>Em breve no Pro: lançamentos pelo WhatsApp. Ainda não está no ar.</li>
+  </ul>
+
+  <h2 id="dados"><span class="num">4</span><span class="tit">Exportar os meus dados</span></h2>
+  <p>Em <strong>Perfil e configurações → Seus dados</strong>, sem precisar pedir e sem limite de vezes.</p>
+  <ul>
+    <li><strong>Planilha CSV</strong> dos lançamentos do período que você escolher, pronta para abrir no Excel.</li>
+    <li><strong>Cópia completa em JSON:</strong> transações, cartão, investimentos, metas, orçamento e contas, para guardar ou levar para outro serviço.</li>
+    <li>Na conta Empresarial, o <a href="#emp-relatorio">relatório para o contador</a> fica no mesmo lugar.</li>
+  </ul>
+  <p>Os arquivos são montados <strong>no seu aparelho</strong>. O servidor não participa, porque o que ele guarda é cifra que nem nós abrimos.</p>
+
+  <h2 id="excluir"><span class="num">5</span><span class="tit">Excluir a conta</span></h2>
+  <p>Fica no fim da página de perfil, em <strong>Excluir minha conta</strong>: toque para abrir o aviso e o botão.</p>
+  <p>Ao pedir a exclusão você tem <strong>15 dias para se arrepender</strong>: nesse período o acesso fica bloqueado, mas basta entrar de novo com e-mail e senha para reativar tudo. Passados os 15 dias, os dados são apagados definitivamente. Como eles estão cifrados, o que se apaga é justamente o texto embaralhado que só você poderia abrir.</p>
+  <p class="voltar"><a href="#caminhos">↑ Voltar aos caminhos</a></p>
 
   <div class="footer">
     <p class="sig">North<span> Finances</span></p>
