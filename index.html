@@ -2715,6 +2715,9 @@ const SUPA_URL='https://uipywjbcjzhqueyrfwef.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpcHl3amJjanpocXVleXJmd2VmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3ODI3NTUsImV4cCI6MjA5OTM1ODc1NX0.fSSocZhCBOoRRcfMD-VRCg7ZTyiItd23xkUNYBnwbXw';
 const sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
 let cloudReady=false,cloudTimer=null,recoveryMode=false;
+// Ativar somente após implantar account_profiles, RPC, trigger e checkout; atualizar os termos juntos.
+const TIPO_CONTA_SERVIDOR_ATIVO=true;
+let _tipoServidor='',_registrandoTipo=false,_tipoProntoUid='';
 let _nfUser=null,_nfSub=null;   // usados pela tela de Perfil
 
 function setSync(state){
@@ -2980,6 +2983,7 @@ const NF_DONO='bf_owner';
 const NF_CHAVES=['bf_tx','bf_cc','bf_inv','bf_goals','bf_settings','bf_budgets','bf_bills','bf_recurring','bf_accounts','bf_devedores','bf_base','bf_versao','bf_sujo'];
 function nfLimparCacheLocal(){
   NF_CHAVES.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});
+  S.settings={};_tipoServidor='';
   S.transactions=[];S.ccItems=[];S.investments=[];S.goals=[];S.budgets=[];S.bills=[];S.recurring=[];S.accounts=[];
 }
 function nfGarantirDono(uid){
@@ -3003,7 +3007,9 @@ async function loadCloud(uid){
       juntarComNuvem(cloud||{},r.versao);
       await cloudSaveNow();return;
     }
-    if(dataCount(cloud)>0){
+    // Preferências também são dados: uma conta sem lançamentos pode já ser PJ.
+    // Em aparelho vazio, restaurar a cifra inteira; alterações locais sujas foram tratadas acima.
+    if(dataCount(cloud)>0||(cloud&&dataCount(S)===0)){
       _aplicandoNuvem=true;try{applyCloud(cloud);}finally{_aplicandoNuvem=false;}
       guardarBase(JSON.stringify(cloud),r.versao);setSync('ok');
     }else if(dataCount(S)>0){
@@ -3111,6 +3117,8 @@ async function onSignedIn(session,fresh){
   document.getElementById('forgot-screen').style.display='none';
   document.getElementById('login-screen').classList.add('hidden');
   _nfUser=session.user;
+  cloudReady=false;_tipoProntoUid='';
+  _tipoServidor='';
   // Conta em período de carência de exclusão? Bloqueia o acesso e mostra a tela de reativação.
   try{
     const del=await sb.from('account_deletion').select('requested_at').eq('user_id',session.user.id).maybeSingle();
@@ -3130,11 +3138,14 @@ async function onSignedIn(session,fresh){
   document.getElementById('paywall-screen').style.display='none';
   document.getElementById('app').classList.add('visible');
   document.getElementById('udisp').textContent=session.user.email;
-  renderTrialBanner(acc);
-  renderSubPanel(sub,acc);
   if(acc.reason==='trialing')reportTrialStart(session.user.id);
   await loadCloud(session.user.id);
+  if(!_nfUser||_nfUser.id!==session.user.id)return;
   cloudReady=true;
+  _tipoProntoUid=session.user.id;
+  await sincronizarTipoConta();
+  renderTrialBanner(acc);
+  renderSubPanel(sub,acc);
   initApp();
   renderMFAStatus();
   renderTravaStatus();
@@ -3164,6 +3175,8 @@ async function onSignedIn(session,fresh){
 
 // ═══ ASSINATURA / PAYWALL ═══
 const FN_BASE=SUPA_URL+'/functions/v1';
+function precoPro(){return tipoConta()==='pj'?'49,90':'19,90';}
+function nomePlanoPro(){return tipoConta()==='pj'?'North Empresarial Pro':'North Pessoal Pro';}
 function daysLeft(d){return Math.max(0,Math.ceil((new Date(d).getTime()-Date.now())/86400000));}
 
 async function getSubscription(uid){
@@ -3385,7 +3398,7 @@ function renderTrialBanner(acc){
     el.style.display='block';
     el.innerHTML='<div style="background:linear-gradient(135deg,rgba(200,144,58,.16),rgba(200,144,58,.05));border:1px solid rgba(200,144,58,.35);border-radius:12px;padding:12px 14px;margin-top:14px">'
       +'<div style="font-size:12px;font-weight:800;color:var(--gold)">Teste grátis</div>'
-      +'<div style="font-size:11.5px;color:var(--ink4);margin:4px 0 8px">'+(d>0?('Faltam <strong>'+d+'</strong> dia'+(d===1?'':'s')):'Último dia')+' · Pro por R$ 19,90/mês</div>'
+      +'<div style="font-size:11.5px;color:var(--ink4);margin:4px 0 8px">'+(d>0?('Faltam <strong>'+d+'</strong> dia'+(d===1?'':'s')):'Último dia')+' · Pro por R$ '+precoPro()+'/mês</div>'
       +'<button onclick="startSubscription(this)" style="width:100%;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;padding:9px;font-family:var(--ff);font-weight:800;font-size:12px;letter-spacing:-.1px;cursor:pointer">Assinar agora</button>'
       +'</div>';
   }else if(!acc.ok){
@@ -3414,14 +3427,14 @@ function renderSubPanel(sub,acc){
   let html,status,btns;
   if(r==='trialing'){
     const d=daysLeft(acc.end);
-    html='<b>Pro em teste grátis</b> · '+(d===1?'falta 1 dia':'faltam '+d+' dias')+', até '+fim+'<br>Depois, o plano Free, ou o Pro por <b>R$ 19,90/mês</b>.'
+    html='<b>Pro em teste grátis</b> · '+(d===1?'falta 1 dia':'faltam '+d+' dias')+', até '+fim+'<br>Depois, o plano Free, ou o Pro por <b>R$ '+precoPro()+'/mês</b>.'
       +'<span class="pf-barra" aria-hidden="true"><i style="width:'+Math.max(6,Math.min(100,Math.round(d/7*100)))+'%"></i></span>';
     status='Teste · '+(d===1?'1 dia':d+' dias');
   }
-  else if(r==='active'){html='<b>North Finances Pro</b> · R$ 19,90/mês'+(fim?'<br>Próxima cobrança em <b>'+fim+'</b>':'');status='Ativo';}
+  else if(r==='active'){html='<b>'+nomePlanoPro()+'</b> · R$ '+precoPro()+'/mês'+(fim?'<br>Próxima cobrança em <b>'+fim+'</b>':'');status='Ativo';}
   else if(r==='grace'){html='<b>Pro cancelado</b><br>Seu acesso continua até <b>'+fim+'</b>. Depois, a conta volta ao Free sem perder nada.';status='Até '+fim;}
   else if(r==='past_due'){html='<b>Pagamento recusado</b><br>Atualize o cartão para voltar ao Pro.';status='Pagamento pendente';}
-  else{html='<b>Plano Free</b><br>O Pro acompanha seus investimentos, separa o dinheiro por banco e cuida das contas a pagar, por <b>R$ 19,90/mês</b>.';status='Disponível no Pro';}
+  else{html='<b>Plano Free</b><br>O Pro acompanha seus investimentos, separa o dinheiro por banco e cuida das contas a pagar e receber, por <b>R$ '+precoPro()+'/mês</b>.';status='Disponível no Pro';}
   // pagamento recusado tambem passa por aqui: a funcao manda para o portal trocar o cartao
   if(r!=='active')btns='<button type="button" class="pf-btn pf-btn-ouro" onclick="startSubscription(this)">'+(r==='grace'?'Reativar':r==='past_due'?'Atualizar cartão':'Assinar o Pro')+'</button>';
   else btns='<button type="button" class="pf-btn" onclick="gerenciarAssinatura(this)">Gerenciar assinatura</button><button type="button" class="pf-btn" onclick="abrirRecepcaoPro()">Rever as boas-vindas</button>';
@@ -3826,7 +3839,7 @@ async function doSetup(){
   const ct=await getCaptcha('captcha-setup');
   if(captchaOn()&&!ct){showErr(CAPTCHA_WAIT_MSG);return;}
   const authSecret=await nfAuthSecret(email,pass);
-  const {data,error}=await sb.auth.signUp({email,password:authSecret,options:{emailRedirectTo:'https://app.northfinances.com.br/',captchaToken:ct}});
+  const {data,error}=await sb.auth.signUp({email,password:authSecret,options:{emailRedirectTo:'https://app.northfinances.com.br/',captchaToken:ct,data:TIPO_CONTA_SERVIDOR_ATIVO?{account_type:_tipoCadastro}:{}}});
   resetCaptcha('captcha-setup');
   if(error){
     // Proteção contra enumeração: não revelamos se o e-mail já existe.
@@ -4356,7 +4369,7 @@ function proximoPassoEntrada(){
   if(!S.settings.accountType){
     // quem escolheu no cadastro, neste aparelho, não responde de novo
     const tp=tipoDoCadastro(_nfUser&&_nfUser.email);
-    if(tp){try{localStorage.removeItem('nf_tipo_cadastro');}catch(e){}escolherTipo(tp);}
+    if(tp){escolherTipo(tp);}
     else openModal('tipo-modal');
     return;
   }
@@ -4408,7 +4421,7 @@ function salvarPrimeiroGasto(){
   document.getElementById('pg-linha').innerHTML=
     passo('🔓','Hoje: tudo liberado','Investimentos, mais de um banco e contas a pagar e receber. R$ 0,00.')
     +passo('🔔',dd(aviso)+': a gente te avisa','Um lembrete aqui no app de que o teste está acabando.')
-    +passo('👑',dd(fim)+': você escolhe','Continuar no Pro por R$ 19,90/mês ou ficar no Free. Sem cartão, nada é cobrado sozinho, e nada do que você lançou se perde.');
+    +passo('👑',dd(fim)+': você escolhe','Continuar no Pro por R$ '+precoPro()+'/mês ou ficar no Free. Sem cartão, nada é cobrado sozinho, e nada do que você lançou se perde.');
   document.getElementById('pg-passo1').hidden=true;
   document.getElementById('pg-passo2').hidden=false;
 }
@@ -5532,8 +5545,8 @@ function doReconcile(){
 //
 // Ao mudar os termos: atualize as duas constantes abaixo com a data do topo de
 // termos.html. O sync-termos.ps1 confere se elas batem e falha se divergirem.
-const TERMOS_VERSAO='2026-11-12';
-const TERMOS_RESUMO='Duas mudanças. No plano Pro, o Orçamento ganhou a recomendação por IA: só acontece quando você pede, e sai do aparelho apenas um resumo com os totais de cada categoria, enviado à Anthropic, a empresa do Claude; descrições, lojas e bancos nunca saem. E corrigimos a seção 11.2: se um pagamento falhar, a conta volta ao plano Free, sem bloqueio e sem perder nada.';
+const TERMOS_VERSAO='2026-11-12.2';
+const TERMOS_RESUMO='Pessoal e Empresarial são contas separadas, com e-mails próprios. O tipo escolhido no cadastro não pode ser trocado pelo aplicativo. Seus dados financeiros continuam cifrados. O Pro Pessoal custa R$ 19,90/mês e o Empresarial R$ 49,90/mês; a contratação permanece pausada. As contas pessoais já existentes mantêm o acesso ao Windows, sem data de bloqueio definida.';
 function renderAvisoTermos(){
   const bar=document.getElementById('termos-bar');if(!bar)return;
   if(S.settings.termosVistos===TERMOS_VERSAO){bar.classList.add('hidden');return;}
@@ -5769,7 +5782,7 @@ const CATS_PJ={
   despesas:['Fornecedores','Impostos','Folha e pró-labore','Aluguel e estrutura','Marketing','Ferramentas e software','Taxas e tarifas',CAT_RETIRADA,'Outros']
 };
 function tipoConta(){
-  const v=S.settings.accountType;
+  const v=_tipoServidor||S.settings.accountType;
   return v==='pj'?'pj':'pf';   // 'both' (modo que saiu em 2026-11) cai em pessoal
 }
 // As categorias JA USADAS entram sempre, mesmo fora da lista do tipo. Sem isto,
@@ -5811,8 +5824,8 @@ function renderCatSelects(){
 }
 // ═══ TIPO DE CONTA NO CADASTRO ═══
 // Pessoal e Empresarial são contas separadas. A escolha é feita no cadastro e
-// viaja até a primeira entrada por este aparelho (a conta só abre depois da
-// confirmação do e-mail). Em outro aparelho, a pergunta aparece na entrada.
+// é registrada pelo servidor uma única vez; a cópia cifrada mantém a experiência
+// offline. O cache abaixo serve apenas de apoio à confirmação no mesmo aparelho.
 let _tipoCadastro='';
 function escolherTipoCadastro(tp){
   if(tp==='pf'&&IS_NORTHAPP)return;   // no app de Windows só nasce conta Empresarial
@@ -5848,9 +5861,52 @@ function aplicarTipoNaTela(){
   const rm=document.getElementById('rel-mes');if(rm&&!rm.value)rm.value=monthKeyOf(new Date());
   aplicarWindows();
 }
-function escolherTipo(tp){
-  // Pessoal e Empresarial são contas separadas: o tipo é definido uma vez e não muda
-  if(S.settings.accountType){closeModal('tipo-modal');return;}
+// ═══ TIPO CANÔNICO NO SERVIDOR ═══
+function tipoValido(tp){return tp==='pf'||tp==='pj';}
+function adotarTipoServidor(tp){
+  if(!tipoValido(tp))throw new Error('Tipo de conta inválido.');
+  _tipoServidor=tp;S.settings.accountType=tp;persistSettings();
+  return tp;
+}
+async function registrarTipoConta(tp){
+  if(!tipoValido(tp))throw new Error('Tipo de conta inválido.');
+  if(!TIPO_CONTA_SERVIDOR_ATIVO)return tp;
+  if(!_nfUser)throw new Error('Entre na conta para escolher o tipo.');
+  const uid=_nfUser.id;
+  const {data,error}=await sb.rpc('register_account_type',{p_account_type:tp});
+  if(!_nfUser||_nfUser.id!==uid)throw new Error('A sessão mudou. Entre novamente.');
+  if(error)throw error;
+  return adotarTipoServidor(data);
+}
+async function sincronizarTipoConta(){
+  if(!TIPO_CONTA_SERVIDOR_ATIVO||!_nfUser||_tipoProntoUid!==_nfUser.id)return;
+  const uid=_nfUser.id;
+  try{
+    const {data,error}=await sb.from('account_profiles').select('account_type').eq('user_id',uid).maybeSingle();
+    if(!_nfUser||_nfUser.id!==uid)return;
+    if(error)throw error;
+    if(data){adotarTipoServidor(data.account_type);return;}
+    // Contas antigas só podem migrar depois de abrir a cifra. Nunca presumir PF.
+    if(!_nuvemIlegivel&&tipoValido(S.settings.accountType))await registrarTipoConta(S.settings.accountType);
+  }catch(e){
+    // Uma falha de rede preserva o acesso e a cópia cifrada. A cobrança exige o perfil no servidor.
+    console.warn('Não foi possível confirmar o tipo da conta. Uma nova tentativa será feita ao reconectar.');
+  }
+}
+window.addEventListener('online',async()=>{
+  await sincronizarTipoConta();
+  if(_tipoServidor){aplicarTipoNaTela();renderCatSelects();renderTrialBanner(subAccess(_nfSub));renderSubPanel(_nfSub,subAccess(_nfSub));}
+});
+// ═══ FIM DO TIPO CANÔNICO ═══
+async function escolherTipo(tp){
+  if(_registrandoTipo||!tipoValido(tp))return;
+  // Pessoal e Empresarial são contas separadas: o tipo é definido uma vez e não muda.
+  if(_tipoServidor||S.settings.accountType){closeModal('tipo-modal');return;}
+  if(tp==='pf'&&IS_NORTHAPP){toast('No Windows, crie uma conta Empresarial. Para a conta pessoal, use o navegador.');return;}
+  _registrandoTipo=true;
+  try{tp=await registrarTipoConta(tp);}
+  catch(e){toast('Não foi possível salvar o tipo da conta. Confira a conexão e tente novamente.');openModal('tipo-modal');return;}
+  finally{_registrandoTipo=false;}
   S.settings.accountType=tp;
   if(tp==='pj')S.settings.billsTab='receive';   // negocio olha primeiro o que entra
   persistSettings();
@@ -5860,6 +5916,8 @@ function escolherTipo(tp){
   try{renderBillsPage();}catch(e){}
   try{updateDashboard();}catch(e){}
   aplicarTipoNaTela();
+  renderTrialBanner(subAccess(_nfSub));renderSubPanel(_nfSub,subAccess(_nfSub));
+  try{localStorage.removeItem('nf_tipo_cadastro');}catch(e){}
   toast(tp==='pj'?'Conta Empresarial configurada':'Conta pessoal configurada');
   setTimeout(proximoPassoEntrada,350);
 }
@@ -8185,7 +8243,7 @@ function persist(){_guardar('bf_tx',S.transactions);}
 function persistCC(){_guardar('bf_cc',S.ccItems);}
 function persistInv(){_guardar('bf_inv',S.investments);}
 function persistGoals(){_guardar('bf_goals',S.goals);}
-function persistSettings(){_guardar('bf_settings',S.settings);}
+function persistSettings(){if(_tipoServidor)S.settings.accountType=_tipoServidor;_guardar('bf_settings',S.settings);}
 function persistBudgets(){_guardar('bf_budgets',S.budgets);}
 function persistContas(){_guardar('bf_accounts',S.accounts);}
 function persistBills(){_guardar('bf_bills',S.bills);}

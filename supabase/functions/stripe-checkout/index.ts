@@ -1,11 +1,10 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17.7.0";
+import { planoDaConta, precoConfere } from "../_shared/account-plan.ts";
 
 // Abre o pagamento do Pro na pagina hospedada do Stripe e devolve a URL. O app so
 // redireciona: nenhum script de terceiro roda dentro do app criptografado.
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", { httpClient: Stripe.createFetchHttpClient() });
-// shortcut: o padrao e o preco de TESTE; ao ligar a conta real, defina STRIPE_PRICE_ID com o preco live.
-const PRICE = Deno.env.get("STRIPE_PRICE_ID") ?? "price_1UZqefRpYGSIMBWBlC6XG7fo";
 const APP_URL = Deno.env.get("APP_URL") ?? "https://app.northfinances.com.br/";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 // O Stripe recusa trial_end a menos de 48h no Checkout.
@@ -21,6 +20,7 @@ const json = (o: unknown, status = 200) =>
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   try {
     if (!Deno.env.get("STRIPE_SECRET_KEY")) {
       console.error("STRIPE_CHECKOUT: STRIPE_SECRET_KEY nao definida");
@@ -40,6 +40,11 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "unauthorized" }, 401);
 
     const admin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: profile, error: profileError } = await admin.from("account_profiles")
+      .select("account_type").eq("user_id", user.id).maybeSingle();
+    if (profileError) return json({ error: "tipo_conta_indisponivel" }, 503);
+    const plano = planoDaConta(profile?.account_type);
+    if (!plano) return json({ error: "tipo_conta_nao_registrado" }, 409);
     const { data: row } = await admin.from("subscriptions")
       .select("status,trial_ends_at,stripe_customer_id,stripe_subscription_id")
       .eq("user_id", user.id).maybeSingle();
@@ -54,23 +59,31 @@ Deno.serve(async (req) => {
       }
     }
 
+    const priceId = Deno.env.get(plano.priceEnv);
+    if (!priceId) return json({ error: "pagamento_nao_configurado" }, 503);
+    const price = await stripe.prices.retrieve(priceId);
+    if (!precoConfere(plano, price)) {
+      console.error("STRIPE_CHECKOUT_PRECO_INCOMPATIVEL tipo=" + plano.accountType);
+      return json({ error: "pagamento_nao_configurado" }, 503);
+    }
+
     let customer = row?.stripe_customer_id ?? null;
     if (!customer) {
-      const c = await stripe.customers.create({ email: user.email, metadata: { user_id: user.id } });
+      const c = await stripe.customers.create({ email: user.email, metadata: { user_id: user.id, account_type: plano.accountType } });
       customer = c.id;
       await admin.from("subscriptions").update({ stripe_customer_id: customer }).eq("user_id", user.id);
     }
 
     // Quem assina durante a semana gratis so e cobrado quando ela acaba.
     const fimTeste = row?.status === "trialing" && row.trial_ends_at ? new Date(row.trial_ends_at).getTime() : 0;
-    const subscription_data: Stripe.Checkout.SessionCreateParams.SubscriptionData = { metadata: { user_id: user.id } };
+    const subscription_data: Stripe.Checkout.SessionCreateParams.SubscriptionData = { metadata: { user_id: user.id, account_type: plano.accountType } };
     if (fimTeste - Date.now() > MIN_TRIAL_MS) subscription_data.trial_end = Math.floor(fimTeste / 1000);
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer,
       client_reference_id: user.id,
-      line_items: [{ price: PRICE, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       subscription_data,
       locale: "pt-BR",
       success_url: APP_URL + "?assinatura=ok",

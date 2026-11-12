@@ -38,7 +38,7 @@ const sandbox = {
   esc: s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'),
   fmtCur: v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v),
   calcGoalCDI: () => null, goalLinkedValue: () => 0,
-  tipoConta: () => tipo, ehPro: () => true,
+  tipoConta: () => tipo, ehPro: () => true, precoPro: () => tipo==='pj'?'49,90':'19,90',
   mesContabil: t => String(t.date).slice(0, 7),   // sem fatura de cartao aqui: o mes do calendario
   persistSettings: () => {}, persistGoals: () => {}, persistBudgets: () => {},
   updateDashboard: () => {}, renderPerfil: () => {},

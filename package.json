@@ -1,8 +1,8 @@
 {
   "name": "north",
   "productName": "North Finances",
-  "version": "1.5.2",
-  "description": "Controle financeiro pessoal com conta na nuvem e criptografia de ponta a ponta — os dados são cifrados no seu aparelho",
+  "version": "1.6.0",
+  "description": "North Empresarial para MEI e pequenos negócios — controle financeiro com conta na nuvem e criptografia de ponta a ponta",
   "main": "electron/main.js",
   "author": "Pedro Barssottini Gianchetta",
   "license": "MIT",

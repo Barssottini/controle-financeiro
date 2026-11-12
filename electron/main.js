@@ -16,6 +16,9 @@ function ehNosso(u) {
   } catch (e) { return false; }
 }
 const REPO = 'Barssottini/controle-financeiro';
+// Mesmo identificador do instalador NSIS: permite que os avisos de DAS e
+// recebimentos sejam associados ao North na Central de Notificações do Windows.
+if (process.platform === 'win32') app.setAppUserModelId('com.northfinances.app');
 
 // Chaves PÚBLICAS (Ed25519) aceitas para verificar o update. A privada correspondente fica
 // OFFLINE em %USERPROFILE%.north-keys e assina cada release (sign-release.js).
@@ -36,7 +39,8 @@ MCowBQYDK2VwAyEAQ+LcTreHNoDpk9P08GQ7U1GjHEkWEWmEVzB90Gne+5k=
 
 // User-Agent LIMPO (sem acentos). O padrão do Electron injeta o productName com acento,
 // e um "ç"/acento em Latin-1 quebra o Postgres do Supabase ao criar a sessão (erro 500).
-app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) NorthApp Chrome/130.0.0.0 Safari/537.36';
+const USER_AGENT = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) NorthApp/${app.getVersion()} Chrome/${process.versions.chrome} Safari/537.36`;
+app.userAgentFallback = USER_AGENT;
 
 const OFFLINE_HTML = 'data:text/html;charset=utf-8,' + encodeURIComponent(`
 <body style="background:#0d0d0d;color:#faf9f7;font-family:Segoe UI,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
@@ -286,7 +290,7 @@ app.whenReady().then(async () => {
 
   // Reforço: define o User-Agent limpo também na sessão (sem "ç" que quebra o Postgres)
   try {
-    session.defaultSession.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) NorthApp Chrome/130.0.0.0 Safari/537.36');
+    session.defaultSession.setUserAgent(USER_AGENT);
   } catch (e) {}
 
   const win = createWindow();

@@ -6,6 +6,7 @@
 //
 // Rodar:  node verificar-empresa.js
 
+async function main(){
 const fs = require('fs');
 const path = require('path');
 
@@ -17,7 +18,7 @@ const real = re => { const m = t.match(re); if (!m) { console.error('nao achei '
 const auxiliares = [
   /function _diaChave\(d\)\{.*\}/, /function monthKeyOf\(d\)\{.*\}/, /function newId\(\)\{[\s\S]*?\n\}/,
   /function _pascoa\(ano\)\{[\s\S]*?\n\}/, /const _feriadosCache=\{\};/, /function _feriados\(ano\)\{[\s\S]*?\n\}/,
-  /function escolherTipo\(tp\)\{[\s\S]*?\n\}/,
+  /async function escolherTipo\(tp\)\{[\s\S]*?\n\}/,
 ].map(real).join('\n');
 
 const S = { settings: {}, transactions: [], ccItems: [], investments: [], goals: [], budgets: [], bills: [], recurring: [] };
@@ -42,6 +43,9 @@ const sandbox = {
   toast: m => avisos.push(m),
   openModal: () => {}, closeModal: id => fechados.push(id), showPage: () => {},
   aplicarTipoNaTela: () => {}, IS_NORTHAPP: false,
+  setTimeout: () => {},
+  _tipoServidor:'', _registrandoTipo:false, tipoValido:tp=>tp==='pf'||tp==='pj',
+  registrarTipoConta:async tp=>tp, renderTrialBanner:()=>{}, renderSubPanel:()=>{}, subAccess:()=>({}), _nfSub:null,
   document: { getElementById: id => dom[id] || null, addEventListener() {} },
 };
 const nomes = Object.keys(sandbox);
@@ -146,14 +150,14 @@ checa('abrir direto no regime', dom['ck-corpo'].innerHTML.includes('regime da su
 
 // 7. Tipo da conta: definido uma vez, nao muda (Pessoal e Empresarial sao contas separadas)
 S.settings = { accountType: 'pf' }; S.transactions = []; S.ccItems = [];
-C.escolherTipo('pj');
+await C.escolherTipo('pj');
 checa('conta pessoal nao vira Empresarial, nem sem lancamento', S.settings.accountType, 'pf');
 checa('e a janela fecha sem trocar', fechados[fechados.length - 1], 'tipo-modal');
 S.settings = { accountType: 'pj' };
-C.escolherTipo('pf');
+await C.escolherTipo('pf');
 checa('conta Empresarial nao vira pessoal', S.settings.accountType, 'pj');
 S.settings = {}; S.transactions = [{ id: 30, type: 'income', amount: 10, date: '2026-11-01' }];
-C.escolherTipo('pj');
+await C.escolherTipo('pj');
 checa('conta sem tipo escolhe normalmente, mesmo com lancamento', S.settings.accountType, 'pj');
 
 // 8. App de Windows: exclusivo do Empresarial
@@ -183,4 +187,6 @@ tipo = 'pj'; S.bills = []; S.transactions = [];
 
 console.log(L.join('\n'));
 console.log(falhas ? '\n  ' + falhas + ' falha(s)' : '\n  todos passaram');
-process.exit(falhas ? 1 : 0);
+process.exitCode=falhas ? 1 : 0;
+}
+main().catch(e=>{console.error(e);process.exitCode=1;});

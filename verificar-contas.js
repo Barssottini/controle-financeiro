@@ -186,7 +186,7 @@ checa('Nubank fica intocado', C.saldoDaConta(1), 1000);
 // pode ficar com lancamento escondido atras de um filtro que nao existe mais.
 const fonteBolso = fatia('function tipoConta(){', '// As categorias JA USADAS')
   + fatia('function ctxDe(x){', 'function txVis(){') + fatia('function migrateData(){', '// ═══ SETTINGS ═══');
-const B = new Function('S', 'guessCategory', 'persistSettings', fonteBolso + '\nreturn {tipoConta,noCtx,migrateData};')(S, d => d, () => {});
+const B = new Function('S', 'guessCategory', 'persistSettings', "let _tipoServidor='';\n" + fonteBolso + '\nreturn {tipoConta,noCtx,migrateData};')(S, d => d, () => {});
 S.settings = { empresarial: true, ctxView: 'pj', accountType: 'both' };
 S.transactions = [
   { id: 1, type: 'expense', amount: 10, ctx: 'pj', category: 'Outros', description: 'Contador' },
