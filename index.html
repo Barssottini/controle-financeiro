@@ -7905,8 +7905,11 @@ function parseCSV(text){
   if(lines.length<2)return[];
   const rows=[];
   const known=knownCats();
+  // O separador é um só por arquivo. Com ponto e vírgula, a vírgula é do valor
+  // ("350,00"): cortar nas duas fazia R$ 350,00 entrar como R$ 0,00.
+  const sep=lines.slice(0,2).join('').includes(';')?';':',';
   for(let i=1;i<lines.length;i++){
-    const cols=splitCSV(lines[i]);if(cols.length<3)continue;
+    const cols=splitCSV(lines[i],sep);if(cols.length<3)continue;
     const dateRaw=cols[0]?.trim()||'';
     const desc=cols[1]?.trim()||'Sem descrição';
     const amt=parseValor(cols[cols.length-1]);if(isNaN(amt))continue;
@@ -7918,9 +7921,9 @@ function parseCSV(text){
   }
   return rows;
 }
-function splitCSV(line){
+function splitCSV(line,sep){
   const cols=[];let cur='';let inQ=false;
-  for(const c of line){if(c==='"'){inQ=!inQ;}else if((c===','||c===';')&&!inQ){cols.push(cur);cur='';}else cur+=c;}
+  for(const c of line){if(c==='"'){inQ=!inQ;}else if(c===sep&&!inQ){cols.push(cur);cur='';}else cur+=c;}
   cols.push(cur);return cols;
 }
 function normalizeDate(raw){
