@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Confere a experiencia de empresa (conta CNPJ), extraindo o codigo real do index.html:
 // vencimento do DAS (dia 20, ou o proximo dia util), DAS pago, teto do MEI,
-// retiradas do dono contra o lucro, as perguntas de empresa e a troca do tipo
-// da conta, que so vale enquanto nao ha lancamento.
+// retiradas do dono contra o lucro, as perguntas de empresa, o tipo da conta,
+// que e definido uma vez e nao muda, e a trava do app de Windows.
 //
 // Rodar:  node verificar-empresa.js
 
@@ -41,11 +41,12 @@ const sandbox = {
   updateDashboard: () => {}, renderPerfil: () => {}, renderCatSelects: () => {}, renderSettings: () => {}, renderBillsPage: () => {},
   toast: m => avisos.push(m),
   openModal: () => {}, closeModal: id => fechados.push(id), showPage: () => {},
+  aplicarTipoNaTela: () => {}, IS_ELECTRON: false,
   document: { getElementById: id => dom[id] || null, addEventListener() {} },
 };
 const nomes = Object.keys(sandbox);
 const F = new Function(...nomes, auxiliares + '\n' + t.slice(i, j) +
-  '\nreturn {vencimentoDAS,linhaDAS,linhaTeto,linhaRetiradas,renderFoco,abrirConhecer,ckSeguir,ckPular,ckRegime,ckObjetivo,escolherTipo,temLancamentos,_diaChave,TETO_MEI};');
+  '\nreturn {vencimentoDAS,linhaDAS,linhaTeto,linhaRetiradas,renderFoco,abrirConhecer,ckSeguir,ckPular,ckRegime,ckObjetivo,escolherTipo,temLancamentos,_diaChave,tetoMEI,estadoWindows,WINDOWS_EXCLUSIVO_EM,avisosDoDia};');
 const C = F(...nomes.map(n => sandbox[n]));
 
 let falhas = 0;
@@ -86,11 +87,15 @@ checa('longe do teto: so informa', C.linhaTeto(dia(2026, 11, 10)).titulo, 'Teto 
 comFaturamento(70000);
 const perto = C.linhaTeto(dia(2026, 11, 10));
 checa('80% ou mais: perto do teto, em alerta', [perto.titulo, perto.subCls, perto.barra.cls], ['Perto do teto do MEI', 'alerta', 'alerta']);
-checa('mostra quanto falta para o limite', perto.sub.includes('Faltam ' + brl(C.TETO_MEI - 70000)), true);
+checa('mostra quanto falta para o limite', perto.sub.includes('Faltam ' + brl(81000 - 70000)), true);
 comFaturamento(85000);
 const passou = C.linhaTeto(dia(2026, 11, 10));
 checa('acima do teto: vermelho, barra cheia', [passou.titulo, passou.cls, passou.barra.pct], ['Passou do teto do MEI', 'neg', 100]);
 checa('so conta o ano corrente', C.linhaTeto(dia(2026, 11, 10)).sub.startsWith(brl(85000)), true);
+checa('teto por ano (LC 238/2026): 81 mil, 110 mil, 140 mil', [C.tetoMEI(2026), C.tetoMEI(2027), C.tetoMEI(2028), C.tetoMEI(2031)], [81000, 110000, 140000, 140000]);
+S.transactions = [{ id: 12, type: 'income', amount: 85000, date: '2027-03-10' }];
+const em2027 = C.linhaTeto(dia(2027, 6, 10));
+checa('em 2027, R$ 85 mil ainda cabem no teto de R$ 110 mil', [em2027.titulo, em2027.sub.includes(brl(110000))], ['Teto do MEI', true]);
 
 // 4. Retiradas do dono contra o lucro
 const r1 = C.linhaRetiradas({ lucro: 4000, retir: 2500 });
@@ -139,17 +144,41 @@ checa('empresa nao ganha limites de orcamento pessoal', S.budgets.length, 0);
 C.abrirConhecer('regime');
 checa('abrir direto no regime', dom['ck-corpo'].innerHTML.includes('regime da sua empresa'), true);
 
-// 7. Tipo da conta: troca so sem lancamento
+// 7. Tipo da conta: definido uma vez, nao muda (Pessoal e Empresarial sao contas separadas)
 S.settings = { accountType: 'pf' }; S.transactions = []; S.ccItems = [];
 C.escolherTipo('pj');
-checa('sem lancamento: troca de pessoal para empresa', S.settings.accountType, 'pj');
-S.transactions = [{ id: 30, type: 'income', amount: 10, date: '2026-11-01' }];
-C.escolherTipo('pf');
-checa('com lancamento: o tipo fica', S.settings.accountType, 'pj');
+checa('conta pessoal nao vira Empresarial, nem sem lancamento', S.settings.accountType, 'pf');
 checa('e a janela fecha sem trocar', fechados[fechados.length - 1], 'tipo-modal');
-S.settings = {};
+S.settings = { accountType: 'pj' };
 C.escolherTipo('pf');
-checa('conta sem tipo escolhe normalmente, mesmo com lancamento', S.settings.accountType, 'pf');
+checa('conta Empresarial nao vira pessoal', S.settings.accountType, 'pj');
+S.settings = {}; S.transactions = [{ id: 30, type: 'income', amount: 10, date: '2026-11-01' }];
+C.escolherTipo('pj');
+checa('conta sem tipo escolhe normalmente, mesmo com lancamento', S.settings.accountType, 'pj');
+
+// 8. App de Windows: exclusivo do Empresarial
+const W = C.WINDOWS_EXCLUSIVO_EM, vespera = C._diaChave(new Date(new Date(W + 'T12:00:00').getTime() - 86400000));
+checa('fora do app de Windows, tudo livre', [C.estadoWindows(false, 'pf', '2030-01-01'), C.estadoWindows(false, 'pj', '2030-01-01')], ['livre', 'livre']);
+checa('conta Empresarial no Windows: livre', C.estadoWindows(true, 'pj', '2030-01-01'), 'livre');
+checa('conta pessoal no Windows, antes da data: so o aviso', C.estadoWindows(true, 'pf', vespera), 'aviso');
+checa('conta pessoal no Windows, na data: bloqueada', C.estadoWindows(true, 'pf', W), 'bloqueado');
+checa('conta ainda sem tipo passa (a pergunta vem antes)', C.estadoWindows(true, '', '2030-01-01'), 'livre');
+
+// 9. Avisos do Windows: DAS a tres dias ou menos e recebimentos do dia
+tipo = 'pj'; S.settings = { regime: 'mei' }; S.transactions = [];
+// em novembro de 2026 o dia 20 e feriado (sexta) e o DAS vence na segunda, 23
+S.bills = [{ id: 1, name: 'Mensalidade cliente A', amount: 1200, day: 21, kind: 'receive', paidMonths: [] }, { id: 2, name: 'Aluguel', amount: 900, day: 21, kind: 'pay', paidMonths: [] }, { id: 3, name: 'Cliente B', amount: 300, day: 21, kind: 'receive', paidMonths: ['2026-11'] }];
+checa('longe do DAS e sem recebimento no dia: nenhum aviso', C.avisosDoDia(dia(2026, 11, 10)), []);
+const av21 = C.avisosDoDia(dia(2026, 11, 21));
+checa('dois dias antes do DAS: avisa', av21.map(a => a.titulo), ['Faltam 2 dias para o DAS', 'Recebimento previsto para hoje']);
+checa('recebimento do dia: so o que e a receber e ainda nao foi recebido', av21[1] && av21[1].corpo, 'Mensalidade cliente A · ' + brl(1200));
+S.transactions = [{ id: 40, type: 'expense', amount: 80.9, date: '2026-11-21', category: 'Impostos', description: 'DAS' }];
+checa('DAS ja lancado: sem aviso do DAS', C.avisosDoDia(dia(2026, 11, 21)).map(a => a.titulo), ['Recebimento previsto para hoje']);
+S.bills = [{ id: 4, name: 'Cliente C', amount: 500, day: 31, kind: 'receive', paidMonths: [] }];
+checa('dia 31 em mes de 30 dias cai no dia 30', C.avisosDoDia(dia(2026, 11, 30)).map(a => a.titulo), ['Recebimento previsto para hoje']);
+tipo = 'pf';
+checa('conta pessoal nao recebe aviso', C.avisosDoDia(dia(2026, 11, 21)), []);
+tipo = 'pj'; S.bills = []; S.transactions = [];
 
 console.log(L.join('\n'));
 console.log(falhas ? '\n  ' + falhas + ' falha(s)' : '\n  todos passaram');
