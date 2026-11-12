@@ -5352,8 +5352,8 @@ function doReconcile(){
 //
 // Ao mudar os termos: atualize as duas constantes abaixo com a data do topo de
 // termos.html. O sync-termos.ps1 confere se elas batem e falha se divergirem.
-const TERMOS_VERSAO='2026-11-11';
-const TERMOS_RESUMO='No plano Pro, o Orçamento ganhou a recomendação por IA. Ela só acontece quando você pede, e sai do aparelho apenas um resumo com os totais de cada categoria, enviado à Anthropic, a empresa do Claude. Descrições, lojas e bancos nunca saem.';
+const TERMOS_VERSAO='2026-11-12';
+const TERMOS_RESUMO='Duas mudanças. No plano Pro, o Orçamento ganhou a recomendação por IA: só acontece quando você pede, e sai do aparelho apenas um resumo com os totais de cada categoria, enviado à Anthropic, a empresa do Claude; descrições, lojas e bancos nunca saem. E corrigimos a seção 11.2: se um pagamento falhar, a conta volta ao plano Free, sem bloqueio e sem perder nada.';
 function renderAvisoTermos(){
   const bar=document.getElementById('termos-bar');if(!bar)return;
   if(S.settings.termosVistos===TERMOS_VERSAO){bar.classList.add('hidden');return;}
