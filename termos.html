@@ -76,7 +76,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
   <img src="logo-192.png" alt="North Finances" class="badge">
   <div class="brand">North<span> Finances</span></div>
   <div class="doc-title">Termos de Uso &amp; Privacidade</div>
-  <div class="doc-date">Última atualização: 12 de novembro de 2026 · revisão 2</div>
+  <div class="doc-date">Última atualização: 13 de novembro de 2026</div>
 </div>
 
 <div class="wrap">
@@ -102,7 +102,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
   <div class="highlight">⚠️ <strong>O aplicativo é uma ferramenta de organização, não uma consultoria financeira.</strong> As informações, cálculos, cotações e projeções exibidos têm caráter meramente informativo e não constituem recomendação de compra, venda ou manutenção de qualquer ativo. Toda decisão de investimento é de sua exclusiva responsabilidade.</div>
 
   <h2><span class="num">2</span> Sua conta</h2>
-  <p><strong>Pessoal e Empresarial são contas separadas.</strong> Cada uma tem seu próprio e-mail, senha, dados e eventual assinatura. O tipo é escolhido no cadastro e, depois de registrado, não pode ser trocado. Para usar os dois tipos, crie duas contas com e-mails diferentes. A conta Empresarial é destinada a MEI e pequenos negócios; o cadastro atual não exige informar CPF ou CNPJ e não valida enquadramento fiscal.</p>
+  <p><strong>Pessoal e Empresarial são contas separadas.</strong> Cada uma tem seu próprio e-mail, senha, dados e eventual assinatura. O tipo é escolhido no cadastro e, depois de registrado, não pode ser trocado. Para usar os dois tipos, crie duas contas com e-mails diferentes. A conta Empresarial é destinada a MEI e pequenos negócios; novos cadastros Empresariais exigem o CNPJ da empresa. Validamos o formato e os dígitos verificadores, inclusive do CNPJ alfanumérico, sem consultar a situação cadastral na Receita Federal nem validar o enquadramento fiscal. A conta Pessoal não exige CPF ou CNPJ. Contas Empresariais criadas antes dessa exigência continuam acessíveis.</p>
   <p><strong>Windows:</strong> novos cadastros no aplicativo Windows são destinados ao North Empresarial. As contas pessoais existentes continuam com acesso, sem data de bloqueio definida. Qualquer transição será comunicada previamente; os dados continuarão disponíveis pelo navegador e pelo celular.</p>
   <ul>
     <li>Você é responsável por manter a confidencialidade da sua senha e por todas as atividades realizadas na sua conta.</li>
@@ -115,7 +115,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
   <h3>Dados de cadastro</h3>
   <ul>
     <li><strong>E-mail</strong> — para identificar sua conta e permitir o login.</li>
-    <li><strong>Tipo da conta (Pessoal ou Empresarial)</strong> — guardado nas preferências cifradas da conta para apresentar os recursos da modalidade escolhida. O aplicativo não permite trocar o tipo depois da escolha.</li>
+    <li><strong>Tipo da conta (Pessoal ou Empresarial) e CNPJ</strong> — dados cadastrais armazenados no servidor, separados dos dados financeiros cifrados, para identificar a modalidade e a empresa informadas no cadastro. O CNPJ é exigido apenas em novos cadastros Empresariais. O tipo também tem uma cópia nas preferências cifradas para uso offline e não pode ser trocado pelo aplicativo. Esses dados cadastrais são acessíveis à North; a consulta pelo aplicativo é restrita ao titular autenticado.</li>
     <li><strong>Senha</strong> — guardada como <strong>hash irreversível</strong>, nunca em texto. Isso significa que não é possível "descriptografar" sua senha: nem com acesso total ao banco de dados alguém a recupera. Nós mesmos não temos como saber qual é.</li>
   </ul>
   <h3>Dados financeiros que você insere</h3>
@@ -135,7 +135,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
   <h2><span class="num">5</span> Onde seus dados ficam e como são protegidos</h2>
   <ul>
     <li><strong>Servidor no Brasil:</strong> seus dados são armazenados em banco de dados PostgreSQL gerenciado pela <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a>, em região de <strong>São Paulo</strong>.</li>
-    <li><strong>Criptografia de ponta a ponta:</strong> seus dados financeiros são <strong>cifrados dentro do seu navegador</strong>, no seu dispositivo, <strong>antes</strong> de subir para a nuvem. No servidor fica apenas texto cifrado — <strong>sem a sua senha ou a sua chave de recuperação, nem a North consegue lê-los</strong>. A chave é derivada da sua senha no seu próprio aparelho e nunca é enviada para nós. Como o aplicativo é de <strong>código aberto</strong>, qualquer pessoa pode auditar como isso funciona. Isso vale para tudo que você digita ou importa <strong>dentro</strong> do aplicativo. Há dois caminhos que não funcionam assim, os dois opcionais e só quando você pede: lançar por mensagem (seção 5.1, ainda não está no ar) e a recomendação do orçamento por IA (seção 5.2).</li>
+    <li><strong>Criptografia de ponta a ponta:</strong> seus dados financeiros são <strong>cifrados dentro do seu navegador</strong>, no seu dispositivo, <strong>antes</strong> de subir para a nuvem. No servidor fica apenas texto cifrado — <strong>sem a sua senha ou a sua chave de recuperação, nem a North consegue lê-los</strong>. A chave é derivada da sua senha no seu próprio aparelho e nunca é enviada para nós. Como o aplicativo é de <strong>código aberto</strong>, qualquer pessoa pode auditar como isso funciona. Isso vale para os dados financeiros que você digita ou importa <strong>dentro</strong> do aplicativo. Os dados cadastrais da seção 4, incluindo tipo de conta e CNPJ, são armazenados separadamente e não têm criptografia de ponta a ponta. Há dois caminhos que não funcionam assim, os dois opcionais e só quando você pede: lançar por mensagem (seção 5.1, ainda não está no ar) e a recomendação do orçamento por IA (seção 5.2).</li>
     <li><strong>Isolamento por usuário:</strong> regras de segurança no nível do banco de dados garantem que <strong>cada usuário só acessa os próprios dados</strong> — nenhum outro usuário enxerga suas informações.</li>
     <li><strong>Senha criptografada</strong> e conexões protegidas por criptografia (HTTPS/TLS). Exigimos <strong>senha forte</strong> e o sistema recusa a reutilização da senha anterior na troca.</li>
     <li><strong>Verificação em duas etapas (2FA) opcional:</strong> você pode ativar nas Configurações um segundo código, gerado no seu celular, exigido a cada login — mesmo quem descobrir sua senha não entra sem ele.</li>
@@ -284,6 +284,7 @@ td.dt{font-family:Consolas,monospace;font-size:12.5px;white-space:nowrap;color:v
     <table>
       <thead><tr><th>Data</th><th>O que mudou</th></tr></thead>
       <tbody>
+        <tr><td class="dt">13/11/2026</td><td>CNPJ obrigatório em novos cadastros Empresariais, com validação de formato e dígitos verificadores. Esclarecido o armazenamento do tipo de conta e do CNPJ no servidor, separado dos dados financeiros cifrados. Contas existentes preservadas.</td></tr>
         <tr><td class="dt">12/11/2026 · r2</td><td>Contas Pessoal e Empresarial separadas e com e-mails próprios. Tipo escolhido uma única vez no aplicativo, mantido nas preferências cifradas. Pro Empresarial a R$ 49,90/mês e Pessoal a R$ 19,90/mês, com Free mantido e contratação pausada. Windows preserva o acesso das contas pessoais existentes, sem data de bloqueio definida. Atualizada a identificação dos serviços de hospedagem.</td></tr>
         <tr><td class="dt">12/11/2026</td><td>Corrigida a seção 11.2, que ainda dizia que a falta de pagamento bloqueava o acesso. Vale o que a seção 1 declara desde 09/11/2026: a conta volta ao plano Free, com o acesso mantido e os dados preservados. A falta de pagamento saiu da lista de hipóteses de suspensão.</td></tr>
         <tr><td class="dt">11/11/2026</td><td>Nova seção 5.2: recomendação do orçamento por IA, no plano Pro e só quando você pede. Sai do aparelho apenas um resumo com os totais de cada categoria, a renda média, os limites, o objetivo e o dia do mês, que vai para a Anthropic (empresa do Claude), incluída na lista de fornecedores (seção 6). As seções 5 e 6 passaram a apontar essa segunda exceção à criptografia de ponta a ponta.</td></tr>

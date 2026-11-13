@@ -18,10 +18,12 @@ const json = (o: unknown, status = 200) =>
   new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
 // mesma regra do subAccess() do app, mas sem liberar quem nao tem registro: aqui cada chamada custa
-function ehPro(s: { status?: string; trial_ends_at?: string | null; current_period_end?: string | null } | null): boolean {
+function ehPro(s: { status?: string; trial_ends_at?: string | null; current_period_end?: string | null; stripe_subscription_id?: string | null; mp_preapproval_id?: string | null } | null): boolean {
   if (!s) return false;
   const agora = Date.now(), fimTeste = s.trial_ends_at ? Date.parse(s.trial_ends_at) : 0, fimPeriodo = s.current_period_end ? Date.parse(s.current_period_end) : 0;
-  return s.status === "active" || (s.status === "trialing" && agora < fimTeste) || (s.status === "canceled" && agora < fimPeriodo);
+  const concedido = s.stripe_subscription_id === null && s.mp_preapproval_id === null;
+  const ativo = s.status === "active" && !(concedido && s.current_period_end && !(agora < fimPeriodo));
+  return ativo || (s.status === "trialing" && agora < fimTeste) || (s.status === "canceled" && agora < fimPeriodo);
 }
 
 // O resumo vem do aparelho da pessoa: e entrada nao confiavel. So passa o que tem forma esperada.
@@ -96,7 +98,7 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "unauthorized" }, 401);
 
     const admin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data: sub } = await admin.from("subscriptions").select("status,trial_ends_at,current_period_end").eq("user_id", user.id).maybeSingle();
+    const { data: sub } = await admin.from("subscriptions").select("status,trial_ends_at,current_period_end,stripe_subscription_id,mp_preapproval_id").eq("user_id", user.id).maybeSingle();
     if (!ehPro(sub)) return json({ error: "nao_pro" }, 403);
 
     // contador do mes no app_metadata, que so o servidor escreve: dispensa tabela nova

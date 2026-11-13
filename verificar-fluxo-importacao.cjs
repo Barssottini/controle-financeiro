@@ -19,6 +19,7 @@ const {chromium}=require('playwright');
  const fmtCur=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v),fmtDate=v=>v;
  const contas=()=>[{id:1,nome:'Nubank'},{id:2,nome:'Itaú'}],contaDe=t=>t.conta,contaPadraoId=()=>1,nomeDaConta=id=>contas().find(c=>c.id===id).nome;
  let nextId=10;const newId=()=>++nextId,persist=()=>{},persistSettings=()=>{},updateDashboard=()=>{},populateMonthFilter=()=>{},toast=()=>{},showPage=()=>{},showAlert=async()=>{},showConfirm=async()=>true,saldoDaConta=()=>0,precisaEscolherBanco=()=>false;
+ function registrarImportacaoMes(){S.settings.importou=true;S.settings.extratoImportadoMes='2026-11';}
  `+code});
  await page.evaluate(()=>buildBankGuide());
  await page.screenshot({path:path.join(process.env.TEMP,'north-import-upload.png')});

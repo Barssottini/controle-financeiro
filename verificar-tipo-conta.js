@@ -28,7 +28,7 @@ function client({local,remote=null,readError=false,rpcError=false,unreadable=fal
  const price=html.match(/function precoPro\(\)\{[^}]+\}/)[0];
  assert.equal(new Function('tipoConta',price+';return precoPro()')(()=> 'pj'),'49,90');
  assert.equal(new Function('tipoConta',price+';return precoPro()')(()=> 'pf'),'19,90');
- assert(html.includes('data:TIPO_CONTA_SERVIDOR_ATIVO?{account_type:_tipoCadastro}:{}'));
+ assert(html.includes('data:TIPO_CONTA_SERVIDOR_ATIVO?{account_type:_tipoCadastro,...(cnpj?{cnpj}:{})}:{}'));
  c=client({local:'pj',enabled:false});await c.sincronizarTipoConta();assert.deepEqual(c.calls,[]);assert.equal(await c.registrarTipoConta('pj'),'pj');assert.equal(c.get(),'');
  assert(html.includes("const WINDOWS_EXCLUSIVO_EM='';"));
  // Login em aparelho novo deve restaurar também uma conta sem lançamentos.

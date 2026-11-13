@@ -1,7 +1,7 @@
 // Exercita o fluxo real de cadastro sem criar contas ou enviar e-mails.
 const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
 const html=fs.readFileSync(path.join(__dirname,'index.html'),'utf8');
-const setup=html.slice(html.indexOf('function cadastroJaExiste('),html.indexOf("let pendingEmail='';"));
+const setup=html.slice(html.indexOf('function normalizarCnpj('),html.indexOf("let pendingEmail='';"));
 const back=html.slice(html.indexOf('function voltarDoCadastro(){'),html.indexOf('function showSetupScreen(){'));
 assert(setup.length>100&&back.length>100);
 
@@ -16,6 +16,7 @@ function client(response,{tipo='pj',captcha='captcha-test'}={}){
     }
     return elements.get(id);
   }};
+  document.getElementById('setup-cnpj').value='12.ABC.345/01DE-35';
   document.getElementById('setup-email').value='  PESSOA@example.com  ';
   document.getElementById('setup-pass').value='Senha-de-teste!';
   document.getElementById('setup-pass2').value='Senha-de-teste!';
@@ -62,6 +63,14 @@ function client(response,{tipo='pj',captcha='captcha-test'}={}){
     assert.deepEqual(c.calls.find(x=>x[0]==='guardar-tipo'),['guardar-tipo','pessoa@example.com',tipo]);
     assert.equal(c.pending(),'Senha-de-teste!');
     assert.equal(c.calls.find(x=>x[0]==='signup')[1].password,'segredo-derivado-de-teste');
+  }
+  for(const valor of ['', '00000000000000', '11111111111111', '12ABC34501DE34', '11222333000180', '11!222333000181']){
+    const c=client(null);c.document.getElementById('setup-cnpj').value=valor;await c.doSetup();
+    assert(!c.calls.some(x=>x[0]==='signup'));assert(c.document.getElementById('setup-err-msg').textContent.includes('CNPJ'));
+  }
+  for(const [tipo,valor,esperado] of [['pj','11.222.333/0001-81','11222333000181'],['pj','12.abc.345/01de-35','12ABC34501DE35'],['pj','00.000.000/E08G-12','00000000E08G12'],['pf','','']]){
+    const c=client({data:{user:{identities:[{}]},session:null},error:null},{tipo});c.document.getElementById('setup-cnpj').value=valor;await c.doSetup();
+    const data=c.calls.find(x=>x[0]==='signup')[1].options.data;assert.equal(data.account_type,tipo);assert.equal(data.cnpj||'',esperado);
   }
   const session={user:{id:'new-user'}};
   let c=client({data:{user:{identities:[]},session},error:null});await c.doSetup();
