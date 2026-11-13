@@ -1,5 +1,6 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17.7.0";
+import { chaveStripeProducao } from "../_shared/stripe-live.ts";
 
 // Portal do Stripe: cancelar (vale no fim do periodo pago), trocar cartao, faturas.
 // O resultado volta para a tabela pelo stripe-webhook, nao por aqui.
@@ -17,6 +18,8 @@ const json = (o: unknown, status = 200) =>
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+  if (!chaveStripeProducao(Deno.env.get("STRIPE_SECRET_KEY"))) return json({ error: "pagamento_nao_configurado" }, 503);
   try {
     const supabase = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },

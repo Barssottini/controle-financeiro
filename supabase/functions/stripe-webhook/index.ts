@@ -3,6 +3,7 @@ import Stripe from "npm:stripe@17.7.0";
 import { linhaDaAssinatura } from "./mapa.ts";
 import { planoDaConta, type AccountPlan } from "../_shared/account-plan.ts";
 import { mensagemAssinatura } from "../_shared/subscription-message.ts";
+import { chaveStripeProducao } from "../_shared/stripe-live.ts";
 
 // Recebe os avisos do Stripe e sincroniza public.subscriptions.
 // O corpo do aviso nunca e fonte de verdade: a assinatura e relida na API do
@@ -29,19 +30,22 @@ async function boasVindas(email: string, plano: AccountPlan | null, valorCentavo
 // deno-lint-ignore no-explicit-any
 async function sincroniza(admin: any, subId: string, userIdDica?: string | null) {
   const sub = await stripe.subscriptions.retrieve(subId);
+  if (!sub.livemode) throw new Error("test_subscription_rejected");
   const userId = sub.metadata?.user_id || userIdDica;
   if (!userId) { console.warn("STRIPE_WEBHOOK_SEM_USUARIO sub=" + sub.id); return; }
   const linha = linhaDaAssinatura(sub as never);
   if (!linha) { console.log("STRIPE_WEBHOOK_STATUS_IGNORADO status=" + sub.status + " user=" + userId); return; }
 
-  const { data: antes } = await admin.from("subscriptions")
+  const { data: antes, error: readError } = await admin.from("subscriptions")
     .select("status,stripe_subscription_id").eq("user_id", userId).maybeSingle();
+  if (readError || !antes) throw new Error("subscription_read_failed");
   // aviso atrasado de uma assinatura antiga nao pode derrubar a atual
   if (antes?.stripe_subscription_id && antes.stripe_subscription_id !== sub.id && linha.status !== "active") return;
 
   const customer = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
-  await admin.from("subscriptions").update({ ...linha, stripe_customer_id: customer, updated_at: new Date().toISOString() })
+  const { error: saveError } = await admin.from("subscriptions").update({ ...linha, stripe_customer_id: customer, updated_at: new Date().toISOString() })
     .eq("user_id", userId);
+  if (saveError) throw new Error("subscription_save_failed");
 
   if (linha.status === "active" && antes?.status !== "active") {
     try {
@@ -59,7 +63,8 @@ async function sincroniza(admin: any, subId: string, userIdDica?: string | null)
 }
 
 Deno.serve(async (req) => {
-  if (!WEBHOOK_SECRET || !Deno.env.get("STRIPE_SECRET_KEY")) {
+  if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+  if (!WEBHOOK_SECRET || !chaveStripeProducao(Deno.env.get("STRIPE_SECRET_KEY"))) {
     console.error("STRIPE_WEBHOOK: defina STRIPE_SECRET_KEY e STRIPE_WEBHOOK_SECRET");
     return new Response("not configured", { status: 500 });
   }
@@ -71,6 +76,7 @@ Deno.serve(async (req) => {
     console.warn("STRIPE_WEBHOOK_RECUSADO assinatura nao confere");
     return new Response("invalid signature", { status: 400 });
   }
+  if (!evento.livemode) return new Response("test event rejected", { status: 400 });
   try {
     const admin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const o = evento.data.object as { id: string; subscription?: string | { id: string }; client_reference_id?: string };

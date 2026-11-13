@@ -1,6 +1,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17.7.0";
 import { planoDaConta, precoConfere } from "../_shared/account-plan.ts";
+import { chaveStripeProducao } from "../_shared/stripe-live.ts";
 
 // Abre o pagamento do Pro na pagina hospedada do Stripe e devolve a URL. O app so
 // redireciona: nenhum script de terceiro roda dentro do app criptografado.
@@ -22,15 +23,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   try {
-    if (!Deno.env.get("STRIPE_SECRET_KEY")) {
+    if (!chaveStripeProducao(Deno.env.get("STRIPE_SECRET_KEY"))) {
       console.error("STRIPE_CHECKOUT: STRIPE_SECRET_KEY nao definida");
-      return json({ error: "pagamento_nao_configurado" }, 503);
-    }
-    // shortcut: com chave de TESTE, o endereco de producao nao abre pagamento (cartao de
-    // teste daria Pro de graca e cartao real seria recusado); a previa segue testavel. Some
-    // sozinho quando a chave real (sk_live_) entrar. O Origin vem do navegador: trava o uso
-    // comum, nao um pedido montado a mao — ao ir ao ar, zerar as assinaturas de teste.
-    if ((Deno.env.get("STRIPE_SECRET_KEY") ?? "").startsWith("sk_test_") && req.headers.get("Origin") === "https://app.northfinances.com.br") {
       return json({ error: "pagamento_nao_configurado" }, 503);
     }
     const supabase = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -45,14 +39,19 @@ Deno.serve(async (req) => {
     if (profileError) return json({ error: "tipo_conta_indisponivel" }, 503);
     const plano = planoDaConta(profile?.account_type);
     if (!plano) return json({ error: "tipo_conta_nao_registrado" }, 409);
-    const { data: row } = await admin.from("subscriptions")
-      .select("status,trial_ends_at,stripe_customer_id,stripe_subscription_id")
+    const { data: row, error: rowError } = await admin.from("subscriptions")
+      .select("status,trial_ends_at,current_period_end,stripe_customer_id,stripe_subscription_id,mp_preapproval_id")
       .eq("user_id", user.id).maybeSingle();
+    if (rowError || !row) return json({ error: "assinatura_indisponivel" }, 503);
+    if (row.status === "active" && !row.stripe_subscription_id && !row.mp_preapproval_id
+      && (!row.current_period_end || Date.parse(row.current_period_end) > Date.now())) {
+      return json({ error: "pro_concedido" }, 409);
+    }
 
     // Ja tem assinatura viva (inclusive cancelada que ainda nao venceu)? Abrir outro
     // checkout cobraria duas vezes. O portal resolve: renovar, trocar cartao, cancelar.
     if (row?.stripe_customer_id && row?.stripe_subscription_id) {
-      const atual = await stripe.subscriptions.retrieve(row.stripe_subscription_id).catch(() => null);
+      const atual = await stripe.subscriptions.retrieve(row.stripe_subscription_id);
       if (atual && ["active", "trialing", "past_due"].includes(atual.status)) {
         const portal = await stripe.billingPortal.sessions.create({ customer: row.stripe_customer_id, return_url: APP_URL });
         return json({ url: portal.url });
@@ -62,16 +61,17 @@ Deno.serve(async (req) => {
     const priceId = Deno.env.get(plano.priceEnv);
     if (!priceId) return json({ error: "pagamento_nao_configurado" }, 503);
     const price = await stripe.prices.retrieve(priceId);
-    if (!precoConfere(plano, price)) {
+    if (!price.livemode || !precoConfere(plano, price)) {
       console.error("STRIPE_CHECKOUT_PRECO_INCOMPATIVEL tipo=" + plano.accountType);
       return json({ error: "pagamento_nao_configurado" }, 503);
     }
 
     let customer = row?.stripe_customer_id ?? null;
     if (!customer) {
-      const c = await stripe.customers.create({ email: user.email, metadata: { user_id: user.id, account_type: plano.accountType } });
+      const c = await stripe.customers.create({ email: user.email, metadata: { user_id: user.id, account_type: plano.accountType } }, { idempotencyKey: "north-customer-" + user.id });
       customer = c.id;
-      await admin.from("subscriptions").update({ stripe_customer_id: customer }).eq("user_id", user.id);
+      const { error: saveError } = await admin.from("subscriptions").update({ stripe_customer_id: customer }).eq("user_id", user.id);
+      if (saveError) throw saveError;
     }
 
     // Quem assina durante a semana gratis so e cobrado quando ela acaba.

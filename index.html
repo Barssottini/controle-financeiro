@@ -3318,7 +3318,7 @@ async function irParaStripe(fn,btn,rotulo){
     if(!session)throw new Error('Sessão expirada. Entre novamente.');
     const r=await fetch(FN_BASE+'/'+fn,{method:'POST',headers:{'Authorization':'Bearer '+session.access_token,'apikey':SUPA_KEY,'Content-Type':'application/json'}});
     const j=await r.json().catch(()=>({}));
-    if(!r.ok||!j.url)throw new Error(j.error==='pagamento_nao_configurado'?'O pagamento ainda não está disponível. Tente de novo mais tarde.':j.error==='sem_assinatura_stripe'?'Sua conta tem o Pro como cortesia, então não há assinatura para gerenciar.':(j.error||('Erro '+r.status)));
+    if(!r.ok||!j.url)throw new Error(j.error==='pagamento_nao_configurado'?'O pagamento ainda não está disponível. Tente de novo mais tarde.':j.error==='pro_concedido'?'Sua conta já tem acesso Pro concedido. Não é necessário contratar uma assinatura.':j.error==='assinatura_indisponivel'?'Não foi possível consultar seu plano. Tente novamente em instantes.':j.error==='sem_assinatura_stripe'?'Sua conta tem o Pro como cortesia, então não há assinatura para gerenciar.':(j.error||('Erro '+r.status)));
     location.href=j.url;
   }catch(e){
     showAlert('Não foi possível abrir o pagamento:\n'+(e.message||e));
