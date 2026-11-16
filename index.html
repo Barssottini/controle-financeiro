@@ -3141,7 +3141,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 async function conferirModalidadeEntrada(session){
   const q=new URLSearchParams(location.search).get('conta');
-  const esperado=q==='empresarial'?'pj':q==='pessoal'?'pf':'';
+  const esperado=IS_NORTHAPP||location.pathname.replace(/\/$/,'')==='/empresarial'||q==='empresarial'?'pj':'pf';
   if(!esperado)return true;
   let tipo='',falhou=false;
   try{
@@ -3161,7 +3161,7 @@ async function conferirModalidadeEntrada(session){
     'Esta conta \u00e9 '+(tipo==='pj'?'Empresarial':'Pessoal')+'. Entre pelo login correspondente. ';
   if(!falhou){
     const link=document.createElement('a');
-    link.href='/?conta='+(tipo==='pj'?'empresarial':'pessoal')+'&acao=entrar';
+    link.href=tipo==='pj'?'/empresarial':'/';
     link.textContent='Ir para o login '+(tipo==='pj'?'Empresarial':'Pessoal');
     link.style.color='var(--gold)';msg.appendChild(link);
   }
@@ -5985,6 +5985,10 @@ let _tipoCadastro='';
 function escolherTipoCadastro(tp){
   if(tp==='pf'&&IS_NORTHAPP)return;   // no app de Windows só nasce conta Empresarial
   _tipoCadastro=tp;
+  if(!IS_NORTHAPP&&['pf','pj'].includes(tp)){
+    const u=new URL(location.href);u.pathname=tp==='pj'?'/empresarial':'/';u.searchParams.delete('conta');
+    history.replaceState(null,'',u.pathname+u.search+u.hash);
+  }
   const modalidade=document.getElementById('login-modalidade'),contexto=document.getElementById('login-contexto');
   if(modalidade)modalidade.textContent=tp==='pj'?' Empresarial':tp==='pf'?' Pessoal':'';
   if(contexto)contexto.textContent=tp==='pj'?'Entre para organizar as finanças da sua empresa':tp==='pf'?'Entre para organizar suas finanças pessoais':'Encontre seu norte financeiro';
@@ -6012,9 +6016,10 @@ function prepararCadastro(temSessao){
   }
   // vindo do site: ?conta=empresarial abre o cadastro já com o tipo escolhido
   const q=new URLSearchParams(location.search).get('conta');
-  if(q!=='empresarial'&&q!=='pessoal')return;
-  escolherTipoCadastro(q==='empresarial'?'pj':'pf');
-  if(!temSessao&&new URLSearchParams(location.search).get('acao')!=='entrar')showSetupScreen();
+  const params=new URLSearchParams(location.search);
+  const cadastro=params.get('acao')==='cadastro'||(['pessoal','empresarial'].includes(q)&&params.get('acao')!=='entrar');
+  escolherTipoCadastro(location.pathname.replace(/\/$/,'')==='/empresarial'||q==='empresarial'?'pj':'pf');
+  if(!temSessao&&cadastro)showSetupScreen();
 }
 function aplicarTipoNaTela(){
   const pj=tipoConta()==='pj';
