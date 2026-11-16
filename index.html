@@ -3139,7 +3139,38 @@ document.addEventListener('visibilitychange',()=>{
   if(document.hidden){_travaSaiu=Date.now();return;}
   if(_travaSaiu&&Date.now()-_travaSaiu>60000)mostrarTrava();   // mais de um minuto fora: pede de novo
 });
+async function conferirModalidadeEntrada(session){
+  const q=new URLSearchParams(location.search).get('conta');
+  const esperado=q==='empresarial'?'pj':q==='pessoal'?'pf':'';
+  if(!esperado)return true;
+  let tipo='',falhou=false;
+  try{
+    const {data,error}=await sb.from('account_profiles').select('account_type').eq('user_id',session.user.id).maybeSingle();
+    if(error||!data||!['pf','pj'].includes(data.account_type))falhou=true;
+    else tipo=data.account_type;
+  }catch(e){falhou=true;}
+  if(!falhou&&tipo===esperado)return true;
+  _nfPass=null;_nfPendingSignupPass=null;_nfUser=null;cloudReady=false;
+  try{await sb.auth.signOut({scope:'local'});}catch(e){}
+  ['setup-screen','confirm-screen','forgot-screen','mfa-screen','unlock-screen'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  document.getElementById('app').classList.remove('visible');
+  const login=document.getElementById('login-screen');login.style.display='';login.classList.remove('hidden');
+  document.getElementById('lpass').value='';
+  const msg=document.getElementById('lerr-msg');
+  msg.textContent=falhou?'N\u00e3o foi poss\u00edvel confirmar o tipo da conta. Tente novamente com conex\u00e3o.':
+    'Esta conta \u00e9 '+(tipo==='pj'?'Empresarial':'Pessoal')+'. Entre pelo login correspondente. ';
+  if(!falhou){
+    const link=document.createElement('a');
+    link.href='/?conta='+(tipo==='pj'?'empresarial':'pessoal')+'&acao=entrar';
+    link.textContent='Ir para o login '+(tipo==='pj'?'Empresarial':'Pessoal');
+    link.style.color='var(--gold)';msg.appendChild(link);
+  }
+  document.getElementById('lerr').classList.add('show');
+  return false;
+}
 async function onSignedIn(session,fresh){
+  if(!await conferirModalidadeEntrada(session))return;
+  if(fresh)sendLoginAlert();
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('confirm-screen').style.display='none';
   document.getElementById('forgot-screen').style.display='none';
@@ -3545,7 +3576,6 @@ async function finishSignIn(session,fresh){
     const {data:aal}=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
     if(aal&&aal.nextLevel==='aal2'&&aal.currentLevel!==aal.nextLevel){showMFAScreen(fresh);return;}
   }catch(e){}
-  if(fresh)sendLoginAlert();
   onSignedIn(session,fresh);
 }
 function showMFAScreen(fresh){
@@ -3586,7 +3616,6 @@ async function doVerifyMFA(){
   document.getElementById('mfa-screen').style.display='none';
   const {data:{session}}=await sb.auth.getSession();
   if(!session){location.reload();return;}
-  if(mfaFresh)sendLoginAlert();
   onSignedIn(session,mfaFresh);
 }
 async function mfaLogout(){try{await sb.auth.signOut();}catch(e){}location.reload();}
