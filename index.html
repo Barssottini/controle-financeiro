@@ -1557,6 +1557,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
       <div class="navi active" onclick="showPage('dashboard')">Dashboard</div>
       <div class="navi" onclick="showPage('transactions')">Transações</div>
       <div class="navi" onclick="showPage('bills')">Contas</div>
+      <div class="navi" onclick="showPage('subscriptions')">Assinaturas</div>
       <div class="navi" onclick="showPage('devedores')">Quem me deve</div>
       <div class="navi" onclick="showPage('budget')">Orçamento</div>
       <div class="navi" id="nav-cc" onclick="showPage('credit-card')">Cartão de Crédito</div>
@@ -1761,6 +1762,12 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
       </div>
     </div>
 
+    <div class="page" id="subscriptions">
+      <div class="ph"><div><h1 class="pt">Assinaturas</h1><p class="ps">Streaming, aplicativos e servi&ccedil;os com cobran&ccedil;a mensal</p></div><button class="btn btn-primary" onclick="openSubscriptionModal()">+ Nova assinatura</button></div>
+      <div class="sum-card balance"><div class="sc-label">Total mensal</div><div class="sc-val" id="subscriptions-total">R$ 0,00</div><div class="sc-sub" id="subscriptions-summary"></div></div>
+      <p class="ps" style="margin:18px 0">As assinaturas tamb&eacute;m aparecem em Contas. Marque como paga quando a cobran&ccedil;a acontecer. Excluir aqui remove apenas o controle no North; o cancelamento deve ser feito no servi&ccedil;o.</p>
+      <div class="panel"><div class="panel-head"><span class="panel-title">Suas assinaturas mensais</span></div><div id="subscriptions-list"></div></div>
+    </div>
     <!-- GOALS -->
     <div class="page" id="goals">
       <div class="ph">
@@ -1845,6 +1852,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Acompanhar</span></div>
         <div class="more-item" onclick="showPage('bills')"><span class="mi mi-aco"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>Contas a pagar e receber</div>
+        <div class="more-item" onclick="showPage('subscriptions')"><span class="mi mi-aco"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>Assinaturas</div>
         <div class="more-item" onclick="showPage('devedores')"><span class="mi mi-aco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15h4l4 3h6a2 2 0 0 0 0-4h-4"/><path d="M7 15V9"/><circle cx="15" cy="7" r="3"/></svg></span>Quem me deve</div>
       </div>
       <div class="panel">
@@ -2477,6 +2485,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
     <div class="mbody">
       <div class="fgrp" id="bl-ctx-grp" style="display:none"><label class="flbl">Bolso</label><div class="trow"><label class="topt"><input type="radio" name="blctx" value="pf" checked><span>Pessoal</span></label><label class="topt"><input type="radio" name="blctx" value="pj"><span>Empresa</span></label></div></div>
       <div class="fgrp"><label class="flbl">Nome da conta</label><input class="field" type="text" id="bl-name" placeholder="Ex: Aluguel, Luz, Internet..."></div>
+      <label class="flbl" style="display:block;margin-bottom:16px"><input type="checkbox" id="bl-subscription"> Esta conta &eacute; uma assinatura mensal</label>
       <div class="frow">
         <div class="fgrp"><label class="flbl">Valor (R$)</label><input class="field" type="number" id="bl-amt" placeholder="0,00" step="0.01" min="0.01"></div>
         <div class="fgrp"><label class="flbl">Dia do vencimento (1–31)</label><input class="field" type="number" id="bl-day" placeholder="Ex: 10" min="1" max="31"></div>
@@ -5520,6 +5529,7 @@ function showPage(id){
   if(id==='goals')renderGoalsPage();
   if(id==='budget')renderBudgetPage();
   if(id==='bills')renderBillsPage();
+  if(id==='subscriptions')renderSubscriptions();
   if(id==='devedores')renderDevedores();
   if(id==='settings')renderSettings();
 }
@@ -8772,6 +8782,7 @@ function billStatus(b){
   return{k:'open',label:(rec?'Cai dia ':'Vence dia ')+b.day,color:'var(--ink3)'};
 }
 function openBillModal(){
+  document.getElementById('bl-subscription').checked=false;
   S.billEditId=null;
   document.getElementById('bill-modal-title').textContent=billsTab()==='receive'?'Novo Recebimento':'Nova Conta';
   ['bl-name','bl-amt','bl-day'].forEach(i=>document.getElementById(i).value='');
@@ -8781,6 +8792,7 @@ function openBillModal(){
 function editBill(id){
   const b=S.bills.find(x=>x.id===id);if(!b)return;
   S.billEditId=id;
+  document.getElementById('bl-subscription').checked=!!b.subscription;
   document.getElementById('bill-modal-title').textContent='Editar Conta';
   document.getElementById('bl-name').value=b.name;
   document.getElementById('bl-amt').value=b.amount;
@@ -8796,17 +8808,19 @@ function saveBill(){
   const amt=parseFloat(document.getElementById('bl-amt').value);
   const day=parseInt(document.getElementById('bl-day').value);
   const cat=document.getElementById('bl-cat').value||'Contas';
+  const subscription=!!document.getElementById('bl-subscription')?.checked;
+  if(subscription&&(S.billEditId?billKind(S.bills.find(b=>b.id===S.billEditId)):billsTab())==='receive'){showAlert('Uma assinatura deve ser uma conta a pagar.');return;}
   if(!name){showAlert('Dê um nome para a conta.');return;}
   if(!amt||amt<=0){showAlert('Informe o valor da conta.');return;}
   if(!day||day<1||day>31){showAlert('O dia do vencimento deve ser entre 1 e 31.');return;}
   if(S.billEditId){
     const b=S.bills.find(x=>x.id===S.billEditId);
     if(b){
-      b.name=name;b.amount=amt;b.day=day;b.category=cat;if(S.settings.empresarial)b.ctx=bolsoEscolhido('blctx');
+      b.name=name;b.amount=amt;b.day=day;b.category=cat;b.subscription=subscription;if(S.settings.empresarial)b.ctx=bolsoEscolhido('blctx');
       if(sincronizarLancamentosDaConta(b)){persist();try{updateDashboard();}catch(e){}}
     }
   }else{
-    S.bills.push({id:newId(),name:name,amount:amt,day:day,category:cat,paidMonths:[],ctx:bolsoEscolhido('blctx'),kind:billsTab()});
+    S.bills.push({id:newId(),name:name,amount:amt,day:day,category:cat,subscription,paidMonths:[],ctx:bolsoEscolhido('blctx'),kind:billsTab()});
   }
   S.billEditId=null;
   persistBills();
@@ -8855,7 +8869,39 @@ async function unmarkBillPaid(id){
   renderBillsAlert();
   toast('Pagamento desfeito');
 }
+function openSubscriptionModal(){
+  if(!exigePro('bill'))return;
+  S.settings.billsTab='pay';persistSettings();
+  openBillModal();
+  document.getElementById('bl-subscription').checked=true;
+  document.getElementById('bill-modal-title').textContent='Nova assinatura mensal';
+}
+function proximaCobrancaAssinatura(b,hoje=new Date()){
+  let ano=hoje.getFullYear(),mes=hoje.getMonth();
+  const dia=new Date(ano,mes,hoje.getDate());
+  let data=new Date(ano,mes,Math.min(b.day,new Date(ano,mes+1,0).getDate()));
+  if(data<dia||billPaidThisMonth(b,monthKeyOf(hoje))){
+    mes++;data=new Date(ano,mes,Math.min(b.day,new Date(ano,mes+1,0).getDate()));
+  }
+  return data;
+}
+function renderSubscriptions(){
+  const el=document.getElementById('subscriptions-list');if(!el)return;
+  const list=billsVis().filter(b=>b.subscription&&billKind(b)==='pay');
+  const total=list.reduce((v,b)=>v+b.amount,0);
+  setCurAnimated('subscriptions-total',total);
+  document.getElementById('subscriptions-summary').textContent=list.length+' assinatura(s) \u00b7 '+fmtCur(total*12)+' por ano, mantendo os valores atuais';
+  if(!list.length){el.innerHTML=emptyHTML('Nenhuma assinatura cadastrada. Adicione uma assinatura mensal ou edite uma conta existente e marque como assinatura.');return;}
+  el.innerHTML=[...list].sort((a,b)=>a.day-b.day).map(b=>{
+    const st=billStatus(b),paid=st.k==='paid';
+    const proxima=proximaCobrancaAssinatura(b).toLocaleDateString('pt-BR');
+    return '<div class="tx-item" style="flex-wrap:wrap"><div class="tx-info"><div class="tx-desc">'+esc(b.name)+'</div><div class="tx-meta">Todo dia '+b.day+' \u00b7 <span style="color:'+st.color+'">'+st.label+'</span><br>Pr&oacute;xima cobran&ccedil;a: '+proxima+'</div></div><div class="tx-amount expense">'+fmtCur(b.amount)+'/m\u00eas</div><div class="tx-actions" style="opacity:1;display:flex;gap:6px;flex-wrap:wrap">'+
+      '<button class="btn btn-secondary btn-sm" onclick="'+(paid?'unmarkBillPaid':'markBillPaid')+'('+b.id+')">'+(paid?'Desfazer pagamento':'Marcar paga')+'</button>'+
+      '<button class="btn btn-secondary btn-sm" onclick="editBill('+b.id+')">Editar</button><button class="btn btn-secondary btn-sm" onclick="delBill('+b.id+')">Excluir</button></div></div>';
+  }).join('');
+}
 function renderBillsPage(){
+  renderSubscriptions();
   const el=document.getElementById('bills-list');if(!el)return;
   const month=monthKeyOf(new Date());
   const rec=billsTab()==='receive';
