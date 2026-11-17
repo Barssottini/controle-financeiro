@@ -10,7 +10,7 @@ import { resolve } from 'node:path';
 const require = createRequire(resolve(process.argv[2] || '.', 'package.json'));
 const { PGlite } = require('@electric-sql/pglite');
 const db = new PGlite();
-const migration = readFileSync(new URL('../migrations/20261112175535_account_profiles_immutable.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../migrations/20261112182314_account_profiles_immutable.sql', import.meta.url), 'utf8');
 let checked = 0;
 const ok = (condition, message) => { assert(condition, message); checked++; };
 async function rejected(sql, code) {

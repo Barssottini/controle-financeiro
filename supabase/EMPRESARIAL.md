@@ -1,6 +1,6 @@
 # Tipo da conta e cobrança Empresarial
 
-Implementação preparada em 12/11/2026. **Ainda não implantada no Supabase:** a conexão disponível nesta sessão não lista o projeto `uipywjbcjzhqueyrfwef`. As verificações de SQL foram executadas em Postgres local descartável, sem acesso a dados reais.
+Implementação preparada em 12/11/2026. **Implantada no Supabase** (conferido em 17/11/2026): as migrações `20261112182314` e `20261113125315` constam no projeto `uipywjbcjzhqueyrfwef`; contas antigas ganham o perfil ao abrir as preferências cifradas.
 
 ## Contrato com o app
 
@@ -14,7 +14,7 @@ Implementação preparada em 12/11/2026. **Ainda não implantada no Supabase:** 
 ## Ordem de implantação
 
 1. Restaurar acesso ao projeto correto e revisar os gatilhos/RLS atuais.
-2. Aplicar `migrations/20261112175535_account_profiles_immutable.sql` como uma migração única. Não é um script para reaplicar sobre objetos já criados.
+2. Aplicar `migrations/20261112182314_account_profiles_immutable.sql` como uma migração única. Não é um script para reaplicar sobre objetos já criados.
 3. Executar `checks/account-profiles-live.sql` e os advisors de segurança do Supabase. A leitura e a RPC devem estar acessíveis com uma sessão autenticada, enquanto escrita direta permanece bloqueada.
 4. Publicar o cliente que registra/lê o tipo somente após o schema estar disponível.
 5. Implantar `stripe-checkout` e `stripe-webhook`, incluindo os dois arquivos de `_shared/`. O checkout recusa contratação sem perfil canônico; não há fallback para Pessoal.
