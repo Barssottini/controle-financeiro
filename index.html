@@ -3147,17 +3147,21 @@ document.addEventListener('visibilitychange',()=>{
   if(document.hidden){_travaSaiu=Date.now();return;}
   if(_travaSaiu&&Date.now()-_travaSaiu>60000)mostrarTrava();   // mais de um minuto fora: pede de novo
 });
+// ═══ MODALIDADE NA ENTRADA ═══
 async function conferirModalidadeEntrada(session){
+  // No app de Windows quem decide é a data de WINDOWS_EXCLUSIVO_EM (aplicarWindows), não o login.
+  if(IS_NORTHAPP)return true;
   const q=new URLSearchParams(location.search).get('conta');
-  const esperado=IS_NORTHAPP||location.pathname.replace(/\/$/,'')==='/empresarial'||q==='empresarial'?'pj':'pf';
-  if(!esperado)return true;
-  let tipo='',falhou=false;
+  const esperado=location.pathname.replace(/\/$/,'')==='/empresarial'||q==='empresarial'?'pj':'pf';
+  let tipo='';
   try{
     const {data,error}=await sb.from('account_profiles').select('account_type').eq('user_id',session.user.id).maybeSingle();
-    if(error||!data||!['pf','pj'].includes(data.account_type))falhou=true;
-    else tipo=data.account_type;
-  }catch(e){falhou=true;}
-  if(!falhou&&tipo===esperado)return true;
+    if(!error&&data)tipo=data.account_type;
+  }catch(e){}
+  // Só barra divergência confirmada pelo servidor. Conta antiga ainda sem perfil só ganha o
+  // registro depois de abrir a cifra (sincronizarTipoConta); barrar aqui a trancava para sempre.
+  // Falha de rede preserva o acesso, como no restante do app.
+  if(!['pf','pj'].includes(tipo)||tipo===esperado)return true;
   _nfPass=null;_nfPendingSignupPass=null;_nfUser=null;cloudReady=false;
   try{await sb.auth.signOut({scope:'local'});}catch(e){}
   ['setup-screen','confirm-screen','forgot-screen','mfa-screen','unlock-screen'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
@@ -3165,17 +3169,15 @@ async function conferirModalidadeEntrada(session){
   const login=document.getElementById('login-screen');login.style.display='';login.classList.remove('hidden');
   document.getElementById('lpass').value='';
   const msg=document.getElementById('lerr-msg');
-  msg.textContent=falhou?'N\u00e3o foi poss\u00edvel confirmar o tipo da conta. Tente novamente com conex\u00e3o.':
-    'Esta conta \u00e9 '+(tipo==='pj'?'Empresarial':'Pessoal')+'. Entre pelo login correspondente. ';
-  if(!falhou){
-    const link=document.createElement('a');
-    link.href=tipo==='pj'?'/empresarial':'/';
-    link.textContent='Ir para o login '+(tipo==='pj'?'Empresarial':'Pessoal');
-    link.style.color='var(--gold)';msg.appendChild(link);
-  }
+  msg.textContent='Esta conta \u00e9 '+(tipo==='pj'?'Empresarial':'Pessoal')+'. Entre pelo login correspondente. ';
+  const link=document.createElement('a');
+  link.href=tipo==='pj'?'/empresarial':'/';
+  link.textContent='Ir para o login '+(tipo==='pj'?'Empresarial':'Pessoal');
+  link.style.color='var(--gold)';msg.appendChild(link);
   document.getElementById('lerr').classList.add('show');
   return false;
 }
+// ═══ FIM DA MODALIDADE NA ENTRADA ═══
 async function onSignedIn(session,fresh){
   if(!await conferirModalidadeEntrada(session))return;
   if(fresh)sendLoginAlert();
