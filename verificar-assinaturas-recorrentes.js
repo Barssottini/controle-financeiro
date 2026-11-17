@@ -10,5 +10,9 @@ const next=(b,d)=>{const x=ctx.proximaCobrancaAssinatura(b,new Date(d));return [
 assert.deepEqual(next({day:31},'2026-02-01T12:00:00'),[2026,2,28]);
 assert.deepEqual(next({day:31,paidMonths:['2026-12']},'2026-12-31T12:00:00'),[2027,1,31]);
 assert.deepEqual(next({day:10},'2026-11-11T12:00:00'),[2026,12,10]);
+// Separação: a lista de Contas (billsDaAba) não mostra assinaturas.
+const aba=html.match(/function billsDaAba\(\)\{.*\}/)[0];let tab='pay';
+const daAba=vm.runInNewContext(aba+';billsDaAba',{billsTab:()=>tab,billsVis:()=>rows,billKind:ctx.billKind});
+assert.deepEqual(daAba().map(b=>b.name),['Aluguel']);tab='receive';assert.deepEqual(daAba().map(b=>b.name),['Recebimento']);
 rows.length=0;ctx.renderSubscriptions();assert.equal(els['subscriptions-total'],0);
 console.log('OK: assinaturas, totais sem duplicacao, escape, mes curto, virada de ano e estado vazio');

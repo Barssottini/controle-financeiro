@@ -1765,7 +1765,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
     <div class="page" id="subscriptions">
       <div class="ph"><div><h1 class="pt">Assinaturas</h1><p class="ps">Streaming, aplicativos e servi&ccedil;os com cobran&ccedil;a mensal</p></div><button class="btn btn-primary" onclick="openSubscriptionModal()">+ Nova assinatura</button></div>
       <div class="sum-card balance"><div class="sc-label">Total mensal</div><div class="sc-val" id="subscriptions-total">R$ 0,00</div><div class="sc-sub" id="subscriptions-summary"></div></div>
-      <p class="ps" style="margin:18px 0">As assinaturas tamb&eacute;m aparecem em Contas. Marque como paga quando a cobran&ccedil;a acontecer. Excluir aqui remove apenas o controle no North; o cancelamento deve ser feito no servi&ccedil;o.</p>
+      <p class="ps" style="margin:18px 0">As assinaturas ficam s&oacute; aqui, separadas das Contas, e continuam nos avisos de vencimento. Marque como paga quando a cobran&ccedil;a acontecer. Excluir aqui remove apenas o controle no North; o cancelamento deve ser feito no servi&ccedil;o.</p>
       <div class="panel"><div class="panel-head"><span class="panel-title">Suas assinaturas mensais</span></div><div id="subscriptions-list"></div></div>
     </div>
     <!-- GOALS -->
@@ -2485,7 +2485,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
     <div class="mbody">
       <div class="fgrp" id="bl-ctx-grp" style="display:none"><label class="flbl">Bolso</label><div class="trow"><label class="topt"><input type="radio" name="blctx" value="pf" checked><span>Pessoal</span></label><label class="topt"><input type="radio" name="blctx" value="pj"><span>Empresa</span></label></div></div>
       <div class="fgrp"><label class="flbl">Nome da conta</label><input class="field" type="text" id="bl-name" placeholder="Ex: Aluguel, Luz, Internet..."></div>
-      <label class="flbl" style="display:block;margin-bottom:16px"><input type="checkbox" id="bl-subscription"> Esta conta &eacute; uma assinatura mensal</label>
+      <label class="flbl" style="display:block;margin-bottom:16px"><input type="checkbox" id="bl-subscription"> Esta conta &eacute; uma assinatura mensal (passa para a tela Assinaturas)</label>
       <div class="frow">
         <div class="fgrp"><label class="flbl">Valor (R$)</label><input class="field" type="number" id="bl-amt" placeholder="0,00" step="0.01" min="0.01"></div>
         <div class="fgrp"><label class="flbl">Dia do vencimento (1–31)</label><input class="field" type="number" id="bl-day" placeholder="Ex: 10" min="1" max="31"></div>
@@ -8763,7 +8763,8 @@ function apagarLancamentoDaConta(b,mes){
 // Conta sem kind é "a pagar". Retroativo sem migração, como o bolso.
 function billKind(b){return b&&b.kind==='receive'?'receive':'pay';}
 function billsTab(){return S.settings.billsTab==='receive'?'receive':'pay';}
-function billsDaAba(){const k=billsTab();return billsVis().filter(b=>billKind(b)===k);}
+// Assinaturas têm tela própria: ficam fora da lista de Contas (mas seguem nos avisos de vencimento).
+function billsDaAba(){const k=billsTab();return billsVis().filter(b=>billKind(b)===k&&!(k==='pay'&&b.subscription));}
 function setBillsTab(k){
   S.settings.billsTab=(k==='receive')?'receive':'pay';
   persistSettings();
@@ -8795,7 +8796,7 @@ function editBill(id){
   const b=S.bills.find(x=>x.id===id);if(!b)return;
   S.billEditId=id;
   document.getElementById('bl-subscription').checked=!!b.subscription;
-  document.getElementById('bill-modal-title').textContent='Editar Conta';
+  document.getElementById('bill-modal-title').textContent=b.subscription?'Editar assinatura':'Editar Conta';
   document.getElementById('bl-name').value=b.name;
   document.getElementById('bl-amt').value=b.amount;
   document.getElementById('bl-day').value=b.day;
@@ -8829,7 +8830,7 @@ function saveBill(){
   closeModal('bill-modal');
   renderBillsPage();
   renderBillsAlert();
-  toast('Conta salva');
+  toast(subscription?'Assinatura salva':'Conta salva');
 }
 function delBill(id){
   delFromArray(S.bills,id,persistBills,function(){renderBillsPage();renderBillsAlert();},'Conta excluída');
@@ -8964,12 +8965,15 @@ function renderBillsAlert(){
   }
   if(!urgent.length){el.innerHTML=extra;return;}
   const late=urgent.filter(x=>x.st.k==='late').length;
+  // Só assinaturas no aviso: leva à tela delas, porque a lista de Contas não as mostra.
+  const soAss=urgent.every(x=>x.b.subscription);
+  const [um,varios]=soAss?['assinatura','assinaturas']:['conta','contas'];
   const txt=late
-    ?late+(late===1?' conta vencida':' contas vencidas')
-    :urgent.length+(urgent.length===1?' conta vence':' contas vencem')+' nos próximos dias';
-  el.innerHTML='<div onclick="showPage(\'bills\')" style="background:var(--redl);border:1px solid var(--red);border-radius:12px;padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer">'+
+    ?late+' '+(late===1?um+' vencida':varios+' vencidas')
+    :urgent.length+' '+(urgent.length===1?um+' vence':varios+' vencem')+' nos próximos dias';
+  el.innerHTML='<div onclick="showPage(\''+(soAss?'subscriptions':'bills')+'\')" style="background:var(--redl);border:1px solid var(--red);border-radius:12px;padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer">'+
     '<div style="font-size:13px;color:var(--ink)"><strong style="color:var(--red)">'+txt+'</strong> — '+urgent.slice(0,3).map(x=>esc(x.b.name)).join(', ')+(urgent.length>3?'…':'')+'</div>'+
-    '<span class="btn btn-secondary btn-sm" style="flex:none">Ver contas</span>'+
+    '<span class="btn btn-secondary btn-sm" style="flex:none">'+(soAss?'Ver assinaturas':'Ver contas')+'</span>'+
   '</div>'+extra;
 }
 
