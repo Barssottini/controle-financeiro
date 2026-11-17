@@ -4899,8 +4899,9 @@ function renderDevedores(){
 // janela carrega, e por isso vale também para as versões já instaladas. A conta
 // pessoal não perde nada: os dados seguem na nuvem e abrem no navegador e no celular.
 // Data (AAAA-MM-DD) em que a conta pessoal passa a ser barrada no app de Windows; até a
-// véspera ela só vê o aviso. Vazia = trava desligada. A data é do Pedro: combinar antes de preencher.
-const WINDOWS_EXCLUSIVO_EM='';
+// véspera ela só vê o aviso. Vazia = trava desligada. Decidida pelo Pedro em 17/11/2026, com 30 dias
+// de aviso (termos de 2026-11-17); mudar a data exige mudar os termos junto.
+const WINDOWS_EXCLUSIVO_EM='2026-12-17';
 // 'livre' | 'aviso' | 'bloqueado'. Conta ainda sem tipo passa: a pergunta vem antes.
 function estadoWindows(noApp,tipo,hoje,data=WINDOWS_EXCLUSIVO_EM){
   if(!noApp||tipo!=='pf'||!data)return 'livre';
@@ -5702,8 +5703,8 @@ function doReconcile(){
 //
 // Ao mudar os termos: atualize as duas constantes abaixo com a data do topo de
 // termos.html. O sync-termos.ps1 confere se elas batem e falha se divergirem.
-const TERMOS_VERSAO='2026-11-13';
-const TERMOS_RESUMO='Novas contas Empresariais exigem CNPJ. O tipo de conta e o CNPJ são dados cadastrais guardados no servidor, separados dos dados financeiros cifrados. A validação do CNPJ confere o formato e os dígitos verificadores; não consulta a situação fiscal na Receita Federal.';
+const TERMOS_VERSAO='2026-11-17';
+const TERMOS_RESUMO='O app para Windows passa a ser exclusivo do North Empresarial. A partir de 17/12/2026, contas pessoais deixam de abrir nele e seguem no navegador e no celular, com os mesmos dados, e-mail e senha. Nada é apagado.';
 function renderAvisoTermos(){
   const bar=document.getElementById('termos-bar');if(!bar)return;
   if(S.settings.termosVistos===TERMOS_VERSAO){bar.classList.add('hidden');return;}

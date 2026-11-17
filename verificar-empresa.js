@@ -167,7 +167,8 @@ checa('conta Empresarial no Windows: livre', C.estadoWindows(true, 'pj', '2030-0
 checa('conta pessoal no Windows, antes da data: so o aviso', C.estadoWindows(true, 'pf', vespera, W), 'aviso');
 checa('conta pessoal no Windows, na data: bloqueada', C.estadoWindows(true, 'pf', W, W), 'bloqueado');
 checa('conta ainda sem tipo passa (a pergunta vem antes)', C.estadoWindows(true, '', '2030-01-01', W), 'livre');
-checa('sem data combinada a trava fica desligada, como publicado', [C.WINDOWS_EXCLUSIVO_EM, C.estadoWindows(true, 'pf', '2030-01-01')], ['', 'livre']);
+checa('sem data a trava fica desligada', C.estadoWindows(true, 'pf', '2030-01-01', ''), 'livre');
+checa('trava combinada para 17/12/2026: aviso na vespera, bloqueio no dia', [C.WINDOWS_EXCLUSIVO_EM, C.estadoWindows(true, 'pf', '2026-12-16'), C.estadoWindows(true, 'pf', '2026-12-17'), C.estadoWindows(true, 'pj', '2026-12-17')], ['2026-12-17', 'aviso', 'bloqueado', 'livre']);
 
 // 9. Avisos do Windows: DAS a tres dias ou menos e recebimentos do dia
 tipo = 'pj'; S.settings = { regime: 'mei' }; S.transactions = [];
