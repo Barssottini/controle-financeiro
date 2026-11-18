@@ -27,6 +27,7 @@ function client(response,{tipo='pj',captcha='captcha-test'}={}){
     function passwordIssue(){return '';}
     async function getCaptcha(){return captcha;}
     function captchaOn(){return true;}
+    function captchaFalhou(){return CAPTCHA_WAIT_MSG;}
     function resetCaptcha(id){calls.push(['reset-captcha',id]);}
     function ensureCaptcha(id){calls.push(['ensure-captcha',id]);}
     async function nfAuthSecret(){return 'segredo-derivado-de-teste';}

@@ -3527,14 +3527,21 @@ function renderSubPanel(sub,acc){
 // só DEPOIS ligar o CAPTCHA no Supabase (Auth → Attack Protection) — o inverso trava todos os logins.
 const TURNSTILE_SITE_KEY='0x4AAAAAAD1ttHn84t5sEaI8';
 const captchaWidgets={};
+// Widgets em que o Cloudflare pediu o clique na caixa. No app de Windows (Electron) ele não
+// aprova sozinho: a caixa "Confirme que é humano" aparece uns 13 s depois de desenhar.
+const captchaInterativo={};
 const CAPTCHA_WAIT_MSG='Verificação de segurança não concluída. Aguarde alguns segundos e tente de novo.';
+const CAPTCHA_CAIXA_MSG='Marque a caixa "Confirme que é humano" e tente de novo.';
+function captchaFalhou(id){return captchaInterativo[id]?CAPTCHA_CAIXA_MSG:CAPTCHA_WAIT_MSG;}
 function captchaOn(){return !!TURNSTILE_SITE_KEY;}
 function ensureCaptcha(id){
   if(!captchaOn()||typeof turnstile==='undefined')return;
   if(captchaWidgets[id]!==undefined)return;
   const el=document.getElementById(id);
   if(!el)return;
-  captchaWidgets[id]=turnstile.render(el,{sitekey:TURNSTILE_SITE_KEY,theme:'light',size:'flexible',appearance:'interaction-only','refresh-expired':'auto'});
+  captchaWidgets[id]=turnstile.render(el,{sitekey:TURNSTILE_SITE_KEY,theme:'light',size:'flexible',appearance:'interaction-only','refresh-expired':'auto',
+    'before-interactive-callback':()=>{captchaInterativo[id]=true;},
+    'after-interactive-callback':()=>{captchaInterativo[id]=false;}});
 }
 async function getCaptcha(id){
   if(!captchaOn())return undefined;
@@ -3543,6 +3550,7 @@ async function getCaptcha(id){
     if(typeof turnstile!=='undefined'&&captchaWidgets[id]!==undefined){
       const t=turnstile.getResponse(captchaWidgets[id]);
       if(t)return t;
+      if(captchaInterativo[id])return null;   // esperar não adianta: falta o clique na caixa
     }
     await new Promise(r=>setTimeout(r,250));
   }
@@ -3552,6 +3560,7 @@ function resetCaptcha(id){
   // Tokens do Turnstile são de uso único — resetar após cada tentativa gera um novo.
   if(!captchaOn()||typeof turnstile==='undefined')return;
   if(captchaWidgets[id]!==undefined){try{turnstile.reset(captchaWidgets[id]);}catch(e){}}
+  captchaInterativo[id]=false;
 }
 window.tsReady=function(){ensureCaptcha('captcha-login');};
 if(TURNSTILE_SITE_KEY){
@@ -3842,7 +3851,8 @@ async function doLogin(){
   let data=null,error=null,migrated=false;
   for(let i=0;i<attempts.length;i++){
     const ct=await getCaptcha('captcha-login');
-    if(captchaOn()&&!ct){resetCaptcha('captcha-login');msg.textContent=CAPTCHA_WAIT_MSG;void err.offsetWidth;err.classList.add('show');passInput.focus();return;}
+    // Sem código não há o que resetar: resetar reinicia o desafio e some com a caixa antes de ela aparecer.
+    if(captchaOn()&&!ct){msg.textContent=captchaFalhou('captcha-login');void err.offsetWidth;err.classList.add('show');passInput.focus();return;}
     let r;
     try{r=await sb.auth.signInWithPassword({email,password:attempts[i],options:{captchaToken:ct}});}
     catch(ex){r={error:{message:'FETCH_FAIL: '+(ex&&ex.message?ex.message:String(ex))}};}
@@ -3932,7 +3942,7 @@ async function doSetup(){
     document.getElementById('setup-cnpj').focus();return;
   }
   const ct=await getCaptcha('captcha-setup');
-  if(captchaOn()&&!ct){showErr(CAPTCHA_WAIT_MSG);return;}
+  if(captchaOn()&&!ct){showErr(captchaFalhou('captcha-setup'));return;}
   const authSecret=await nfAuthSecret(email,pass);
   const {data,error}=await sb.auth.signUp({email,password:authSecret,options:{emailRedirectTo:'https://app.northfinances.com.br/',captchaToken:ct,data:TIPO_CONTA_SERVIDOR_ATIVO?{account_type:_tipoCadastro,...(cnpj?{cnpj}:{})}:{}}});
   resetCaptcha('captcha-setup');
@@ -3986,7 +3996,7 @@ async function doVerifyCode(){
 async function resendConfirm(){
   if(!pendingEmail)return;
   const ct=await getCaptcha('captcha-confirm');
-  if(captchaOn()&&!ct){showAlert(CAPTCHA_WAIT_MSG);return;}
+  if(captchaOn()&&!ct){showAlert(captchaFalhou('captcha-confirm'));return;}
   const {error}=await sb.auth.resend({type:'signup',email:pendingEmail,options:{captchaToken:ct}});
   resetCaptcha('captcha-confirm');
   showAlert(error?'Erro ao reenviar: '+error.message:'Código reenviado para '+pendingEmail);
@@ -4021,7 +4031,7 @@ async function doSendReset(){
   document.getElementById('forgot-err').style.display='none';
   const b=document.getElementById('forgot-btn');b.disabled=true;b.textContent='Enviando...';
   const ct=await getCaptcha('captcha-forgot');
-  if(captchaOn()&&!ct){b.disabled=false;b.textContent='Enviar código';forgotErr(CAPTCHA_WAIT_MSG);return;}
+  if(captchaOn()&&!ct){b.disabled=false;b.textContent='Enviar código';forgotErr(captchaFalhou('captcha-forgot'));return;}
   const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://app.northfinances.com.br/',captchaToken:ct});
   resetCaptcha('captcha-forgot');
   b.disabled=false;b.textContent='Enviar código';
