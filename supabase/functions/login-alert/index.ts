@@ -9,7 +9,7 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
 function deviceLabel(ua: string): string {
-  if (/NorthApp|Electron/i.test(ua)) return "Aplicativo North Finances (desktop)";
+  if (/NorthApp|Electron/i.test(ua)) return "App do North para Windows";
   if (/Android/i.test(ua)) return "Navegador (Android)";
   if (/iPhone|iPad/i.test(ua)) return "Navegador (iPhone/iPad)";
   if (/Windows/i.test(ua)) return "Navegador (Windows)";

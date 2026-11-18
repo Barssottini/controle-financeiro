@@ -1,7 +1,8 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 // Roda 1x/mes (dia 1, 08:00 BRT) via pg_cron. Manda o lembrete de exportar o
-// extrato SO para quem tem acesso ativo E nao desativou o lembrete. Dedup por
+// extrato para TODA conta com e-mail confirmado, Free inclusive (o North e freemium
+// desde 06/11/2026), menos quem desligou o lembrete e quem pediu exclusao. Dedup por
 // email_prefs.last_sent (nao reenvia no mesmo mes). Link de descadastrar no rodape.
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
@@ -24,32 +25,33 @@ Deno.serve(async (_req) => {
     const admin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { y, m } = todayBRT();
     const month = `${y}-${String(m).padStart(2, "0")}`;
-    const now = Date.now();
+    // Conta em exclusao nao recebe nada. Se nao der para ler a lista, nao manda para ninguem.
+    const { data: apagando, error: delError } = await admin.from("account_deletion").select("user_id");
+    if (delError) throw delError;
+    const emExclusao = new Set((apagando ?? []).map((r: { user_id: string }) => r.user_id));
 
-    const { data: subs, error } = await admin.from("subscriptions")
-      .select("user_id,status,trial_ends_at,current_period_end");
-    if (error) throw error;
+    const usuarios: { id: string; email?: string; email_confirmed_at?: string | null }[] = [];
+    for (let page = 1; ; page++) {
+      const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (error) throw error;
+      usuarios.push(...data.users);
+      if (data.users.length < 1000) break;
+    }
 
     let sent = 0, skipped = 0;
-    for (const s of subs ?? []) {
-      const trialOk = s.status === "trialing" && s.trial_ends_at && new Date(s.trial_ends_at).getTime() > now;
-      const graceOk = s.status === "canceled" && s.current_period_end && new Date(s.current_period_end).getTime() > now;
-      const active = s.status === "active" || trialOk || graceOk;
-      if (!active) { skipped++; continue; }
+    for (const u of usuarios) {
+      const email = u.email;
+      if (!email || !u.email_confirmed_at || emExclusao.has(u.id)) { skipped++; continue; }
 
       let { data: pref } = await admin.from("email_prefs")
-        .select("monthly_statement,unsub_token,last_sent").eq("user_id", s.user_id).maybeSingle();
+        .select("monthly_statement,unsub_token,last_sent").eq("user_id", u.id).maybeSingle();
       if (!pref) {
-        const ins = await admin.from("email_prefs").insert({ user_id: s.user_id })
+        const ins = await admin.from("email_prefs").insert({ user_id: u.id })
           .select("monthly_statement,unsub_token,last_sent").single();
         pref = ins.data;
       }
       if (!pref || pref.monthly_statement === false) { skipped++; continue; }
       if (pref.last_sent === month) { skipped++; continue; } // ja enviado este mes
-
-      const { data: u } = await admin.auth.admin.getUserById(s.user_id);
-      const email = u?.user?.email;
-      if (!email) { skipped++; continue; }
 
       const unsubUrl = `${SUPABASE_URL}/functions/v1/email-unsubscribe?t=${pref.unsub_token}`;
       const r = await fetch("https://api.resend.com/emails", {
@@ -68,7 +70,7 @@ Deno.serve(async (_req) => {
       });
       if (!r.ok) { console.error("RESEND_ERR", r.status, await r.text()); skipped++; continue; }
       await admin.from("email_prefs").update({ last_sent: month, updated_at: new Date().toISOString() })
-        .eq("user_id", s.user_id);
+        .eq("user_id", u.id);
       sent++;
     }
     return json({ ok: true, month, sent, skipped });

@@ -5,11 +5,12 @@ import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { planoDaConta, precoConfere } from '../functions/_shared/account-plan.ts';
 import { mensagemAssinatura } from '../functions/_shared/subscription-message.ts';
+import { chaveStripeProducao } from '../functions/_shared/stripe-live.ts';
 
 const source = readFileSync(new URL('../functions/stripe-checkout/index.ts', import.meta.url), 'utf8')
   .replace(/^import .+;\r?\n/gm, '');
 const handlerCode = stripTypeScriptTypes(source);
-const price = (amount = 4990) => ({ active: true, currency: 'brl', unit_amount: amount, recurring: { interval: 'month', interval_count: 1 } });
+const price = (amount = 4990) => ({ active: true, livemode: true, currency: 'brl', unit_amount: amount, recurring: { interval: 'month', interval_count: 1 } });
 async function run(options = {}) {
   const events = [], env = { STRIPE_SECRET_KEY: 'sk_live_fixture', SUPABASE_URL: 'https://example.test', SUPABASE_ANON_KEY: 'fixture', SUPABASE_SERVICE_ROLE_KEY: 'fixture', STRIPE_PRICE_ID: 'price_pf', STRIPE_BUSINESS_PRICE_ID: 'price_pj', ...options.env };
   let handler;
@@ -34,9 +35,9 @@ async function run(options = {}) {
       return builder;
     },
   });
-  new Function('Stripe', 'createClient', 'Deno', 'planoDaConta', 'precoConfere', handlerCode)(Stripe, createClient, {
+  new Function('Stripe', 'createClient', 'Deno', 'planoDaConta', 'precoConfere', 'chaveStripeProducao', handlerCode)(Stripe, createClient, {
     env: { get: name => env[name] }, serve: fn => { handler = fn; },
-  }, planoDaConta, precoConfere);
+  }, planoDaConta, precoConfere, chaveStripeProducao);
   const method = options.method || 'POST';
   const response = await handler(new Request('https://example.test/checkout', {
     method, headers: { Origin: options.origin || 'https://preview.example.test', Authorization: 'Bearer fixture' },
@@ -73,4 +74,10 @@ expect(businessEmail.subject, 'Assinatura confirmada — North Empresarial');
 expect(/49,90/.test(businessEmail.html) && !/19,90/.test(businessEmail.html), true);
 expect(mensagemAssinatura(planoDaConta('pf'), 1990).html.includes('19,90'), true);
 expect(mensagemAssinatura(null, null).html.includes('/mês'), false);
+// o e-mail só lista o que é do Pro: no Empresarial, painel, relatório e Windows são do Free
+expect(/Windows|contador|Faturamento/.test(businessEmail.html), false);
+for (const tipo of ['pf', 'pj']) {
+  const { html } = mensagemAssinatura(planoDaConta(tipo), tipo === 'pf' ? 1990 : 4990);
+  expect(['Contas a pagar', 'Múltiplas contas', 'Recomendação do orçamento por IA', '7 dias', 'termos.html'].every(t => html.includes(t)), true);
+}
 console.log(`CHECKOUT — ${checked} verificações passaram; preço/tipo enviados pelo cliente são ignorados.`);

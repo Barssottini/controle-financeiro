@@ -22,7 +22,8 @@ async function boasVindas(email: string, plano: AccountPlan | null, valorCentavo
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: "North Finances <nao-responda@northfinances.com.br>", to: [email], subject, html }),
+    // o e-mail convida a responder: a resposta tem de chegar no suporte, não no nao-responda
+    body: JSON.stringify({ from: "North Finances <nao-responda@northfinances.com.br>", reply_to: "suporte@northfinances.com.br", to: [email], subject, html }),
   });
   if (!r.ok) console.error("BOAS_VINDAS_RESEND_ERRO", r.status, await r.text());
 }

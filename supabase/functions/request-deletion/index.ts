@@ -18,9 +18,11 @@ const ms = (v?: string | null): number => {
   return isNaN(t) ? 0 : t;
 };
 
-async function sendEmail(email: string) {
+async function sendEmail(email: string, tinhaAssinatura: boolean) {
+  // Só fala em cobrança para quem tinha assinatura paga; quem é Free não tem o que cancelar.
+  const cobranca = tinhaAssinatura ? " Sua assinatura também foi cancelada: não haverá novas cobranças." : "";
   if (!RESEND_KEY) return;
-  const html = `<table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d0d;padding:40px 0;font-family:'Segoe UI',system-ui,Arial,sans-serif"><tr><td align="center"><table width="460" cellpadding="0" cellspacing="0" style="background:#141414;border:1px solid #262626;border-radius:16px;overflow:hidden"><tr><td style="height:3px;background:#c8903a"></td></tr><tr><td style="padding:36px 40px 8px;text-align:center"><div style="font-size:22px;font-weight:800;letter-spacing:-.5px;color:#faf9f7">North<span style="color:#c8903a">Finances</span></div></td></tr><tr><td style="padding:16px 40px 4px;text-align:center"><div style="font-size:19px;font-weight:700;color:#faf9f7;margin-bottom:8px">Você pediu para excluir sua conta</div><div style="font-size:13px;line-height:1.7;color:#b5afa9">Recebemos um pedido de exclusão da sua conta North Finances. Seus dados serão apagados <b style="color:#faf9f7">definitivamente em 15 dias</b> e sua assinatura já foi cancelada — você não será mais cobrado.</div></td></tr><tr><td style="padding:18px 40px 6px;text-align:center"><div style="font-size:13px;line-height:1.7;color:#b5afa9"><b style="color:#faf9f7">Não foi você?</b> Entre no app e clique em <b style="color:#faf9f7">“Quero reativar minha conta”</b> — isso cancela a exclusão na hora e mantém tudo intacto.</div></td></tr><tr><td style="padding:22px 40px 30px;text-align:center"><a href="https://app.northfinances.com.br/" style="display:inline-block;background:#c8903a;color:#0d0d0d;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:10px">Entrar e reativar</a></td></tr><tr><td style="padding:0 40px 32px;text-align:center;border-top:1px solid #262626"><div style="font-size:11px;color:#6b6560;line-height:1.6;margin-top:16px">Se você realmente quer excluir, não precisa fazer nada — a conta será apagada automaticamente após 15 dias.<br>North Finances · Encontre seu norte financeiro</div></td></tr></table></td></tr></table>`;
+  const html = `<table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d0d;padding:40px 0;font-family:'Segoe UI',system-ui,Arial,sans-serif"><tr><td align="center"><table width="460" cellpadding="0" cellspacing="0" style="background:#141414;border:1px solid #262626;border-radius:16px;overflow:hidden"><tr><td style="height:3px;background:#c8903a"></td></tr><tr><td style="padding:36px 40px 8px;text-align:center"><div style="font-size:22px;font-weight:800;letter-spacing:-.5px;color:#faf9f7">North<span style="color:#c8903a">Finances</span></div></td></tr><tr><td style="padding:16px 40px 4px;text-align:center"><div style="font-size:19px;font-weight:700;color:#faf9f7;margin-bottom:8px">Você pediu para excluir sua conta</div><div style="font-size:13px;line-height:1.7;color:#b5afa9">Recebemos um pedido de exclusão da sua conta North Finances. Seus dados serão apagados <b style="color:#faf9f7">definitivamente em 15 dias</b>.${cobranca}</div></td></tr><tr><td style="padding:18px 40px 6px;text-align:center"><div style="font-size:13px;line-height:1.7;color:#b5afa9"><b style="color:#faf9f7">Não foi você?</b> Entre no app e clique em <b style="color:#faf9f7">“Quero reativar minha conta”</b> — isso cancela a exclusão na hora e mantém tudo intacto.</div></td></tr><tr><td style="padding:22px 40px 30px;text-align:center"><a href="https://app.northfinances.com.br/" style="display:inline-block;background:#c8903a;color:#0d0d0d;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:10px">Entrar e reativar</a></td></tr><tr><td style="padding:0 40px 32px;text-align:center;border-top:1px solid #262626"><div style="font-size:11px;color:#6b6560;line-height:1.6;margin-top:16px">Se você realmente quer excluir, não precisa fazer nada — a conta será apagada automaticamente após 15 dias.<br>North Finances · Encontre seu norte financeiro</div></td></tr></table></td></tr></table>`;
   await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
@@ -36,11 +38,13 @@ async function sendEmail(email: string) {
 // "Quero reativar minha conta" voltaria com status 'canceled' e, sem
 // current_period_end, cairia direto no paywall mesmo tendo pago o mes.
 // deno-lint-ignore no-explicit-any
-async function cancelBilling(admin: any, uid: string) {
+async function cancelBilling(admin: any, uid: string): Promise<boolean> {
+  let tinhaAssinatura = false;
   try {
     const { data: sub } = await admin.from("subscriptions")
       .select("stripe_subscription_id,current_period_end,trial_ends_at")
       .eq("user_id", uid).maybeSingle();
+    tinhaAssinatura = !!sub?.stripe_subscription_id;
 
     let fimPago: number | null = null;
     if (sub?.stripe_subscription_id && STRIPE_KEY) {
@@ -56,6 +60,7 @@ async function cancelBilling(admin: any, uid: string) {
 
     await admin.from("subscriptions").update(patch).eq("user_id", uid);
   } catch (e) { console.error("CANCEL_BILLING_FAIL", uid, String(e)); }
+  return tinhaAssinatura;
 }
 
 Deno.serve(async (req) => {
@@ -67,8 +72,8 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "unauthorized" }, 401);
     const admin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     await admin.from("account_deletion").upsert({ user_id: user.id, requested_at: new Date().toISOString() });
-    await cancelBilling(admin, user.id);
-    if (user.email) { try { await sendEmail(user.email); } catch (_e) { /* email best-effort */ } }
+    const tinhaAssinatura = await cancelBilling(admin, user.id);
+    if (user.email) { try { await sendEmail(user.email, tinhaAssinatura); } catch (_e) { /* email best-effort */ } }
     return json({ ok: true });
   } catch (e) {
     console.error("REQ_DELETION_ERROR", String(e));
