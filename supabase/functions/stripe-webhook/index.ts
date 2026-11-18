@@ -23,7 +23,7 @@ async function boasVindas(email: string, plano: AccountPlan | null, valorCentavo
     method: "POST",
     headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
     // o e-mail convida a responder: a resposta tem de chegar no suporte, não no nao-responda
-    body: JSON.stringify({ from: "North Finances <nao-responda@northfinances.com.br>", reply_to: "suporte@northfinances.com.br", to: [email], subject, html }),
+    body: JSON.stringify({ from: "North Finances <nao-responda@northfinances.com.br>", reply_to: "contato@pbgtecnologia.com", to: [email], subject, html }),
   });
   if (!r.ok) console.error("BOAS_VINDAS_RESEND_ERRO", r.status, await r.text());
 }

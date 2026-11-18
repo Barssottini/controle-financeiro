@@ -2038,7 +2038,7 @@ html.splash-active{background:#000;scrollbar-color:#000 #000}   /* barra de rola
         <div class="panel-head"><span class="panel-title">Suporte</span></div>
         <p style="font-size:13px;color:var(--ink2);margin-bottom:12px">Precisa de ajuda ou tem alguma dúvida? Fale com a gente — respondemos por e-mail.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <a class="btn btn-secondary" href="mailto:suporte@northfinances.com.br" style="text-decoration:none">Falar com o suporte</a>
+          <a class="btn btn-secondary" href="mailto:contato@pbgtecnologia.com" style="text-decoration:none">Falar com o suporte</a>
           <a class="btn btn-secondary" href="manual.html" target="_blank" rel="noopener" style="text-decoration:none">Ver manual do usuário</a>
         </div>
       </div>
@@ -5714,8 +5714,8 @@ function doReconcile(){
 //
 // Ao mudar os termos: atualize as duas constantes abaixo com a data do topo de
 // termos.html. O sync-termos.ps1 confere se elas batem e falha se divergirem.
-const TERMOS_VERSAO='2026-11-18.2';
-const TERMOS_RESUMO='O North Finances passa a ser operado pela PBG TECNOLOGIA LIMITADA, empresa do mesmo fundador, que assume como controladora dos seus dados. Nada muda no que você usa nem em como os seus dados são protegidos.';
+const TERMOS_VERSAO='2026-11-18.3';
+const TERMOS_RESUMO='O North Finances passa a ser operado pela PBG TECNOLOGIA LIMITADA, empresa do mesmo fundador, que assume como controladora dos seus dados. O atendimento e os pedidos de privacidade passam para contato@pbgtecnologia.com. Nada muda no que você usa nem em como os seus dados são protegidos.';
 function renderAvisoTermos(){
   const bar=document.getElementById('termos-bar');if(!bar)return;
   if(S.settings.termosVistos===TERMOS_VERSAO){bar.classList.add('hidden');return;}
